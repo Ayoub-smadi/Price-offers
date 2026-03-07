@@ -1,38 +1,40 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { quotations, quotationItems, type InsertQuotation, type QuotationWithItems } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getQuotations(): Promise<QuotationWithItems[]>;
+  getQuotation(id: number): Promise<QuotationWithItems | undefined>;
+  createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getQuotations(): Promise<QuotationWithItems[]> {
+    const qList = await db.select().from(quotations);
+    const result: QuotationWithItems[] = [];
+    for (const q of qList) {
+      const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
+      result.push({ ...q, items });
+    }
+    return result;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getQuotation(id: number): Promise<QuotationWithItems | undefined> {
+    const [q] = await db.select().from(quotations).where(eq(quotations.id, id));
+    if (!q) return undefined;
+    const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
+    return { ...q, items };
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems> {
+    const [newQ] = await db.insert(quotations).values(quotation).returning();
+    const itemsToInsert = items.map(item => ({ ...item, quotationId: newQ.id }));
+    let newItems: any[] = [];
+    if (itemsToInsert.length > 0) {
+      newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
+    }
+    return { ...newQ, items: newItems };
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

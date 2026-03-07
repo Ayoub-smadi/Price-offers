@@ -1,18 +1,54 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const quotations = pgTable("quotations", {
+  id: serial("id").primaryKey(),
+  quotationNumber: text("quotation_number").notNull(),
+  customerName: text("customer_name").notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  notes: text("notes"),
+  grandTotal: numeric("grand_total").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const quotationItems = pgTable("quotation_items", {
+  id: serial("id").primaryKey(),
+  quotationId: integer("quotation_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  quantity: integer("quantity").notNull(),
+  price: numeric("price").notNull(),
+  total: numeric("total").notNull(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export const quotationsRelations = relations(quotations, ({ many }) => ({
+  items: many(quotationItems),
+}));
+
+export const quotationItemsRelations = relations(quotationItems, ({ one }) => ({
+  quotation: one(quotations, {
+    fields: [quotationItems.quotationId],
+    references: [quotations.id],
+  }),
+}));
+
+export const insertQuotationSchema = createInsertSchema(quotations).omit({ id: true, createdAt: true });
+export const insertQuotationItemSchema = createInsertSchema(quotationItems).omit({ id: true });
+
+export type Quotation = typeof quotations.$inferSelect;
+export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
+
+export type QuotationItem = typeof quotationItems.$inferSelect;
+export type InsertQuotationItem = z.infer<typeof insertQuotationItemSchema>;
+
+export const createQuotationRequestSchema = insertQuotationSchema.extend({
+  items: z.array(insertQuotationItemSchema.omit({ quotationId: true })),
+});
+
+export type CreateQuotationRequest = z.infer<typeof createQuotationRequestSchema>;
+
+export type QuotationWithItems = Quotation & {
+  items: QuotationItem[];
+};
