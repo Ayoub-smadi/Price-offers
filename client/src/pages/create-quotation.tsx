@@ -3,11 +3,11 @@ import {
   Plus, FileText, Download, Printer, Save, FileSpreadsheet, 
   Wand2, Trash2, Image as ImageIcon, CheckCircle2 
 } from "lucide-react";
-import { useCreateQuotation, useParseText } from "@/hooks/use-theme" // Assuming standard imports, but wait, correcting to correct hooks
 import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
 import { format } from "date-fns";
+import logoImage from "@assets/image_1772873421057.png";
 
 type Item = {
   id: string;
@@ -30,7 +30,9 @@ export default function CreateQuotation() {
   const [details, setDetails] = useState({
     quotationNumber: `Q-${Math.floor(Math.random() * 10000)}`,
     customerName: "",
-    companyName: "شركتي للتجارة",
+    companyName: "مؤسسة ومشاتل القدري الزراعية",
+    companyNameEn: "Al-Qadri Agricultural Foundation and Nurseries",
+    companyLocation: "جرش - الرشيدية",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "نأمل أن ينال عرضنا إعجابكم. صالح لمدة 30 يوماً.",
   });
@@ -230,90 +232,111 @@ export default function CreateQuotation() {
       {/* DOCUMENT AREA (Printable) */}
       <div id="quotation-document" className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl p-8 sm:p-12 space-y-12">
         
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between gap-8 border-b border-border/50 pb-8">
-          <div className="space-y-4 flex-1">
-            <div>
-              <label className="text-sm font-semibold text-muted-foreground mb-1 block no-print">اسم الشركة</label>
-              <input 
-                value={details.companyName}
-                onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-3xl font-extrabold text-primary bg-transparent border-none p-0 focus:ring-0 w-full"
-                placeholder="اسم شركتك"
-              />
-            </div>
-            
-            <div className="space-y-3 pt-4">
-              <div className="flex items-center gap-4">
-                <span className="w-24 text-muted-foreground font-medium">عرض مقدم لـ:</span>
-                <input 
-                  value={details.customerName}
-                  onChange={(e) => setDetails({...details, customerName: e.target.value})}
-                  className="flex-1 border-b border-dashed border-border/50 bg-transparent py-1 focus:border-primary focus:outline-none transition-colors font-semibold text-lg"
-                  placeholder="اسم العميل / الشركة"
-                />
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="w-24 text-muted-foreground font-medium">التاريخ:</span>
-                <input 
-                  type="date"
-                  value={details.date}
-                  onChange={(e) => setDetails({...details, date: e.target.value})}
-                  className="flex-1 border-b border-dashed border-border/50 bg-transparent py-1 focus:border-primary focus:outline-none transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-end gap-4">
-            <div className="text-left w-full sm:w-auto">
-              <span className="text-4xl font-black text-muted-foreground/30 uppercase tracking-wider block">QUOTE</span>
-              <input 
-                value={details.quotationNumber}
-                onChange={(e) => setDetails({...details, quotationNumber: e.target.value})}
-                className="text-xl font-bold text-foreground text-left bg-transparent border-none p-0 focus:ring-0 w-full"
-                dir="ltr"
-              />
-            </div>
-            
-            {/* Logo Upload */}
-            <div className="relative group w-32 h-32 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-secondary/30 flex flex-col items-center justify-center">
+        {/* Header Section - Professional Layout */}
+        <div className="flex flex-col sm:flex-row justify-between gap-8 border-b-2 border-border/50 pb-8">
+          {/* Logo and Company Info */}
+          <div className="flex flex-col sm:flex-row gap-6 flex-1 items-start">
+            {/* Logo */}
+            <div className="relative group w-32 h-32 flex-shrink-0 rounded-xl overflow-hidden bg-white dark:bg-white/5 flex flex-col items-center justify-center border border-border/30">
               {logoBase64 ? (
                 <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
               ) : (
-                <div className="text-center p-4 text-muted-foreground no-print">
-                  <ImageIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <span className="text-xs">إضافة شعار</span>
-                </div>
+                <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-2" />
               )}
               <input 
                 type="file" 
                 accept="image/*"
                 onChange={handleLogoUpload}
                 className="absolute inset-0 opacity-0 cursor-pointer no-print"
+                title="انقر لتحميل شعار جديد"
               />
-              {logoBase64 && (
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center no-print">
-                  <span className="text-white text-xs font-bold pointer-events-none">تغيير الشعار</span>
+              {!logoBase64 && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center no-print">
+                  <span className="text-xs font-bold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">تغيير</span>
                 </div>
               )}
+            </div>
+
+            {/* Company Details */}
+            <div className="space-y-3 flex-1">
+              <div>
+                <label className="text-xs font-semibold text-muted-foreground mb-1 block no-print">اسم الشركة</label>
+                <input 
+                  value={details.companyName}
+                  onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                  className="text-2xl font-black text-foreground bg-transparent border-none p-0 focus:ring-0 w-full"
+                  placeholder="اسم الشركة"
+                />
+              </div>
+              <input 
+                value={details.companyNameEn}
+                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
+                className="text-sm font-semibold text-muted-foreground bg-transparent border-none p-0 focus:ring-0 w-full"
+                placeholder="Company Name in English"
+                dir="ltr"
+              />
+              <input 
+                value={details.companyLocation}
+                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                className="text-sm text-muted-foreground bg-transparent border-none p-0 focus:ring-0 w-full"
+                placeholder="الموقع / المحافظة"
+              />
+            </div>
+          </div>
+
+          {/* Quote Number and Date - Right Side */}
+          <div className="flex flex-col items-end justify-between gap-6 text-right">
+            <div className="text-right">
+              <span className="text-xs uppercase font-bold text-muted-foreground/60 block mb-1">رقم العرض</span>
+              <input 
+                value={details.quotationNumber}
+                onChange={(e) => setDetails({...details, quotationNumber: e.target.value})}
+                className="text-3xl font-black text-primary bg-transparent border-none p-0 focus:ring-0"
+                dir="ltr"
+              />
+            </div>
+            
+            <div className="text-right">
+              <span className="text-xs font-bold text-muted-foreground block mb-2">التاريخ</span>
+              <input 
+                type="date"
+                value={details.date}
+                onChange={(e) => setDetails({...details, date: e.target.value})}
+                className="text-sm font-semibold bg-transparent border-b-2 border-primary/30 focus:border-primary outline-none py-1 px-0 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Info Section */}
+        <div className="bg-secondary/30 rounded-xl p-6 border border-border/20 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="text-sm font-bold text-foreground mb-2 block">عرض السعر مقدم لـ:</label>
+              <input 
+                value={details.customerName}
+                onChange={(e) => setDetails({...details, customerName: e.target.value})}
+                className="w-full px-4 py-3 bg-background border border-border/50 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-semibold"
+                placeholder="اسم العميل أو الشركة"
+              />
             </div>
           </div>
         </div>
 
         {/* Editable Table */}
-        <div className="space-y-4">
-          <div className="overflow-x-auto">
+        <div className="space-y-6">
+          <h3 className="text-xl font-bold text-foreground">تفاصيل البضائع والخدمات</h3>
+          <div className="overflow-x-auto rounded-xl border border-border/30">
             <table className="w-full text-right border-collapse">
               <thead>
-                <tr className="bg-secondary/80 text-secondary-foreground">
-                  <th className="p-3 font-bold rounded-tr-xl w-12 text-center">#</th>
-                  <th className="p-3 font-bold w-1/4">الصنف</th>
-                  <th className="p-3 font-bold w-1/3">الوصف</th>
-                  <th className="p-3 font-bold w-24 text-center">الكمية</th>
-                  <th className="p-3 font-bold w-32 text-center">السعر</th>
-                  <th className="p-3 font-bold w-32 text-center">الإجمالي</th>
-                  <th className="p-3 w-12 rounded-tl-xl no-print"></th>
+                <tr className="bg-gradient-to-l from-primary/20 to-primary/10 text-foreground border-b border-border">
+                  <th className="p-4 font-bold text-center w-12">#</th>
+                  <th className="p-4 font-bold text-right">الصنف</th>
+                  <th className="p-4 font-bold text-right">الوصف</th>
+                  <th className="p-4 font-bold text-center w-28">الكمية</th>
+                  <th className="p-4 font-bold text-center w-32">السعر الواحد</th>
+                  <th className="p-4 font-bold text-center w-32">الإجمالي</th>
+                  <th className="p-4 w-12 no-print"></th>
                 </tr>
               </thead>
               <tbody>
