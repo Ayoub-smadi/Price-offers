@@ -132,8 +132,14 @@ export default function CreateQuotation() {
   };
 
   const handleSave = () => {
-    if (!details.customerName) {
+    if (!details.customerName.trim()) {
       toast({ title: "مطلوب اسم العميل", variant: "destructive" });
+      return;
+    }
+    
+    const validItems = items.filter(i => i.name.trim());
+    if (validItems.length === 0) {
+      toast({ title: "مطلوب إضافة عناصر", description: "أضف على الأقل عنصر واحد", variant: "destructive" });
       return;
     }
     
@@ -143,18 +149,25 @@ export default function CreateQuotation() {
       date: new Date(details.date),
       notes: details.notes,
       grandTotal: grandTotal.toString(),
-      items: items.map(i => ({
-        name: i.name,
-        description: `${i.botanicalName}\n${i.description}`,
-        quantity: i.quantity,
-        price: i.price.toString(),
-        total: i.total.toString(),
+      items: validItems.map(i => ({
+        name: i.name.trim(),
+        description: [i.botanicalName, i.description].filter(Boolean).join('\n'),
+        quantity: Math.max(1, i.quantity),
+        price: Math.max(0, i.price).toString(),
+        total: Math.max(0, i.total).toString(),
       }))
     }, {
       onSuccess: () => {
         toast({
           title: "تم الحفظ",
           description: "تم حفظ عرض السعر بنجاح.",
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "خطأ في الحفظ",
+          description: error.message || "فشل حفظ عرض السعر",
+          variant: "destructive"
         });
       }
     });

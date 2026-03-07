@@ -39,7 +39,9 @@ export function useCreateQuotation() {
         credentials: "include",
       });
       if (!res.ok) {
-        throw new Error("Failed to create quotation");
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.message || `خطأ: ${res.statusText}`;
+        throw new Error(errorMessage);
       }
       return api.quotations.create.responses[201].parse(await res.json());
     },
