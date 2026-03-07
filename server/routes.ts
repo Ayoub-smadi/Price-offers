@@ -61,38 +61,44 @@ export async function registerRoutes(
     try {
       const input = api.parser.parseText.input.parse(req.body);
       
-      const lines = input.text.split('\\n').filter(l => l.trim() !== '');
+      const lines = input.text.split('\n').filter(l => l.trim() !== '');
       const items = lines.map(line => {
-        const tokens = line.trim().split(/\\s+/);
+        const trimmedLine = line.trim();
+        if (!trimmedLine) return null;
+        
+        // Extract all numbers from the line
+        const numberPattern = /(\d+(?:[.,]\d+)?)/g;
+        const numbers = trimmedLine.match(numberPattern) || [];
+        const normalizedNumbers = numbers.map(n => parseFloat(n.replace(',', '.')));
+        
+        // Extract the text (remove numbers from the line)
+        let nameText = trimmedLine.replace(numberPattern, '').trim();
         
         let qty = 1;
         let price = 0;
-        let nameParts = [];
         
-        const maybePrice = tokens.length > 0 ? Number(tokens[tokens.length - 1]) : NaN;
-        const maybeQty = tokens.length > 1 ? Number(tokens[tokens.length - 2]) : NaN;
-        
-        if (!isNaN(maybePrice) && !isNaN(maybeQty)) {
-          price = maybePrice;
-          qty = maybeQty;
-          nameParts = tokens.slice(0, tokens.length - 2);
-        } else if (!isNaN(maybePrice)) {
-          price = maybePrice;
-          nameParts = tokens.slice(0, tokens.length - 1);
-        } else {
-          nameParts = tokens;
+        // Try to identify price and quantity from numbers
+        if (normalizedNumbers.length >= 2) {
+          // Assume last number is price, second-to-last is quantity
+          price = normalizedNumbers[normalizedNumbers.length - 1];
+          qty = normalizedNumbers[normalizedNumbers.length - 2];
+        } else if (normalizedNumbers.length === 1) {
+          // Only one number - assume it's price
+          price = normalizedNumbers[0];
+          qty = 1;
         }
-
-        const name = nameParts.join(' ');
+        
+        // If we couldn't extract name, use a generic name
+        const name = nameText || `منتج #${normalizedNumbers.join('-') || 'unknown'}`;
         
         return {
-          name: name || "عنصر غير معروف",
+          name: name.trim() || "عنصر غير معروف",
           description: "",
-          quantity: qty,
-          price: price,
-          total: qty * price
+          quantity: Math.max(qty, 1), // Ensure quantity is at least 1
+          price: Math.max(price, 0),  // Ensure price is not negative
+          total: Math.max(qty, 1) * Math.max(price, 0)
         };
-      });
+      }).filter(item => item !== null);
 
       res.json({ items });
     } catch (err) {
