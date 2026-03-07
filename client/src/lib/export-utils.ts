@@ -122,7 +122,8 @@ export const exportToPDF = async (elementId: string, filename: string) => {
       scale: 2, // High resolution
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      allowTaint: true
     });
     
     element.classList.remove('print-only');
@@ -136,9 +137,33 @@ export const exportToPDF = async (elementId: string, filename: string) => {
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pdfHeight = pdf.internal.pageSize.getHeight();
     
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    // Calculate total height needed for content
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    
+    // If content fits on one page, add it normally
+    if (imgHeight <= pdfHeight) {
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+    } else {
+      // Split content across multiple pages
+      let heightLeft = imgHeight;
+      let position = 0;
+      const pageHeight = pdfHeight;
+      
+      // First page
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Additional pages
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+    }
+    
     pdf.save(`${filename}.pdf`);
   } catch (error) {
     console.error("Failed to generate PDF:", error);
