@@ -4,18 +4,46 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export const exportToExcel = (items: any[], quotationDetails: any) => {
+  // Prepare items data
   const data = items.map((item, index) => ({
     '#': index + 1,
     'الصنف': item.name,
+    'الاسم النباتي': item.botanicalName || '',
     'الوصف': item.description || '',
     'الكمية': item.quantity,
+    'الوحدة': item.unit || 'وحدة',
     'السعر': item.price,
     'الإجمالي': item.total,
   }));
 
+  // Add grand total row
+  data.push({
+    '#': '',
+    'الصنف': '',
+    'الاسم النباتي': '',
+    'الوصف': 'المجموع الكلي',
+    'الكمية': '',
+    'الوحدة': '',
+    'السعر': '',
+    'الإجمالي': quotationDetails.grandTotal,
+  });
+
   const worksheet = XLSX.utils.json_to_sheet(data);
+  
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 4 },   // #
+    { wch: 20 },  // الصنف
+    { wch: 18 },  // الاسم النباتي
+    { wch: 20 },  // الوصف
+    { wch: 8 },   // الكمية
+    { wch: 10 },  // الوحدة
+    { wch: 12 },  // السعر
+    { wch: 12 },  // الإجمالي
+  ];
+
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Quotation");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "عرض السعر");
   XLSX.writeFile(workbook, `${quotationDetails.quotationNumber || 'Quotation'}.xlsx`);
 };
 
