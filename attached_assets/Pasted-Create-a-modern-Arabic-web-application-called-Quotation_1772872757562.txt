@@ -1,0 +1,135 @@
+Create a modern Arabic web application called "عروض أسعار" (Quotation Generator).
+
+The application should be simple, professional, and fast. Its purpose is to take unorganized text from the user and automatically convert it into a structured quotation table.
+
+Main Idea
+
+The user pastes product lines or items as text, and the system automatically organizes them into a table with the following columns:
+
+| # | الصنف | الوصف | الكمية | السعر | الإجمالي |
+
+The system must automatically:
+
+Number the rows.
+
+Calculate the total price (الكمية × السعر).
+
+Calculate the final total for the quotation.
+
+Example Input
+
+If the user writes something like:
+
+مجنونة 3م 30 5
+جولد ستار 1.5م 40 3
+اكاسيا جيلوقا 3م 15 4
+
+The system automatically converts it to a table.
+
+Features Required
+
+Smart Text Parser
+
+Reads pasted text.
+
+Detects name, description, quantity, and price automatically.
+
+Generates rows in the quotation table.
+
+Editable Table
+User can modify:
+
+quantity
+
+price
+
+description
+
+Automatic Calculations
+
+Row total = quantity × price
+
+Grand total at bottom
+
+Export Buttons
+Add 3 export buttons:
+
+Export to Excel (.xlsx)
+Export to Word (.docx)
+Export to PDF (.pdf)
+
+Files should be generated instantly with the formatted quotation table.
+
+Design
+Modern clean UI with:
+
+Arabic RTL layout
+
+Professional quotation layout
+
+Company header section
+
+Date field
+
+Customer name
+
+Notes section
+
+Grand total highlighted
+
+One Click Generate
+User pastes text → clicks "إنشاء عرض السعر" → table appears instantly.
+
+Extra Professional Features
+Add:
+
+Company logo upload
+
+Automatic quotation number
+
+Save quotation
+
+Print quotation
+
+Dark mode toggle
+
+Download buttons for Excel, Word, PDF
+
+Technology
+
+Use:
+
+HTML
+
+CSS
+
+JavaScript
+
+SheetJS for Excel export
+
+jsPDF for PDF export
+
+docx library for Word export
+
+UI Language
+
+Interface must be Arabic RTL.
+
+Page Layout
+
+Page sections:
+
+Header
+Company Information
+Customer Information
+Paste Items Area
+Generate Button
+Quotation Table
+Total Section
+Export Buttons
+
+Name of the App
+
+Title at the top:
+
+نظام إنشاء عروض الأسعار الذكي
