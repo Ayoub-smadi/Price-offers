@@ -237,168 +237,171 @@ export default function CreateQuotation() {
       </div>
 
       {/* DOCUMENT AREA (Printable) */}
-      <div id="quotation-document" className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl p-8 sm:p-10 space-y-8">
+      <div id="quotation-document" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-3xl p-10 sm:p-12 space-y-8 print:shadow-none print:border-slate-300">
         
         {/* Header Section - Professional Layout */}
-        <div className="space-y-6 text-center pb-6 border-b-2 border-border/30">
-          {/* Logo */}
-          <div className="relative group w-24 h-24 mx-auto rounded-xl overflow-hidden bg-white dark:bg-white/5 flex flex-col items-center justify-center border border-border/30">
-            {logoBase64 ? (
-              <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-1" />
-            ) : (
-              <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-1" />
-            )}
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={handleLogoUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer no-print"
-              title="انقر لتحميل شعار جديد"
-            />
-            {!logoBase64 && (
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center no-print">
-                <span className="text-xs font-bold pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">تغيير</span>
+        <div className="space-y-8 pb-8 border-b-2 border-slate-200 dark:border-slate-800">
+          {/* Logo Section */}
+          <div className="flex flex-col items-center">
+            <div className="relative group w-32 h-32 rounded-xl overflow-hidden bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center border-2 border-slate-300 dark:border-slate-700 shadow-md hover:shadow-lg transition-all">
+              {logoBase64 ? (
+                <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 w-full h-full">
+                  <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-2" />
+                </div>
+              )}
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer no-print"
+                title="انقر لتحميل شعار جديد"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center no-print pointer-events-none">
+                <div className="text-center">
+                  <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity block text-slate-700 dark:text-slate-300">تغيير الشعار</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Company Info */}
-          <div className="space-y-1">
+          {/* Company Info - Centered and Professional */}
+          <div className="space-y-3 text-center">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block no-print">اسم الشركة</label>
+              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 block no-print">اسم الشركة</label>
               <input 
                 value={details.companyName}
                 onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-xl font-black text-foreground bg-transparent border-none p-0 focus:ring-0 w-full text-center"
+                className="text-3xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none"
                 placeholder="اسم الشركة"
               />
             </div>
-            <input 
-              value={details.companyNameEn}
-              onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-              className="text-xs font-semibold text-muted-foreground bg-transparent border-none p-0 focus:ring-0 w-full text-center"
-              placeholder="Company Name in English"
-              dir="ltr"
-            />
-            <input 
-              value={details.companyLocation}
-              onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
-              className="text-xs text-muted-foreground bg-transparent border-none p-0 focus:ring-0 w-full text-center"
-              placeholder="الموقع"
-            />
+            <div className="space-y-1">
+              <input 
+                value={details.companyNameEn}
+                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none"
+                placeholder="Company Name in English"
+                dir="ltr"
+              />
+              <input 
+                value={details.companyLocation}
+                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none"
+                placeholder="الموقع"
+              />
+            </div>
           </div>
 
-          {/* Date and Number */}
-          <div className="flex justify-between items-center text-sm">
-            <div className="text-right">
-              <span className="text-xs font-bold text-muted-foreground/60 block">التاريخ</span>
+          {/* Meta Information - Clean Grid */}
+          <div className="grid grid-cols-3 gap-6 pt-4">
+            <div className="text-center">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block">التاريخ</label>
               <input 
                 type="date"
                 value={details.date}
                 onChange={(e) => setDetails({...details, date: e.target.value})}
-                className="text-xs font-semibold bg-transparent border-b border-muted-foreground/30 focus:border-primary outline-none py-1 px-0"
+                className="text-sm font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-700 focus:border-blue-500 outline-none py-2 px-0 w-full text-center"
               />
             </div>
             <div className="text-center">
-              <span className="text-xs font-bold text-muted-foreground/60">عرض سعر رقم</span>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block">عرض سعر رقم</label>
               <input 
                 value={details.quotationNumber}
                 onChange={(e) => setDetails({...details, quotationNumber: e.target.value})}
-                className="text-lg font-black text-foreground bg-transparent border-none p-0 focus:ring-0 block"
+                className="text-2xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none"
               />
             </div>
-          </div>
-
-          {/* Customer Name */}
-          <div className="text-sm">
-            <span className="text-muted-foreground">السادة </span>
-            <input 
-              value={details.customerName}
-              onChange={(e) => setDetails({...details, customerName: e.target.value})}
-              className="text-sm font-bold text-foreground bg-transparent border-b border-muted-foreground/30 focus:border-primary outline-none inline py-1 px-1 focus:ring-0 min-w-64 no-print"
-              placeholder="اسم العميل"
-            />
-            <span className="text-muted-foreground"> /المحترمين.</span>
+            <div className="text-center">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 block no-print">العميل</label>
+              <input 
+                value={details.customerName}
+                onChange={(e) => setDetails({...details, customerName: e.target.value})}
+                className="text-sm font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-700 focus:border-blue-500 outline-none py-2 px-0 w-full text-center no-print"
+                placeholder="اسم العميل"
+              />
+            </div>
           </div>
         </div>
 
         {/* Editable Table - Professional */}
-        <div className="overflow-x-auto rounded-lg border border-border/30">
+        <div className="overflow-x-auto rounded-xl border-2 border-slate-200 dark:border-slate-800">
           <table className="w-full text-right text-sm border-collapse">
             <thead>
-              <tr className="bg-secondary/80 text-secondary-foreground border-b-2 border-border">
-                <th className="p-2 font-bold text-center w-8">#</th>
-                <th className="p-2 font-bold text-right">الصنف</th>
-                <th className="p-2 font-bold text-right">الاسم النباتي / الاسم الشائع</th>
-                <th className="p-2 font-bold text-right">الوصف</th>
-                <th className="p-2 font-bold text-center w-20">الكمية</th>
-                <th className="p-2 font-bold text-center w-20">الوحدة</th>
-                <th className="p-2 font-bold text-center w-24">السعر</th>
-                <th className="p-2 font-bold text-center w-24">الإجمالي</th>
-                <th className="p-2 w-8 no-print"></th>
+              <tr className="bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-700 dark:to-slate-600 text-white border-b-2 border-slate-200 dark:border-slate-800">
+                <th className="p-3 font-bold text-center w-8">#</th>
+                <th className="p-3 font-bold text-right">الصنف</th>
+                <th className="p-3 font-bold text-right">الاسم النباتي / الاسم الشائع</th>
+                <th className="p-3 font-bold text-right">الوصف</th>
+                <th className="p-3 font-bold text-center w-20">الكمية</th>
+                <th className="p-3 font-bold text-center w-20">الوحدة</th>
+                <th className="p-3 font-bold text-center w-24">السعر</th>
+                <th className="p-3 font-bold text-center w-24">الإجمالي</th>
+                <th className="p-3 w-8 no-print"></th>
               </tr>
             </thead>
             <tbody>
               {items.map((item, index) => (
-                <tr key={item.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors group">
-                  <td className="p-2 text-center text-muted-foreground font-medium">{index + 1}</td>
-                  <td className="p-2">
+                <tr key={item.id} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group">
+                  <td className="p-3 text-center text-slate-600 dark:text-slate-400 font-semibold">{index + 1}</td>
+                  <td className="p-3">
                     <input 
                       value={item.name}
                       onChange={(e) => updateItem(item.id, 'name', e.target.value)}
-                      className="w-full bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-sm focus:bg-background transition-colors"
+                      className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium"
                       placeholder="الصنف"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <input 
                       value={item.botanicalName}
                       onChange={(e) => updateItem(item.id, 'botanicalName', e.target.value)}
-                      className="w-full bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-xs text-muted-foreground focus:bg-background transition-colors"
+                      className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors"
                       placeholder="الاسم النباتي"
                     />
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <input 
                       value={item.description}
                       onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                      className="w-full bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-xs text-muted-foreground focus:bg-background transition-colors"
+                      className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors"
                       placeholder="الوصف"
                     />
                   </td>
-                  <td className="p-2 text-center">
+                  <td className="p-3 text-center">
                     <input 
                       type="number"
                       min="1"
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                      className="w-full text-center bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-sm focus:bg-background transition-colors"
+                      className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium"
                     />
                   </td>
-                  <td className="p-2 text-center">
+                  <td className="p-3 text-center">
                     <input 
                       value={item.unit}
                       onChange={(e) => updateItem(item.id, 'unit', e.target.value)}
-                      className="w-full text-center bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-sm focus:bg-background transition-colors"
+                      className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors"
                       placeholder="وحدة"
                     />
                   </td>
-                  <td className="p-2 text-center">
+                  <td className="p-3 text-center">
                     <input 
                       type="number"
                       min="0"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
-                      className="w-full text-center bg-transparent border border-transparent hover:border-border focus:border-primary px-1 py-1 rounded text-sm focus:bg-background transition-colors font-medium"
+                      className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-semibold"
                     />
                   </td>
-                  <td className="p-2 text-center font-semibold text-foreground">
+                  <td className="p-3 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
                     {item.total.toLocaleString()}
                   </td>
-                  <td className="p-2 text-center no-print">
+                  <td className="p-3 text-center no-print">
                     <button 
                       onClick={() => removeItem(item.id)}
-                      className="text-muted-foreground hover:text-destructive p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+                      className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-red-50 dark:hover:bg-red-900/20"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -418,42 +421,43 @@ export default function CreateQuotation() {
         </button>
 
         {/* Footer Section */}
-        <div className="space-y-4 text-sm">
-          <div>
-            <label className="text-xs font-bold text-foreground mb-2 block">ملاحظات:</label>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">ملاحظات:</label>
             <textarea 
               value={details.notes}
               onChange={(e) => setDetails({...details, notes: e.target.value})}
-              className="w-full h-16 p-2 bg-secondary/30 border border-border/50 rounded-lg focus:border-primary focus:bg-background transition-all resize-none text-muted-foreground text-xs"
+              className="w-full h-20 p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 transition-all resize-none text-slate-700 dark:text-slate-300 text-sm"
               placeholder="شروط الدفع، مدة التوريد، إلخ..."
             />
           </div>
 
-          <div className="text-right border-t-2 border-border/30 pt-4">
-            <div className="font-bold text-foreground text-base">المجموع الكلي: <span className="text-lg">{grandTotal.toLocaleString()}</span></div>
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 text-white rounded-xl p-5 text-center shadow-lg">
+            <div className="text-sm font-semibold mb-1 opacity-90">المجموع الكلي</div>
+            <div className="text-3xl font-black">{grandTotal.toLocaleString()}</div>
           </div>
         </div>
 
         {/* Signature Section */}
-        <div className="border-t-2 border-border/30 pt-6 text-center text-xs space-y-3 text-muted-foreground">
-          <div className="font-semibold text-foreground">مؤسسة ومشاتل القدري الزراعية</div>
-          <div className="space-y-1">
+        <div className="border-t-2 border-slate-200 dark:border-slate-800 pt-6 text-center text-xs space-y-3">
+          <div className="font-bold text-slate-900 dark:text-slate-50 text-sm">مؤسسة ومشاتل القدري الزراعية</div>
+          <div className="space-y-2 text-slate-600 dark:text-slate-400">
             <input 
               value={details.phone}
               onChange={(e) => setDetails({...details, phone: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full"
+              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none font-semibold"
               dir="ltr"
             />
             <input 
               value={details.email}
               onChange={(e) => setDetails({...details, email: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full"
+              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none"
               dir="ltr"
             />
             <input 
               value={details.website}
               onChange={(e) => setDetails({...details, website: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full"
+              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none"
               dir="ltr"
             />
           </div>
