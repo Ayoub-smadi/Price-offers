@@ -44,6 +44,16 @@ export default function CreateQuotation() {
 
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
+  const [headers, setHeaders] = useState({
+    index: "#",
+    name: "الصنف",
+    botanicalName: "الاسم النباتي / الاسم الشائع",
+    description: "الوصف",
+    quantity: "الكمية",
+    unit: "الوحدة",
+    price: "السعر",
+    total: "الإجمالي"
+  });
 
   const grandTotal = items.reduce((acc, item) => acc + (item.total || 0), 0);
 
@@ -330,14 +340,62 @@ export default function CreateQuotation() {
           <table className="w-full text-right text-sm border-collapse">
             <thead>
               <tr className="bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-700 dark:to-slate-600 text-white border-b-2 border-slate-200 dark:border-slate-800">
-                <th className="p-3 font-bold text-center w-8">#</th>
-                <th className="p-3 font-bold text-right">الصنف</th>
-                <th className="p-3 font-bold text-right">الاسم النباتي / الاسم الشائع</th>
-                <th className="p-3 font-bold text-right">الوصف</th>
-                <th className="p-3 font-bold text-center w-20">الكمية</th>
-                <th className="p-3 font-bold text-center w-20">الوحدة</th>
-                <th className="p-3 font-bold text-center w-24">السعر</th>
-                <th className="p-3 font-bold text-center w-24">الإجمالي</th>
+                <th className="p-3 font-bold text-center w-8">
+                  <input 
+                    value={headers.index}
+                    onChange={(e) => setHeaders({...headers, index: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-right">
+                  <input 
+                    value={headers.name}
+                    onChange={(e) => setHeaders({...headers, name: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-right focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-right">
+                  <input 
+                    value={headers.botanicalName}
+                    onChange={(e) => setHeaders({...headers, botanicalName: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-right focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-right">
+                  <input 
+                    value={headers.description}
+                    onChange={(e) => setHeaders({...headers, description: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-right focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-center w-20">
+                  <input 
+                    value={headers.quantity}
+                    onChange={(e) => setHeaders({...headers, quantity: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-center w-20">
+                  <input 
+                    value={headers.unit}
+                    onChange={(e) => setHeaders({...headers, unit: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-center w-24">
+                  <input 
+                    value={headers.price}
+                    onChange={(e) => setHeaders({...headers, price: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
+                <th className="p-3 font-bold text-center w-24">
+                  <input 
+                    value={headers.total}
+                    onChange={(e) => setHeaders({...headers, total: e.target.value})}
+                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
+                  />
+                </th>
                 <th className="p-3 w-8 no-print"></th>
               </tr>
             </thead>
