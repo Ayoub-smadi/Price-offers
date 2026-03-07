@@ -46,11 +46,9 @@ export default function CreateQuotation() {
   const [pasteText, setPasteText] = useState("");
   const [headers, setHeaders] = useState({
     index: "#",
-    name: "الصنف",
-    botanicalName: "الاسم النباتي / الاسم الشائع",
+    name: "الاسم",
     description: "الوصف",
     quantity: "الكمية",
-    unit: "الوحدة",
     price: "السعر",
     total: "الإجمالي"
   });
@@ -356,13 +354,6 @@ export default function CreateQuotation() {
                 </th>
                 <th className="p-3 font-bold text-right">
                   <input 
-                    value={headers.botanicalName}
-                    onChange={(e) => setHeaders({...headers, botanicalName: e.target.value})}
-                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-right focus:ring-2 focus:ring-white/50 outline-none no-print"
-                  />
-                </th>
-                <th className="p-3 font-bold text-right">
-                  <input 
                     value={headers.description}
                     onChange={(e) => setHeaders({...headers, description: e.target.value})}
                     className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-right focus:ring-2 focus:ring-white/50 outline-none no-print"
@@ -372,13 +363,6 @@ export default function CreateQuotation() {
                   <input 
                     value={headers.quantity}
                     onChange={(e) => setHeaders({...headers, quantity: e.target.value})}
-                    className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
-                  />
-                </th>
-                <th className="p-3 font-bold text-center w-20">
-                  <input 
-                    value={headers.unit}
-                    onChange={(e) => setHeaders({...headers, unit: e.target.value})}
                     className="w-full bg-transparent text-white border border-white/30 rounded px-1.5 py-0.5 text-xs font-bold text-center focus:ring-2 focus:ring-white/50 outline-none no-print"
                   />
                 </th>
@@ -408,15 +392,7 @@ export default function CreateQuotation() {
                       value={item.name}
                       onChange={(e) => updateItem(item.id, 'name', e.target.value)}
                       className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium"
-                      placeholder="الصنف"
-                    />
-                  </td>
-                  <td className="p-3">
-                    <input 
-                      value={item.botanicalName}
-                      onChange={(e) => updateItem(item.id, 'botanicalName', e.target.value)}
-                      className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors"
-                      placeholder="الاسم النباتي"
+                      placeholder="الاسم"
                     />
                   </td>
                   <td className="p-3">
@@ -434,14 +410,6 @@ export default function CreateQuotation() {
                       value={item.quantity || ''}
                       onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium"
-                    />
-                  </td>
-                  <td className="p-3 text-center">
-                    <input 
-                      value={item.unit}
-                      onChange={(e) => updateItem(item.id, 'unit', e.target.value)}
-                      className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-2 py-1.5 rounded text-sm focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors"
-                      placeholder="وحدة"
                     />
                   </td>
                   <td className="p-3 text-center">
