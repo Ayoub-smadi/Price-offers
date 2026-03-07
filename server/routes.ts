@@ -66,7 +66,66 @@ export async function registerRoutes(
         const trimmedLine = line.trim();
         if (!trimmedLine) return null;
         
-        // Extract all numbers from the line
+        // Try parsing slash-separated format first: quantity / name / description / price / total
+        const slashParts = trimmedLine.split('/').map(p => p.trim()).filter(p => p);
+        
+        if (slashParts.length >= 3) {
+          // Slash-separated format detected: quantity / name / description / price / total
+          const numberPattern = /(\d+(?:[.,]\d+)?)/g;
+          
+          // Extract quantity from first part
+          let qty = 1;
+          const qtyMatch = slashParts[0].match(numberPattern);
+          if (qtyMatch) {
+            qty = parseFloat(qtyMatch[0].replace(',', '.'));
+          }
+          
+          // Extract name (second part)
+          const name = slashParts[1] || "عنصر غير معروف";
+          
+          // Extract description (third part onwards, excluding price/total)
+          let description = "";
+          let price = 0;
+          
+          // For 5-part format: qty / name / desc / price / total
+          // For 4-part format: qty / name / desc / price
+          // For 3-part format: qty / name / price
+          
+          if (slashParts.length >= 5) {
+            // Full 5-part format
+            description = slashParts[2] || "";
+            const priceMatch = slashParts[3].match(numberPattern);
+            if (priceMatch) {
+              price = parseFloat(priceMatch[0].replace(',', '.'));
+            }
+            // Total is in slashParts[4] - we can verify or recalculate
+          } else if (slashParts.length === 4) {
+            // 4-part: qty / name / desc / price
+            description = slashParts[2] || "";
+            const priceMatch = slashParts[3].match(numberPattern);
+            if (priceMatch) {
+              price = parseFloat(priceMatch[0].replace(',', '.'));
+            }
+          } else {
+            // 3-part: qty / name / price
+            const priceMatch = slashParts[2].match(numberPattern);
+            if (priceMatch) {
+              price = parseFloat(priceMatch[0].replace(',', '.'));
+            }
+          }
+          
+          const total = Math.max(qty, 1) * Math.max(price, 0);
+          
+          return {
+            name: name.trim() || "عنصر غير معروف",
+            description: description.trim(),
+            quantity: Math.max(qty, 1),
+            price: Math.max(price, 0),
+            total: total
+          };
+        }
+        
+        // Fallback: Extract all numbers from the line
         const numberPattern = /(\d+(?:[.,]\d+)?)/g;
         const numbers = trimmedLine.match(numberPattern) || [];
         const normalizedNumbers = numbers.map(n => parseFloat(n.replace(',', '.')));
@@ -79,23 +138,20 @@ export async function registerRoutes(
         
         // Try to identify price and quantity from numbers
         if (normalizedNumbers.length >= 2) {
-          // Assume last number is price, second-to-last is quantity
           price = normalizedNumbers[normalizedNumbers.length - 1];
           qty = normalizedNumbers[normalizedNumbers.length - 2];
         } else if (normalizedNumbers.length === 1) {
-          // Only one number - assume it's price
           price = normalizedNumbers[0];
           qty = 1;
         }
         
-        // If we couldn't extract name, use a generic name
         const name = nameText || `منتج #${normalizedNumbers.join('-') || 'unknown'}`;
         
         return {
           name: name.trim() || "عنصر غير معروف",
           description: "",
-          quantity: Math.max(qty, 1), // Ensure quantity is at least 1
-          price: Math.max(price, 0),  // Ensure price is not negative
+          quantity: Math.max(qty, 1),
+          price: Math.max(price, 0),
           total: Math.max(qty, 1) * Math.max(price, 0)
         };
       }).filter(item => item !== null);
