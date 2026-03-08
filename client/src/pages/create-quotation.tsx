@@ -33,8 +33,10 @@ export default function CreateQuotation() {
   const [details, setDetails] = useState({
     quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
     customerName: "",
-    companyName: "مؤسسة ومشاتل القادري الزراعية",
-    companyLocation: "جرش – الرشايدة",
+    companyNameAr: "مؤسسة ومشاتل القادري الزراعية",
+    companyLocationAr: "جرش – الرشايدة",
+    companyNameEn: "Al-Qadri Agricultural Establishment",
+    companyLocationEn: "Jerash - Al-Rashaidah",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
     phone: "00962777772211",
@@ -266,19 +268,19 @@ export default function CreateQuotation() {
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
           {/* Main Header - Logo Center, Arabic Right */}
           <div className="flex items-center justify-between gap-4">
-            {/* Left Side - Mirrored Company Info */}
+            {/* Left Side - English Company Info */}
             <div className="flex-1 space-y-0.5 text-left">
               <input 
-                value={details.companyName}
-                onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                value={details.companyNameEn}
+                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
                 className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="اسم الشركة"
+                placeholder="Company Name (English)"
               />
               <input 
-                value={details.companyLocation}
-                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                value={details.companyLocationEn}
+                onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
                 className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="الموقع"
+                placeholder="Location (English)"
               />
             </div>
 
@@ -304,14 +306,14 @@ export default function CreateQuotation() {
             {/* Arabic Company Info - Right Side */}
             <div className="flex-1 space-y-0.5 text-right">
               <input 
-                value={details.companyName}
-                onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                value={details.companyNameAr}
+                onChange={(e) => setDetails({...details, companyNameAr: e.target.value})}
                 className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
                 placeholder="اسم الشركة"
               />
               <input 
-                value={details.companyLocation}
-                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                value={details.companyLocationAr}
+                onChange={(e) => setDetails({...details, companyLocationAr: e.target.value})}
                 className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
                 placeholder="الموقع"
               />
