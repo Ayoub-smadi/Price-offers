@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -227,7 +227,7 @@ export const exportToWord = async (items: any[], quotationDetails: any) => {
         new Paragraph({ text: "" }),
         new Paragraph({ text: `الإجمالي الكلي: ${quotationDetails.grandTotal}`, bidirectional: true, bold: true }),
         new Paragraph({ text: "" }),
-        new Paragraph({ text: "واقبلوا فائق الاحترام....", bidirectional: true, alignment: "center" }),
+        new Paragraph({ text: "واقبلوا فائق الاحترام....", bidirectional: true, alignment: AlignmentType.CENTER }),
         new Paragraph({ text: "" }),
         new Paragraph({ text: "مؤسســـــــة القادري الزراعية", bidirectional: true, bold: true }),
         new Paragraph({ text: "المدير العام/ ثامر احمد القادري", bidirectional: true }),
