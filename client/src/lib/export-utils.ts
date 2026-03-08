@@ -271,7 +271,6 @@ export const exportToPDF = async (elementId: string, filename: string, items?: a
     document.body.removeChild(printDoc);
     
     // Create PDF
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -284,12 +283,46 @@ export const exportToPDF = async (elementId: string, filename: string, items?: a
     // Use full page width with minimal margins
     const imgWidth = pdfWidth - 4;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    
-    // Add image starting from left (RTL-aware positioning)
     const xPos = 2;
     const yPos = 2;
     
-    pdf.addImage(imgData, 'JPEG', xPos, yPos, imgWidth, imgHeight);
+    // Calculate pages needed based on content height
+    const contentHeightPerPage = (pdfHeight - 4) * (canvas.width / imgWidth); // Height in canvas pixels
+    const totalPages = Math.ceil(canvas.height / contentHeightPerPage);
+    
+    // Add each page to the PDF
+    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+      // Create a temporary canvas for this page
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = Math.min(contentHeightPerPage, canvas.height - (pageIndex * contentHeightPerPage));
+      
+      const ctx = pageCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(
+          canvas,
+          0,
+          pageIndex * contentHeightPerPage,
+          canvas.width,
+          pageCanvas.height,
+          0,
+          0,
+          pageCanvas.width,
+          pageCanvas.height
+        );
+      }
+      
+      // Convert page canvas to image
+      const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
+      const pageImgHeight = (pageCanvas.height * imgWidth) / canvas.width;
+      
+      // Add page to PDF (except first page which is already created)
+      if (pageIndex > 0) {
+        pdf.addPage('a4');
+      }
+      
+      pdf.addImage(pageImgData, 'JPEG', xPos, yPos, imgWidth, pageImgHeight);
+    }
     
     pdf.save(`${filename}.pdf`);
   } catch (error) {
