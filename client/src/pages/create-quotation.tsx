@@ -264,28 +264,48 @@ export default function CreateQuotation() {
       {/* DOCUMENT AREA (Printable) */}
       <div id="quotation-document" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl p-5 sm:p-6 space-y-3 flex-1 flex flex-col print:shadow-none print:border-slate-300 print:p-4 print:rounded-none">
         
-        {/* Header Section - Horizontal Logo Center Layout */}
+        {/* Header Section - Organized Layout */}
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Main Header - Logo Center, Arabic Right */}
-          <div className="flex items-center justify-between gap-4">
-            {/* Left Side - English Company Info */}
-            <div className="flex-1 space-y-0.5 text-left">
+          {/* Top Row - Arabic Right, English Left */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left - English */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">English</label>
               <input 
                 value={details.companyNameEn}
                 onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="Company Name (English)"
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
+                placeholder="Company Name"
               />
               <input 
                 value={details.companyLocationEn}
                 onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
-                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="Location (English)"
+                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
+                placeholder="Location"
               />
             </div>
 
-            {/* Logo - Center */}
-            <div className="relative group w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all flex-shrink-0">
+            {/* Right - Arabic */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">العربية</label>
+              <input 
+                value={details.companyNameAr}
+                onChange={(e) => setDetails({...details, companyNameAr: e.target.value})}
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none focus:border-primary rounded-none"
+                placeholder="اسم الشركة"
+              />
+              <input 
+                value={details.companyLocationAr}
+                onChange={(e) => setDetails({...details, companyLocationAr: e.target.value})}
+                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none focus:border-primary rounded-none"
+                placeholder="الموقع"
+              />
+            </div>
+          </div>
+
+          {/* Logo - Full Width */}
+          <div className="flex justify-center">
+            <div className="relative group w-32 h-32 rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all flex-shrink-0">
               {logoBase64 ? (
                 <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
               ) : (
@@ -301,22 +321,6 @@ export default function CreateQuotation() {
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center no-print pointer-events-none rounded-xl">
                 <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-1 rounded">تغيير</span>
               </div>
-            </div>
-
-            {/* Arabic Company Info - Right Side */}
-            <div className="flex-1 space-y-0.5 text-right">
-              <input 
-                value={details.companyNameAr}
-                onChange={(e) => setDetails({...details, companyNameAr: e.target.value})}
-                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
-                placeholder="اسم الشركة"
-              />
-              <input 
-                value={details.companyLocationAr}
-                onChange={(e) => setDetails({...details, companyLocationAr: e.target.value})}
-                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
-                placeholder="الموقع"
-              />
             </div>
           </div>
 
