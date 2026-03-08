@@ -33,9 +33,9 @@ export default function CreateQuotation() {
   const [details, setDetails] = useState({
     quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
     customerName: "",
-    companyName: "",
+    companyName: "مؤسسة ومشاتل القادري الزراعية",
     companyNameEn: "",
-    companyLocation: "",
+    companyLocation: "جرش – الرشايدة",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
     phone: "00962777772211",
