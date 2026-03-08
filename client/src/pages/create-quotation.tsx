@@ -469,11 +469,11 @@ export default function CreateQuotation() {
             واقبلوا فائق الاحترام....
           </div>
           
-          <div className="flex gap-8 items-start">
+          <div className="flex gap-8 items-start flex-row-reverse">
             <div className="flex-shrink-0">
               <img src={closingImage} alt="مؤسسة القادري الزراعية" className="w-32 h-auto border border-slate-300 dark:border-slate-700 rounded" />
             </div>
-            <div className="text-right space-y-1">
+            <div className="text-left space-y-1">
               <div className="font-bold text-slate-900 dark:text-slate-50 text-sm">مؤسســـــــة القادري الزراعية</div>
               <div className="text-slate-700 dark:text-slate-400 text-xs">المدير العام/ ثامر احمد القادري</div>
             </div>
