@@ -66,6 +66,10 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.height = '40px';
       element.style.verticalAlign = 'middle';
       element.style.textAlign = 'center';
+      element.style.backgroundColor = '#f3f4f6';
+      element.style.color = '#000000';
+      element.style.fontWeight = 'bold';
+      element.style.fontSize = '12px';
     });
     
     // Apply consistent styling to data cells
@@ -79,6 +83,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.verticalAlign = 'middle';
       element.style.wordWrap = 'break-word';
       element.style.whiteSpace = 'normal';
+      element.style.backgroundColor = '#ffffff';
+      element.style.color = '#000000';
     });
   });
 
@@ -86,7 +92,6 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   const allElements = clone.querySelectorAll('*');
   allElements.forEach(el => {
     const element = el as HTMLElement;
-    element.style.backgroundColor = 'transparent';
     element.style.boxShadow = 'none';
   });
 
