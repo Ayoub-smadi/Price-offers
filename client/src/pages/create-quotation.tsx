@@ -298,17 +298,17 @@ export default function CreateQuotation() {
             </div>
 
             {/* Arabic Company Info - Right Side */}
-            <div className="flex-1 space-y-1 text-right">
+            <div className="flex-1 space-y-0.5 text-right">
               <input 
                 value={details.companyName}
                 onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
                 placeholder="اسم الشركة"
               />
               <input 
                 value={details.companyLocation}
                 onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
-                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
                 placeholder="الموقع"
               />
             </div>
