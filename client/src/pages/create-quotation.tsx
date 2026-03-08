@@ -462,6 +462,21 @@ export default function CreateQuotation() {
           </div>
         </div>
 
+        {/* Closing Section */}
+        <div className="space-y-4 py-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="text-center text-base font-bold text-slate-900 dark:text-slate-50">
+            واقبلوا فائق الاحترام....
+          </div>
+          
+          <div className="flex justify-between text-xs">
+            <div className="text-right space-y-2">
+              <div className="font-bold text-slate-900 dark:text-slate-50">مؤسســـــــة القادري الزراعية</div>
+              <div className="text-slate-700 dark:text-slate-400">المدير العام/ ثامر احمد القادري</div>
+            </div>
+            <div className="text-center"></div>
+          </div>
+        </div>
+
         {/* Signature Section */}
         <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center text-xs space-y-1">
           <div className="font-bold text-slate-900 dark:text-slate-50 text-xs">مؤسسة ومشاتل القدري الزراعية</div>

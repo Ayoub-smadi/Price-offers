@@ -124,6 +124,39 @@ export const exportToExcel = (items: any[], quotationDetails: any) => {
     'الإجمالي': quotationDetails.grandTotal,
   });
 
+  // Add closing section
+  data.push({});
+  data.push({
+    '#': '',
+    'الصنف': 'واقبلوا فائق الاحترام....',
+    'الاسم النباتي': '',
+    'الوصف': '',
+    'الكمية': '',
+    'الوحدة': '',
+    'السعر': '',
+    'الإجمالي': '',
+  });
+  data.push({
+    '#': '',
+    'الصنف': 'مؤسســـــــة القادري الزراعية',
+    'الاسم النباتي': '',
+    'الوصف': '',
+    'الكمية': '',
+    'الوحدة': '',
+    'السعر': '',
+    'الإجمالي': '',
+  });
+  data.push({
+    '#': '',
+    'الصنف': 'المدير العام/ ثامر احمد القادري',
+    'الاسم النباتي': '',
+    'الوصف': '',
+    'الكمية': '',
+    'الوحدة': '',
+    'السعر': '',
+    'الإجمالي': '',
+  });
+
   const worksheet = XLSX.utils.json_to_sheet(data);
   
   // Set column widths
@@ -193,6 +226,11 @@ export const exportToWord = async (items: any[], quotationDetails: any) => {
         }),
         new Paragraph({ text: "" }),
         new Paragraph({ text: `الإجمالي الكلي: ${quotationDetails.grandTotal}`, bidirectional: true, bold: true }),
+        new Paragraph({ text: "" }),
+        new Paragraph({ text: "واقبلوا فائق الاحترام....", bidirectional: true, alignment: "center" }),
+        new Paragraph({ text: "" }),
+        new Paragraph({ text: "مؤسســـــــة القادري الزراعية", bidirectional: true, bold: true }),
+        new Paragraph({ text: "المدير العام/ ثامر احمد القادري", bidirectional: true }),
       ],
     }],
   });
