@@ -198,7 +198,7 @@ export default function CreateQuotation() {
           <div className="h-8 w-px bg-border mx-1" />
           
           <button 
-            onClick={() => exportToPDF("quotation-document", `Quote-${details.quotationNumber}`)}
+            onClick={() => exportToPDF("quotation-document", `Quote-${details.quotationNumber}`, items, details)}
             className="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition-all dark:bg-red-900/20 dark:text-red-400"
             title="تصدير PDF"
           >

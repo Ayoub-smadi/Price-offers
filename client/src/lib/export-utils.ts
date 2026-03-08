@@ -3,6 +3,63 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Width
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+// Create a print-ready version of the document with all inputs converted to visible text
+const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
+  const printDiv = document.createElement('div');
+  printDiv.style.width = '210mm';
+  printDiv.style.padding = '10mm';
+  printDiv.style.backgroundColor = '#ffffff';
+  printDiv.style.color = '#000000';
+  printDiv.style.fontFamily = 'Cairo, sans-serif';
+  printDiv.style.lineHeight = '1.4';
+  printDiv.style.fontSize = '13px';
+
+  // Clone the original element
+  const clone = element.cloneNode(true) as HTMLElement;
+  
+  // Replace all inputs with divs showing their values
+  const inputs = clone.querySelectorAll('input, textarea');
+  inputs.forEach(input => {
+    const htmlInput = input as HTMLInputElement | HTMLTextAreaElement;
+    const value = htmlInput.value;
+    
+    if (!value.trim()) return; // Skip empty inputs
+    
+    // Create a div to replace the input
+    const div = document.createElement('div');
+    div.style.whiteSpace = 'pre-wrap';
+    div.style.wordWrap = 'break-word';
+    div.style.color = '#000000';
+    
+    // Preserve the styling
+    const computedStyle = window.getComputedStyle(htmlInput);
+    div.style.fontSize = computedStyle.fontSize;
+    div.style.fontWeight = computedStyle.fontWeight;
+    div.style.textAlign = computedStyle.textAlign;
+    div.style.margin = computedStyle.margin;
+    div.style.padding = computedStyle.padding;
+    
+    div.textContent = value;
+    htmlInput.parentNode?.replaceChild(div, htmlInput);
+  });
+
+  // Remove all no-print elements
+  const noPrint = clone.querySelectorAll('.no-print');
+  noPrint.forEach(el => el.remove());
+
+  // Optimize styles for print
+  const allElements = clone.querySelectorAll('*');
+  allElements.forEach(el => {
+    const element = el as HTMLElement;
+    element.style.backgroundColor = 'transparent';
+    element.style.boxShadow = 'none';
+    element.style.border = element.style.border || 'none';
+  });
+
+  printDiv.appendChild(clone);
+  return printDiv;
+};
+
 export const exportToExcel = (items: any[], quotationDetails: any) => {
   // Prepare items data
   const data = items.map((item, index) => ({
@@ -109,56 +166,34 @@ export const exportToWord = async (items: any[], quotationDetails: any) => {
   a.click();
 };
 
-export const exportToPDF = async (elementId: string, filename: string) => {
+export const exportToPDF = async (elementId: string, filename: string, items?: any[], details?: any) => {
   const element = document.getElementById(elementId);
   if (!element) return;
   
   try {
-    // Create a temporary wrapper for PDF rendering
-    const wrapper = document.createElement('div');
-    wrapper.style.width = '210mm'; // A4 width
-    wrapper.style.padding = '10mm';
-    wrapper.style.backgroundColor = '#ffffff';
-    wrapper.style.position = 'absolute';
-    wrapper.style.left = '-9999px';
+    // Create print-ready document with all text visible
+    const printDoc = createPrintDocument(element, items || [], details || {});
+    document.body.appendChild(printDoc);
     
-    // Clone the element and append to wrapper
-    const clonedElement = element.cloneNode(true) as HTMLElement;
-    wrapper.appendChild(clonedElement);
-    document.body.appendChild(wrapper);
+    // Wait a moment for rendering
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Set styles for PDF optimization
-    const tables = wrapper.querySelectorAll('table');
-    tables.forEach(table => {
-      (table as HTMLElement).style.fontSize = '11px';
-      (table as HTMLElement).style.borderCollapse = 'collapse';
-      const cells = table.querySelectorAll('td, th');
-      cells.forEach(cell => {
-        (cell as HTMLElement).style.padding = '6px 4px';
-        (cell as HTMLElement).style.lineHeight = '1.2';
-      });
-    });
-    
-    // Hide no-print elements
-    const noPrintElements = wrapper.querySelectorAll('.no-print');
-    noPrintElements.forEach(el => {
-      (el as HTMLElement).style.display = 'none';
-    });
-    
-    const canvas = await html2canvas(wrapper, { 
-      scale: 2, // High resolution
+    // Generate canvas from print-ready document
+    const canvas = await html2canvas(printDoc, { 
+      scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
       allowTaint: true,
       imageTimeout: 0,
-      windowHeight: wrapper.scrollHeight,
-      windowWidth: 210 * 96 / 25.4 // A4 width in pixels
+      windowHeight: printDoc.scrollHeight,
+      windowWidth: 210 * 96 / 25.4 // A4 width
     });
     
     // Clean up
-    document.body.removeChild(wrapper);
+    document.body.removeChild(printDoc);
     
+    // Create PDF
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdf = new jsPDF({
       orientation: 'portrait',
@@ -167,12 +202,23 @@ export const exportToPDF = async (elementId: string, filename: string) => {
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pdfWidth - 10; // Keep margins
+    const imgWidth = pdfWidth - 10;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    // Add image to PDF (single page fit)
-    pdf.addImage(imgData, 'JPEG', 5, 5, imgWidth, imgHeight);
+    // Fit to single page by scaling if needed
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    let finalHeight = imgHeight;
+    let finalWidth = imgWidth;
+    
+    if (imgHeight > pdfHeight - 10) {
+      // Scale down to fit on one page
+      const ratio = (pdfHeight - 10) / imgHeight;
+      finalHeight = (pdfHeight - 10);
+      finalWidth = imgWidth * ratio;
+    }
+    
+    const xPos = (pdfWidth - finalWidth) / 2;
+    pdf.addImage(imgData, 'JPEG', xPos, 5, finalWidth, finalHeight);
     
     pdf.save(`${filename}.pdf`);
   } catch (error) {
