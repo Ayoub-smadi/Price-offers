@@ -54,11 +54,31 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   const tables = clone.querySelectorAll('table');
   tables.forEach(table => {
     table.style.borderCollapse = 'collapse';
-    const cells = table.querySelectorAll('th, td');
-    cells.forEach(cell => {
+    table.style.width = '100%';
+    
+    // Apply consistent styling to header cells
+    const headerCells = table.querySelectorAll('th');
+    headerCells.forEach(cell => {
       const element = cell as HTMLElement;
       element.style.border = '1px solid #000000';
-      element.style.padding = '8px';
+      element.style.padding = '10px 8px';
+      element.style.minHeight = '40px';
+      element.style.height = '40px';
+      element.style.verticalAlign = 'middle';
+      element.style.textAlign = 'center';
+    });
+    
+    // Apply consistent styling to data cells
+    const dataCells = table.querySelectorAll('td');
+    dataCells.forEach(cell => {
+      const element = cell as HTMLElement;
+      element.style.border = '1px solid #000000';
+      element.style.padding = '10px 8px';
+      element.style.minHeight = '40px';
+      element.style.height = '40px';
+      element.style.verticalAlign = 'middle';
+      element.style.wordWrap = 'break-word';
+      element.style.whiteSpace = 'normal';
     });
   });
 
