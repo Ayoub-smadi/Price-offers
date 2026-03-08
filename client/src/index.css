@@ -129,9 +129,20 @@
   }
   body {
     background: white !important;
+    margin: 0;
+    padding: 0;
+  }
+  #quotation-document {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 12mm !important;
+    background: white !important;
+    max-width: 100% !important;
+    margin: 0 !important;
   }
   @page {
-    margin: 20mm;
+    margin: 10mm;
     size: A4;
   }
 }

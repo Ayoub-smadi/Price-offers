@@ -116,20 +116,34 @@ export const exportToPDF = async (elementId: string, filename: string) => {
   try {
     // Add a temporary class to ensure light mode and proper rendering during screenshot
     element.classList.add('print-only');
-    element.style.padding = '20px';
+    
+    // Set optimal styling for PDF export
+    const originalStyle = {
+      padding: element.style.padding,
+      margin: element.style.margin,
+      width: element.style.width
+    };
+    
+    element.style.padding = '16px';
+    element.style.margin = '0';
+    element.style.width = '100%';
     
     const canvas = await html2canvas(element, { 
       scale: 2, // High resolution
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      allowTaint: true
+      allowTaint: true,
+      windowHeight: element.scrollHeight
     });
     
+    // Restore original styles
     element.classList.remove('print-only');
-    element.style.padding = '';
+    element.style.padding = originalStyle.padding;
+    element.style.margin = originalStyle.margin;
+    element.style.width = originalStyle.width;
 
-    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95); // Slightly lower quality for smaller file size
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -138,29 +152,30 @@ export const exportToPDF = async (elementId: string, filename: string) => {
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
+    const margins = { top: 5, bottom: 5, left: 5, right: 5 };
+    const availableWidth = pdfWidth - margins.left - margins.right;
     
     // Calculate total height needed for content
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+    const imgHeight = (canvas.height * availableWidth) / canvas.width;
     
     // If content fits on one page, add it normally
-    if (imgHeight <= pdfHeight) {
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
+    if (imgHeight <= pdfHeight - margins.top - margins.bottom) {
+      pdf.addImage(imgData, 'JPEG', margins.left, margins.top, availableWidth, imgHeight);
     } else {
       // Split content across multiple pages
       let heightLeft = imgHeight;
       let position = 0;
-      const pageHeight = pdfHeight;
       
-      // First page
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // Add first page
+      pdf.addImage(imgData, 'JPEG', margins.left, margins.top, availableWidth, imgHeight);
+      heightLeft -= (pdfHeight - margins.top - margins.bottom);
       
-      // Additional pages
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
+      // Add additional pages
+      while (heightLeft > 0) {
+        position = (imgHeight - heightLeft) + margins.top;
         pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pageHeight;
+        pdf.addImage(imgData, 'JPEG', margins.left, margins.top - position, availableWidth, imgHeight);
+        heightLeft -= (pdfHeight - margins.top - margins.bottom);
       }
     }
     
