@@ -266,26 +266,9 @@ export default function CreateQuotation() {
         
         {/* Header Section - Organized Layout */}
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Top Row - Arabic Right, English Left */}
+          {/* Top Row - Arabic Left, English Right */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Left - English */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">English</label>
-              <input 
-                value={details.companyNameEn}
-                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
-                placeholder="Company Name"
-              />
-              <input 
-                value={details.companyLocationEn}
-                onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
-                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
-                placeholder="Location"
-              />
-            </div>
-
-            {/* Right - Arabic */}
+            {/* Left - Arabic */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 dark:text-slate-400">العربية</label>
               <input 
@@ -299,6 +282,23 @@ export default function CreateQuotation() {
                 onChange={(e) => setDetails({...details, companyLocationAr: e.target.value})}
                 className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none focus:border-primary rounded-none"
                 placeholder="الموقع"
+              />
+            </div>
+
+            {/* Right - English */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">English</label>
+              <input 
+                value={details.companyNameEn}
+                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
+                placeholder="Company Name"
+              />
+              <input 
+                value={details.companyLocationEn}
+                onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
+                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 p-1 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none focus:border-primary rounded-none"
+                placeholder="Location"
               />
             </div>
           </div>
