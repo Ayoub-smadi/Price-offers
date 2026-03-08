@@ -106,8 +106,10 @@ export default function CreateQuotation() {
         const newItems = data.items.map(i => ({
           id: Date.now().toString() + Math.random(),
           name: i.name || "عنصر غير معروف",
+          botanicalName: "",
           description: i.description || "",
           quantity: i.quantity || 1,
+          unit: "وحدة",
           price: i.price || 0,
           total: (i.quantity || 1) * (i.price || 0)
         }));
@@ -261,16 +263,32 @@ export default function CreateQuotation() {
       {/* DOCUMENT AREA (Printable) */}
       <div id="quotation-document" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl p-5 sm:p-6 space-y-3 flex-1 flex flex-col print:shadow-none print:border-slate-300 print:p-4 print:rounded-none">
         
-        {/* Header Section - Logo Centered Design */}
+        {/* Header Section - Horizontal Logo Center Layout */}
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Logo and Company Name - Centered Focus */}
-          <div className="flex flex-col items-center gap-3">
-            {/* Logo - Large and Centered */}
-            <div className="relative group w-32 h-32 rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all">
+          {/* Main Header - Arabic Right, Logo Center, English Left */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Arabic Company Info - Right Side */}
+            <div className="flex-1 space-y-1 text-right">
+              <input 
+                value={details.companyName}
+                onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                className="text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                placeholder="اسم الشركة"
+              />
+              <input 
+                value={details.companyLocation}
+                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                placeholder="الموقع"
+              />
+            </div>
+
+            {/* Logo - Center */}
+            <div className="relative group w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all flex-shrink-0">
               {logoBase64 ? (
-                <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-3" />
+                <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
               ) : (
-                <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-3" />
+                <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-2" />
               )}
               <input 
                 type="file" 
@@ -284,26 +302,14 @@ export default function CreateQuotation() {
               </div>
             </div>
 
-            {/* Company Info - Below Logo */}
-            <div className="space-y-1 text-center w-full">
-              <input 
-                value={details.companyName}
-                onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-2xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
-                placeholder="اسم الشركة"
-              />
+            {/* English Company Info - Left Side */}
+            <div className="flex-1 space-y-1 text-left">
               <input 
                 value={details.companyNameEn}
                 onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
                 placeholder="Company Name in English"
                 dir="ltr"
-              />
-              <input 
-                value={details.companyLocation}
-                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
-                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
-                placeholder="الموقع"
               />
             </div>
           </div>
