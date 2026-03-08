@@ -34,7 +34,6 @@ export default function CreateQuotation() {
     quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
     customerName: "",
     companyName: "مؤسسة ومشاتل القادري الزراعية",
-    companyNameEn: "",
     companyLocation: "جرش – الرشايدة",
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
@@ -265,16 +264,21 @@ export default function CreateQuotation() {
         
         {/* Header Section - Horizontal Logo Center Layout */}
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Main Header - English Left, Logo Center, Arabic Right */}
+          {/* Main Header - Logo Center, Arabic Right */}
           <div className="flex items-center justify-between gap-4">
-            {/* English Company Info - Left Side */}
-            <div className="flex-1 space-y-1 text-left">
+            {/* Left Side - Mirrored Company Info */}
+            <div className="flex-1 space-y-0.5 text-left">
               <input 
-                value={details.companyNameEn}
-                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="Company Name in English"
-                dir="ltr"
+                value={details.companyName}
+                onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                className="text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
+                placeholder="اسم الشركة"
+              />
+              <input 
+                value={details.companyLocation}
+                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
+                placeholder="الموقع"
               />
             </div>
 
