@@ -261,17 +261,16 @@ export default function CreateQuotation() {
       {/* DOCUMENT AREA (Printable) */}
       <div id="quotation-document" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl p-5 sm:p-6 space-y-3 flex-1 flex flex-col print:shadow-none print:border-slate-300 print:p-4 print:rounded-none">
         
-        {/* Header Section - Professional Layout */}
-        <div className="space-y-3 pb-3 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Logo Section */}
-          <div className="flex flex-col items-center">
-            <div className="relative group w-24 h-24 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center border-2 border-slate-300 dark:border-slate-700 shadow-md hover:shadow-lg transition-all">
+        {/* Header Section - Logo Centered Design */}
+        <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
+          {/* Logo and Company Name - Centered Focus */}
+          <div className="flex flex-col items-center gap-3">
+            {/* Logo - Large and Centered */}
+            <div className="relative group w-32 h-32 rounded-xl overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex flex-col items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all">
               {logoBase64 ? (
-                <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-2" />
+                <img src={logoBase64} alt="Company Logo" className="w-full h-full object-contain p-3" />
               ) : (
-                <div className="flex flex-col items-center justify-center gap-2 w-full h-full">
-                  <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-2" />
-                </div>
+                <img src={logoImage} alt="Default Logo" className="w-full h-full object-contain p-3" />
               )}
               <input 
                 type="file" 
@@ -280,67 +279,60 @@ export default function CreateQuotation() {
                 className="absolute inset-0 opacity-0 cursor-pointer no-print"
                 title="انقر لتحميل شعار جديد"
               />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center no-print pointer-events-none">
-                <div className="text-center">
-                  <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity block text-slate-700 dark:text-slate-300">تغيير الشعار</span>
-                </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center no-print pointer-events-none rounded-xl">
+                <span className="text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 px-2 py-1 rounded">تغيير</span>
               </div>
             </div>
-          </div>
 
-          {/* Company Info - Centered and Professional */}
-          <div className="space-y-1 text-center">
-            <div>
-              <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5 block no-print">اسم الشركة</label>
+            {/* Company Info - Below Logo */}
+            <div className="space-y-1 text-center w-full">
               <input 
                 value={details.companyName}
                 onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none truncate"
+                className="text-2xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
                 placeholder="اسم الشركة"
               />
-            </div>
-            <div className="space-y-0.5">
               <input 
                 value={details.companyNameEn}
                 onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none truncate"
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
                 placeholder="Company Name in English"
                 dir="ltr"
               />
               <input 
                 value={details.companyLocation}
                 onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
-                className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none truncate"
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
                 placeholder="الموقع"
               />
             </div>
           </div>
 
-          {/* Meta Information - Clean Grid */}
-          <div className="grid grid-cols-3 gap-2 pt-2">
-            <div className="text-center">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-0.5 block">التاريخ</label>
+          {/* Meta Information - Professional Grid */}
+          <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div className="text-center space-y-1">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">التاريخ</label>
               <input 
                 type="date"
                 value={details.date}
                 onChange={(e) => setDetails({...details, date: e.target.value})}
-                className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b border-slate-300 dark:border-slate-700 focus:border-blue-500 outline-none py-1 px-0 w-full text-center truncate"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 px-0 w-full text-center truncate"
               />
             </div>
-            <div className="text-center">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-0.5 block">عرض سعر رقم</label>
+            <div className="text-center space-y-1">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">عرض سعر رقم</label>
               <input 
                 value={details.quotationNumber}
                 onChange={(e) => setDetails({...details, quotationNumber: e.target.value})}
-                className="text-lg font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-0 w-full text-center focus:outline-none truncate"
+                className="text-lg font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded"
               />
             </div>
-            <div className="text-center">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-0.5 block no-print">العميل</label>
+            <div className="text-center space-y-1">
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 no-print">العميل</label>
               <input 
                 value={details.customerName}
                 onChange={(e) => setDetails({...details, customerName: e.target.value})}
-                className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b border-slate-300 dark:border-slate-700 focus:border-blue-500 outline-none py-1 px-0 w-full text-center no-print truncate"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 px-0 w-full text-center no-print truncate"
                 placeholder="اسم العميل"
               />
             </div>
