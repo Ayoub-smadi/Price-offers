@@ -36,7 +36,7 @@ export default function CreateQuotation() {
     companyNameEn: "Al-Qadri Agricultural Foundation and Nurseries",
     companyLocation: "جرش – الرشايدة",
     date: format(new Date(), "yyyy-MM-dd"),
-    notes: '"واقبلوا فائق الاحترام...."',
+    notes: "",
     phone: "00962777772211",
     email: "thamerqadri@gmail.com",
     website: "www.alkadri-plants.com",
