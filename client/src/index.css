@@ -136,14 +136,34 @@
     box-shadow: none !important;
     border: none !important;
     border-radius: 0 !important;
-    padding: 12mm !important;
+    padding: 10mm !important;
     background: white !important;
     max-width: 100% !important;
     margin: 0 !important;
+    height: auto !important;
   }
   @page {
-    margin: 10mm;
+    margin: 8mm;
     size: A4;
+  }
+  /* Optimize table for single page PDF */
+  table {
+    font-size: 11px !important;
+  }
+  table th,
+  table td {
+    padding: 6px 4px !important;
+    line-height: 1.2 !important;
+  }
+  /* Allow text wrapping for long content */
+  table td input,
+  table td div {
+    word-wrap: break-word !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+  }
+  h1, h2, h3 {
+    margin: 4px 0 !important;
   }
 }
 
