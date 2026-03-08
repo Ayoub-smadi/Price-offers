@@ -265,21 +265,16 @@ export default function CreateQuotation() {
         
         {/* Header Section - Horizontal Logo Center Layout */}
         <div className="space-y-4 pb-4 border-b-2 border-slate-200 dark:border-slate-800">
-          {/* Main Header - Arabic Right, Logo Center, English Left */}
+          {/* Main Header - English Left, Logo Center, Arabic Right */}
           <div className="flex items-center justify-between gap-4">
-            {/* Arabic Company Info - Right Side */}
-            <div className="flex-1 space-y-1 text-right">
+            {/* English Company Info - Left Side */}
+            <div className="flex-1 space-y-1 text-left">
               <input 
-                value={details.companyName}
-                onChange={(e) => setDetails({...details, companyName: e.target.value})}
-                className="text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
-                placeholder="اسم الشركة"
-              />
-              <input 
-                value={details.companyLocation}
-                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
-                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
-                placeholder="الموقع"
+                value={details.companyNameEn}
+                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
+                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
+                placeholder="Company Name in English"
+                dir="ltr"
               />
             </div>
 
@@ -302,14 +297,19 @@ export default function CreateQuotation() {
               </div>
             </div>
 
-            {/* English Company Info - Left Side */}
-            <div className="flex-1 space-y-1 text-left">
+            {/* Arabic Company Info - Right Side */}
+            <div className="flex-1 space-y-1 text-right">
               <input 
-                value={details.companyNameEn}
-                onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                className="text-sm font-semibold text-slate-600 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-left focus:outline-none rounded"
-                placeholder="Company Name in English"
-                dir="ltr"
+                value={details.companyName}
+                onChange={(e) => setDetails({...details, companyName: e.target.value})}
+                className="text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                placeholder="اسم الشركة"
+              />
+              <input 
+                value={details.companyLocation}
+                onChange={(e) => setDetails({...details, companyLocation: e.target.value})}
+                className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-right focus:outline-none rounded"
+                placeholder="الموقع"
               />
             </div>
           </div>
