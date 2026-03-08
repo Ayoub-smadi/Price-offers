@@ -7,12 +7,14 @@ import html2canvas from 'html2canvas';
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
   printDiv.style.width = '210mm';
-  printDiv.style.padding = '10mm';
+  printDiv.style.padding = '8mm';
   printDiv.style.backgroundColor = '#ffffff';
   printDiv.style.color = '#000000';
   printDiv.style.fontFamily = 'Cairo, sans-serif';
-  printDiv.style.lineHeight = '1.4';
-  printDiv.style.fontSize = '13px';
+  printDiv.style.lineHeight = '1.5';
+  printDiv.style.fontSize = '14px';
+  printDiv.style.direction = 'rtl';
+  printDiv.style.textAlign = 'right';
 
   // Clone the original element
   const clone = element.cloneNode(true) as HTMLElement;
@@ -178,9 +180,9 @@ export const exportToPDF = async (elementId: string, filename: string, items?: a
     // Wait a moment for rendering
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Generate canvas from print-ready document
+    // Generate canvas from print-ready document with high quality
     const canvas = await html2canvas(printDoc, { 
-      scale: 2,
+      scale: 3,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
@@ -194,7 +196,7 @@ export const exportToPDF = async (elementId: string, filename: string, items?: a
     document.body.removeChild(printDoc);
     
     // Create PDF
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -202,23 +204,17 @@ export const exportToPDF = async (elementId: string, filename: string, items?: a
     });
 
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const imgWidth = pdfWidth - 10;
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    
+    // Use full page width with minimal margins
+    const imgWidth = pdfWidth - 4;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     
-    // Fit to single page by scaling if needed
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    let finalHeight = imgHeight;
-    let finalWidth = imgWidth;
+    // Add image starting from left (RTL-aware positioning)
+    const xPos = 2;
+    const yPos = 2;
     
-    if (imgHeight > pdfHeight - 10) {
-      // Scale down to fit on one page
-      const ratio = (pdfHeight - 10) / imgHeight;
-      finalHeight = (pdfHeight - 10);
-      finalWidth = imgWidth * ratio;
-    }
-    
-    const xPos = (pdfWidth - finalWidth) / 2;
-    pdf.addImage(imgData, 'JPEG', xPos, 5, finalWidth, finalHeight);
+    pdf.addImage(imgData, 'JPEG', xPos, yPos, imgWidth, imgHeight);
     
     pdf.save(`${filename}.pdf`);
   } catch (error) {
