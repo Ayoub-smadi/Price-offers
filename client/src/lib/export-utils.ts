@@ -7,7 +7,7 @@ import html2canvas from 'html2canvas';
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
   printDiv.style.width = '210mm';
-  printDiv.style.padding = '8mm';
+  printDiv.style.padding = '6mm 4mm';
   printDiv.style.backgroundColor = '#ffffff';
   printDiv.style.color = '#000000';
   printDiv.style.fontFamily = 'Cairo, sans-serif';
@@ -15,6 +15,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   printDiv.style.fontSize = '14px';
   printDiv.style.direction = 'rtl';
   printDiv.style.textAlign = 'right';
+  printDiv.style.boxSizing = 'border-box';
 
   // Clone the original element
   const clone = element.cloneNode(true) as HTMLElement;
@@ -49,13 +50,24 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   const noPrint = clone.querySelectorAll('.no-print');
   noPrint.forEach(el => el.remove());
 
+  // Add borders to all tables
+  const tables = clone.querySelectorAll('table');
+  tables.forEach(table => {
+    table.style.borderCollapse = 'collapse';
+    const cells = table.querySelectorAll('th, td');
+    cells.forEach(cell => {
+      const element = cell as HTMLElement;
+      element.style.border = '1px solid #000000';
+      element.style.padding = '8px';
+    });
+  });
+
   // Optimize styles for print
   const allElements = clone.querySelectorAll('*');
   allElements.forEach(el => {
     const element = el as HTMLElement;
     element.style.backgroundColor = 'transparent';
     element.style.boxShadow = 'none';
-    element.style.border = element.style.border || 'none';
   });
 
   printDiv.appendChild(clone);
