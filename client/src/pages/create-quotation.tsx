@@ -437,7 +437,21 @@ export default function CreateQuotation() {
 
         {/* Footer Section */}
         <div className="space-y-6">
-          <div className="space-y-3">
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 text-white rounded-xl p-5 text-center shadow-lg">
+            <div className="text-sm font-semibold mb-1 opacity-90">المجموع الكلي</div>
+            <div className="text-3xl font-black">{grandTotal.toLocaleString()}</div>
+          </div>
+
+          {details.notes.trim() && (
+            <div className="space-y-3">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">ملاحظات:</label>
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 text-sm whitespace-pre-wrap break-words">
+                {details.notes}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3 no-print">
             <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">ملاحظات:</label>
             <textarea 
               value={details.notes}
@@ -445,11 +459,6 @@ export default function CreateQuotation() {
               className="w-full h-20 p-3 bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 transition-all resize-none text-slate-700 dark:text-slate-300 text-sm"
               placeholder="شروط الدفع، مدة التوريد، إلخ..."
             />
-          </div>
-
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 text-white rounded-xl p-5 text-center shadow-lg">
-            <div className="text-sm font-semibold mb-1 opacity-90">المجموع الكلي</div>
-            <div className="text-3xl font-black">{grandTotal.toLocaleString()}</div>
           </div>
         </div>
 
