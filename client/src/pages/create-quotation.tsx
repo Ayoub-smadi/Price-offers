@@ -414,6 +414,7 @@ export default function CreateQuotation() {
                     <input 
                       type="number"
                       min="0"
+                      step="0.01"
                       value={item.price || ''}
                       onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)}
                       className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-semibold"
