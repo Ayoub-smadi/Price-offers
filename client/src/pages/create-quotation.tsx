@@ -292,23 +292,7 @@ export default function CreateQuotation() {
             <div className="flex-1 space-y-4">
               {/* Company Names - Side by Side */}
               <div className="flex items-start gap-8">
-                {/* English Information - Left Side */}
-                <div className="flex-1 space-y-1">
-                  <input 
-                    value={details.companyNameEn}
-                    onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
-                    className="text-xl font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full text-left focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-1 rounded-sm"
-                    placeholder="Company Name"
-                  />
-                  <input 
-                    value={details.companyLocationEn}
-                    onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
-                    className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full text-left focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-0.5 rounded-sm"
-                    placeholder="Location"
-                  />
-                </div>
-
-                {/* Arabic Information - Right Side */}
+                {/* Arabic Information - Left Side */}
                 <div className="flex-1 space-y-1">
                   <input 
                     value={details.companyNameAr}
@@ -321,6 +305,22 @@ export default function CreateQuotation() {
                     onChange={(e) => setDetails({...details, companyLocationAr: e.target.value})}
                     className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full text-right focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-0.5 rounded-sm"
                     placeholder="الموقع"
+                  />
+                </div>
+
+                {/* English Information - Right Side */}
+                <div className="flex-1 space-y-1">
+                  <input 
+                    value={details.companyNameEn}
+                    onChange={(e) => setDetails({...details, companyNameEn: e.target.value})}
+                    className="text-xl font-bold text-slate-800 dark:text-slate-100 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full text-left focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-1 rounded-sm"
+                    placeholder="Company Name"
+                  />
+                  <input 
+                    value={details.companyLocationEn}
+                    onChange={(e) => setDetails({...details, companyLocationEn: e.target.value})}
+                    className="text-sm font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full text-left focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-0.5 rounded-sm"
+                    placeholder="Location"
                   />
                 </div>
               </div>
