@@ -311,15 +311,10 @@ export default function CreateQuotation() {
         </div>
         {plantResult && (
           <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-            <h3 className="font-bold text-sm text-green-900 dark:text-green-300 mb-2">النتيجة</h3>
             <div className="space-y-2">
               {plantResult.image && (
                 <img src={plantResult.image} alt={plantResult.scientificName} className="w-full h-32 object-cover rounded-lg" />
               )}
-              <div>
-                <p className="text-xs font-semibold text-green-800 dark:text-green-200">الاسم العلمي:</p>
-                <p className="text-xs text-green-700 dark:text-green-300">{plantResult.scientificName}</p>
-              </div>
               {plantResult.commonNames && plantResult.commonNames.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-green-800 dark:text-green-200">الأسماء الشهيرة:</p>
