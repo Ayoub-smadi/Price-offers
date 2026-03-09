@@ -9,7 +9,6 @@ import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
 import { format } from "date-fns";
 import logoImage from "@assets/لقطة_شاشة_2026-03-08_080127_1773036971718.png";
 import closingImage from "@assets/image_1772930022686.png";
-import stampImage from "@assets/image_1773039631396.png";
 
 type Item = {
   id: string;
@@ -477,22 +476,6 @@ export default function CreateQuotation() {
         <div className="space-y-4 py-4 border-t border-slate-200 dark:border-slate-800">
           <div className="text-center text-base font-bold text-slate-900 dark:text-slate-50">
             واقبلوا فائق الاحترام....
-          </div>
-          
-          <div className="flex items-start justify-between gap-4">
-            {/* Right side - Stamp/Seal */}
-            <div className="flex-shrink-0">
-              <img src={stampImage} alt="ختم مؤسسة القادري الزراعية" className="w-28 h-auto border border-slate-300 dark:border-slate-700 rounded" />
-            </div>
-            
-            {/* Left side - Signature */}
-            <div className="space-y-2 text-right flex-1">
-              <div className="font-bold text-slate-900 dark:text-slate-50 text-sm">مؤسســـــــة القادري الزراعية</div>
-              <div className="flex-shrink-0">
-                <img src={closingImage} alt="مؤسسة القادري الزراعية" className="w-20 h-auto border border-slate-300 dark:border-slate-700 rounded" />
-              </div>
-              <div className="text-slate-700 dark:text-slate-400 text-xs">المدير العام/ ثامر احمد القادري</div>
-            </div>
           </div>
         </div>
 
