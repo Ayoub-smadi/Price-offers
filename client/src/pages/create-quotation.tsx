@@ -9,6 +9,7 @@ import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
 import { format } from "date-fns";
 import logoImage from "@assets/لقطة_شاشة_2026-03-08_080127_1773036971718.png";
 import closingImage from "@assets/image_1772930022686.png";
+import stampImage from "@assets/لقطة_شاشة_2026-03-08_023328_1773047188235.png";
 
 type Item = {
   id: string;
@@ -479,8 +480,11 @@ export default function CreateQuotation() {
               واقبلوا فائق الاحترام....
             </div>
             <div className="w-full flex justify-end">
-              <div className="text-sm font-bold text-slate-900 dark:text-slate-50">
-                المدير العام/ ثامر احمد القادري
+              <div className="flex flex-col items-center">
+                <div className="text-sm font-bold text-slate-900 dark:text-slate-50">
+                  المدير العام/ ثامر احمد القادري
+                </div>
+                <img src={stampImage} alt="Stamp" className="w-32 h-auto mt-1" />
               </div>
             </div>
           </div>

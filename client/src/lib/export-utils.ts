@@ -3,6 +3,8 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Width
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+import stampImage from "@assets/لقطة_شاشة_2026-03-08_023328_1773047188235.png";
+
 // Create a print-ready version of the document with all inputs converted to visible text
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
