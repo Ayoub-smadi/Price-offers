@@ -7,7 +7,7 @@ import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI }
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
 import { format } from "date-fns";
-import logoImage from "@assets/image_1772873421057.png";
+import logoImage from "@assets/لقطة_شاشة_2026-03-08_080127_1773036971718.png";
 import closingImage from "@assets/image_1772930022686.png";
 
 type Item = {
