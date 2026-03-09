@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -176,71 +176,73 @@ export const exportToExcel = (items: any[], quotationDetails: any) => {
   XLSX.writeFile(workbook, `${quotationDetails.quotationNumber || 'Quotation'}.xlsx`);
 };
 
-export const exportToWord = async (items: any[], quotationDetails: any) => {
-  const tableRows = [
-    new TableRow({
-      children: ['الإجمالي', 'السعر', 'الكمية', 'الوصف', 'الصنف', '#'].map(text => 
-        new TableCell({
-          children: [new Paragraph({ text, rightTabStop: 0 })],
-          shading: { fill: "F3F4F6" },
-        })
-      ),
-    }),
-    ...items.map((item, index) => new TableRow({
-      children: [
-        item.total.toString(),
-        item.price.toString(),
-        item.quantity.toString(),
-        item.description || '',
-        item.name,
-        (index + 1).toString(),
-      ].map(text => new TableCell({ children: [new Paragraph({ text })] }))
-    }))
-  ];
+export const exportToWord = async (elementId: string, filename: string, items?: any[], details?: any) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  try {
+    // Create print-ready document with all text visible
+    const printDoc = createPrintDocument(element, items || [], details || {});
+    document.body.appendChild(printDoc);
+    
+    // Wait a moment for rendering
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Generate canvas from print-ready document with high quality
+    const canvas = await html2canvas(printDoc, { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      allowTaint: true,
+      imageTimeout: 0,
+      windowHeight: printDoc.scrollHeight,
+      windowWidth: 210 * 96 / 25.4 // A4 width
+    });
+    
+    // Clean up
+    document.body.removeChild(printDoc);
+    
+    // Convert canvas to blob and then to array buffer
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+      }, 'image/jpeg', 0.95);
+    });
+    
+    const arrayBuffer = await blob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Create Word document with the image
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            children: [
+              new ImageRun({
+                data: uint8Array,
+                type: "jpg",
+                transformation: {
+                  width: 595, // A4 width in twips
+                  height: (canvas.height * 595) / canvas.width,
+                },
+              }),
+            ],
+          }),
+        ],
+      }],
+    });
 
-  const doc = new Document({
-    sections: [{
-      properties: {},
-      children: [
-        new Paragraph({
-          children: [
-            new TextRun({ text: "عرض سعر", bold: true, size: 48 }),
-          ],
-          bidirectional: true,
-        }),
-        new Paragraph({ text: `رقم العرض: ${quotationDetails.quotationNumber}`, bidirectional: true }),
-        new Paragraph({ text: `العميل: ${quotationDetails.customerName}`, bidirectional: true }),
-        new Paragraph({ text: `التاريخ: ${quotationDetails.date}`, bidirectional: true }),
-        new Paragraph({ text: "" }), // spacing
-        new Table({
-          rows: tableRows,
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          borders: {
-            top: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-            left: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-            right: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "E5E7EB" },
-          }
-        }),
-        new Paragraph({ text: "" }),
-        new Paragraph({ text: `الإجمالي الكلي: ${quotationDetails.grandTotal}`, bidirectional: true, bold: true }),
-        new Paragraph({ text: "" }),
-        new Paragraph({ text: "واقبلوا فائق الاحترام....", bidirectional: true, alignment: AlignmentType.CENTER }),
-        new Paragraph({ text: "" }),
-        new Paragraph({ text: "مؤسســـــــة القادري الزراعية", bidirectional: true, bold: true }),
-        new Paragraph({ text: "المدير العام/ ثامر احمد القادري", bidirectional: true }),
-      ],
-    }],
-  });
-
-  const blob = await Packer.toBlob(doc);
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${quotationDetails.quotationNumber || 'Quotation'}.docx`;
-  a.click();
+    const docBlob = await Packer.toBlob(doc);
+    const url = window.URL.createObjectURL(docBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.docx`;
+    a.click();
+  } catch (error) {
+    console.error("Failed to generate Word document:", error);
+  }
 };
 
 export const exportToPDF = async (elementId: string, filename: string, items?: any[], details?: any) => {

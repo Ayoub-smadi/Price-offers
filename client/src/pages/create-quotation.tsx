@@ -218,7 +218,7 @@ export default function CreateQuotation() {
           </button>
           
           <button 
-            onClick={() => exportToWord(items, { ...details, grandTotal })}
+            onClick={() => exportToWord("quotation-document", `Quote-${details.quotationNumber}`, items, { ...details, grandTotal })}
             className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all dark:bg-blue-900/20 dark:text-blue-400"
             title="تصدير Word"
           >
