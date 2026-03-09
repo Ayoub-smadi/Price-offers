@@ -222,24 +222,12 @@ export const exportToWord = async (elementId: string, filename: string, items?: 
       new Paragraph({ text: "" }),
     ];
 
-    // Build table rows
+    // Build table rows (RTL - Right to Left)
     const tableRows = [
       new TableRow({
         children: [
           new TableCell({
-            children: [new Paragraph({ text: "#", alignment: AlignmentType.CENTER, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الاسم", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الوصف", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الكمية", bidirectional: true, bold: true })],
+            children: [new Paragraph({ text: "الإجمالي", bidirectional: true, bold: true })],
             shading: { fill: "1F2937" },
           }),
           new TableCell({
@@ -247,7 +235,19 @@ export const exportToWord = async (elementId: string, filename: string, items?: 
             shading: { fill: "1F2937" },
           }),
           new TableCell({
-            children: [new Paragraph({ text: "الإجمالي", bidirectional: true, bold: true })],
+            children: [new Paragraph({ text: "الكمية", bidirectional: true, bold: true })],
+            shading: { fill: "1F2937" },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "الوصف", bidirectional: true, bold: true })],
+            shading: { fill: "1F2937" },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "الاسم", bidirectional: true, bold: true })],
+            shading: { fill: "1F2937" },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "#", alignment: AlignmentType.CENTER, bold: true })],
             shading: { fill: "1F2937" },
           }),
         ],
@@ -256,22 +256,22 @@ export const exportToWord = async (elementId: string, filename: string, items?: 
         new TableRow({
           children: [
             new TableCell({
-              children: [new Paragraph({ text: (index + 1).toString(), alignment: AlignmentType.CENTER })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.name || "", bidirectional: true })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.description || "", bidirectional: true })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.quantity?.toString() || "", alignment: AlignmentType.CENTER })],
+              children: [new Paragraph({ text: item.total?.toString() || "", alignment: AlignmentType.CENTER })],
             }),
             new TableCell({
               children: [new Paragraph({ text: item.price?.toString() || "", alignment: AlignmentType.CENTER })],
             }),
             new TableCell({
-              children: [new Paragraph({ text: item.total?.toString() || "", alignment: AlignmentType.CENTER })],
+              children: [new Paragraph({ text: item.quantity?.toString() || "", alignment: AlignmentType.CENTER })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: item.description || "", bidirectional: true })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: item.name || "", bidirectional: true })],
+            }),
+            new TableCell({
+              children: [new Paragraph({ text: (index + 1).toString(), alignment: AlignmentType.CENTER })],
             }),
           ],
         })
