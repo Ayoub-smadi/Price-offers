@@ -67,3 +67,20 @@ export function useParseText() {
     },
   });
 }
+
+export function useSearchPlant() {
+  return useMutation({
+    mutationFn: async (scientificName: string) => {
+      const res = await fetch(api.plants.search.path, {
+        method: api.plants.search.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scientificName }),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to search plant");
+      }
+      return api.plants.search.responses[200].parse(await res.json());
+    },
+  });
+}

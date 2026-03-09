@@ -58,6 +58,21 @@ export const api = {
         })
       }
     }
+  },
+  plants: {
+    search: {
+      method: 'POST' as const,
+      path: '/api/plants/search' as const,
+      input: z.object({ scientificName: z.string() }),
+      responses: {
+        200: z.object({
+          commonNames: z.array(z.string()).optional(),
+          scientificName: z.string(),
+          image: z.string().nullable().optional(),
+          description: z.string().optional()
+        })
+      }
+    }
   }
 };
 
