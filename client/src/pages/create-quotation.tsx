@@ -1,9 +1,9 @@
 import { useState, useRef } from "react";
 import { 
   Plus, FileText, Download, Printer, Save, FileSpreadsheet, 
-  Wand2, Trash2, Image as ImageIcon, CheckCircle2, Search, Leaf
+  Wand2, Trash2, Image as ImageIcon, CheckCircle2
 } from "lucide-react";
-import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI, useSearchPlant } from "@/hooks/use-quotations";
+import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
 import { format } from "date-fns";
@@ -13,7 +13,6 @@ import closingImage from "@assets/image_1772930022686.png";
 type Item = {
   id: string;
   name: string;
-  botanicalName: string;
   description: string;
   quantity: number;
   unit: string;
@@ -27,7 +26,7 @@ export default function CreateQuotation() {
   const parseMutation = useParseTextAPI();
 
   const [items, setItems] = useState<Item[]>([
-    { id: "1", name: "", botanicalName: "", description: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
+    { id: "1", name: "", description: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
   ]);
   
   const [details, setDetails] = useState({
@@ -46,9 +45,6 @@ export default function CreateQuotation() {
 
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
-  const [plantSearchInput, setPlantSearchInput] = useState("");
-  const [plantResult, setPlantResult] = useState<any>(null);
-  const searchPlantMutation = useSearchPlant();
   const [headers, setHeaders] = useState({
     index: "#",
     name: "الاسم",
@@ -75,7 +71,6 @@ export default function CreateQuotation() {
     setItems([...items, { 
       id: Date.now().toString(), 
       name: "", 
-      botanicalName: "", 
       description: "", 
       quantity: 1, 
       unit: "وحدة",
@@ -110,7 +105,6 @@ export default function CreateQuotation() {
         const newItems = data.items.map(i => ({
           id: Date.now().toString() + Math.random(),
           name: i.name || "عنصر غير معروف",
-          botanicalName: "",
           description: i.description || "",
           quantity: i.quantity || 1,
           unit: "وحدة",
@@ -138,27 +132,6 @@ export default function CreateQuotation() {
     });
   };
 
-  const handleSearchPlant = () => {
-    if (!plantSearchInput.trim()) return;
-    
-    searchPlantMutation.mutate(plantSearchInput, {
-      onSuccess: (data) => {
-        setPlantResult(data);
-        toast({
-          title: "تم البحث بنجاح",
-          description: `وجد معلومات عن ${data.scientificName}`,
-        });
-      },
-      onError: () => {
-        toast({
-          title: "خطأ في البحث",
-          description: "تأكد من الاسم العلمي الصحيح",
-          variant: "destructive"
-        });
-      }
-    });
-  };
-
   const handleSave = () => {
     if (!details.customerName.trim()) {
       toast({ title: "مطلوب اسم العميل", variant: "destructive" });
@@ -179,7 +152,7 @@ export default function CreateQuotation() {
       grandTotal: grandTotal.toString(),
       items: validItems.map(i => ({
         name: i.name.trim(),
-        description: [i.botanicalName, i.description].filter(Boolean).join('\n'),
+        description: i.description.trim(),
         quantity: Math.max(1, i.quantity),
         price: Math.max(0, i.price).toString(),
         total: Math.max(0, i.total).toString(),
@@ -283,53 +256,6 @@ export default function CreateQuotation() {
             <CheckCircle2 className="w-3 h-3" />
           </button>
         </div>
-      </div>
-
-      {/* Plant Search Area - No Print */}
-      <div className="glass-panel p-3 rounded-lg space-y-2 no-print border-green-500/20">
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-          <Leaf className="w-5 h-5" />
-          <h2 className="text-sm font-bold">وصف النبات</h2>
-        </div>
-        <p className="text-muted-foreground text-xs">ادخل الاسم العلمي للنبتة وسيعطيك النظام الأسماء الشهيرة والصورة</p>
-        <div className="relative">
-          <input 
-            value={plantSearchInput}
-            onChange={(e) => setPlantSearchInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearchPlant()}
-            placeholder="مثال: Rosa damascena، Lavandula angustifolia..."
-            className="w-full p-2 rounded-lg input-soft text-xs"
-          />
-          <button 
-            onClick={handleSearchPlant}
-            disabled={searchPlantMutation.isPending || !plantSearchInput.trim()}
-            className="absolute bottom-2 left-2 flex items-center gap-1 px-3 py-1 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 font-bold hover:bg-green-500/20 transition-all disabled:opacity-50 text-xs"
-          >
-            {searchPlantMutation.isPending ? "جاري البحث..." : "بحث"}
-            <Search className="w-3 h-3" />
-          </button>
-        </div>
-        {plantResult && (
-          <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-            <div className="space-y-2">
-              {plantResult.image && (
-                <img src={plantResult.image} alt={plantResult.scientificName} className="w-full h-32 object-cover rounded-lg" />
-              )}
-              {plantResult.commonNames && plantResult.commonNames.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-green-800 dark:text-green-200">الأسماء الشهيرة:</p>
-                  <p className="text-xs text-green-700 dark:text-green-300">{plantResult.commonNames.join("، ")}</p>
-                </div>
-              )}
-              {plantResult.description && (
-                <div>
-                  <p className="text-xs font-semibold text-green-800 dark:text-green-200">الوصف:</p>
-                  <p className="text-xs text-green-700 dark:text-green-300 line-clamp-3">{plantResult.description}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* DOCUMENT AREA (Printable) */}

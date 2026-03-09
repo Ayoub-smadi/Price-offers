@@ -168,49 +168,5 @@ export async function registerRoutes(
     }
   });
 
-  app.post(api.plants.search.path, async (req, res) => {
-    try {
-      const input = api.plants.search.input.parse(req.body);
-      const plantName = encodeURIComponent(input.scientificName);
-      
-      // Search Wikipedia
-      const response = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&titles=${plantName}&prop=pageimages|extracts&exintro&format=json&pithumbsize=300`
-      );
-      
-      if (!response.ok) {
-        return res.json({ scientificName: input.scientificName });
-      }
-
-      const data = await response.json();
-      const pages = data.query.pages;
-      const page = Object.values(pages)[0] as any;
-
-      const result = {
-        scientificName: input.scientificName,
-        commonNames: [] as string[],
-        image: page?.thumbnail?.source || null,
-        description: page?.extract || ""
-      };
-
-      // Try to extract common names from description
-      const commonNameMatch = result.description.match(/(?:also known as|common name[s]?:|commonly called)[^.]*?([^,]+(?:,[^,]+)*)/i);
-      if (commonNameMatch) {
-        result.commonNames = commonNameMatch[1]
-          .split(',')
-          .map(name => name.trim())
-          .filter(name => name.length > 0)
-          .slice(0, 5);
-      }
-
-      res.json(result);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
-      }
-      res.status(500).json({ message: "Internal Error" });
-    }
-  });
-
   return httpServer;
 }
