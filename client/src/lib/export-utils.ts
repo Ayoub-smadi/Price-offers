@@ -289,23 +289,19 @@ export const exportToWord = async (elementId: string, filename: string, items?: 
       }),
       new Paragraph({ text: "" }),
       new Paragraph({
-        children: [
-          new TextRun({
-            text: "المدير العام/ ثامر احمد القادري",
-            bold: true,
-            size: 24,
-          }),
-          new TextRun({
-            text: "\t\t\t\t\t\t\t\t\t", // Tabs for spacing
-          }),
-          new TextRun({
-            text: "واقبلوا فائق الاحترام....",
-            bold: true,
-            size: 24,
-          }),
-        ],
+        text: "واقبلوا فائق الاحترام....",
         bidirectional: true,
-        alignment: AlignmentType.BOTH,
+        alignment: AlignmentType.CENTER,
+        bold: true,
+        size: 24,
+      }),
+      new Paragraph({ text: "" }),
+      new Paragraph({
+        text: "المدير العام/ ثامر احمد القادري",
+        bidirectional: true,
+        alignment: AlignmentType.RIGHT,
+        bold: true,
+        size: 24,
       }),
     ];
 

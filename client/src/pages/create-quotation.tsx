@@ -473,15 +473,15 @@ export default function CreateQuotation() {
         </div>
 
         {/* Closing Section */}
-        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col items-end">
-          <div className="w-full flex justify-between items-start">
-            <div className="text-right">
-              <div className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-1">
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center">
+          <div className="w-full flex flex-col items-center gap-4">
+            <div className="text-center text-base font-bold text-slate-900 dark:text-slate-50">
+              واقبلوا فائق الاحترام....
+            </div>
+            <div className="w-full flex justify-end">
+              <div className="text-sm font-bold text-slate-900 dark:text-slate-50">
                 المدير العام/ ثامر احمد القادري
               </div>
-            </div>
-            <div className="text-left text-base font-bold text-slate-900 dark:text-slate-50">
-              واقبلوا فائق الاحترام....
             </div>
           </div>
         </div>
