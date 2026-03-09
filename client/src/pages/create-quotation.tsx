@@ -473,15 +473,22 @@ export default function CreateQuotation() {
         </div>
 
         {/* Closing Section */}
-        <div className="space-y-4 py-4 border-t border-slate-200 dark:border-slate-800">
-          <div className="text-center text-base font-bold text-slate-900 dark:text-slate-50">
-            واقبلوا فائق الاحترام....
+        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col items-end">
+          <div className="w-full flex justify-between items-start">
+            <div className="text-right">
+              <div className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-1">
+                المدير العام/ ثامر احمد القادري
+              </div>
+            </div>
+            <div className="text-left text-base font-bold text-slate-900 dark:text-slate-50">
+              واقبلوا فائق الاحترام....
+            </div>
           </div>
         </div>
 
         {/* Signature Section */}
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center text-xs space-y-1">
-          <div className="font-bold text-slate-900 dark:text-slate-50 text-xs">مؤسسة ومشاتل القدري الزراعية</div>
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center text-[10px] space-y-0.5 opacity-70">
+          <div className="font-bold text-slate-900 dark:text-slate-50">مؤسسة ومشاتل القدري الزراعية</div>
           <div className="space-y-0.5 text-slate-600 dark:text-slate-400">
             <input 
               value={details.phone}
