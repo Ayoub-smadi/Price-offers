@@ -448,7 +448,7 @@ export default function CreateQuotation() {
         <div className="space-y-2">
           <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 text-white rounded-lg p-3 text-center shadow-lg">
             <div className="text-xs font-semibold mb-0.5 opacity-90">المجموع الكلي</div>
-            <div className="text-2xl font-black">{grandTotal.toLocaleString()}</div>
+            <div className="text-2xl font-black">د.ا {grandTotal.toLocaleString()}</div>
           </div>
 
           {details.notes.trim() && (
