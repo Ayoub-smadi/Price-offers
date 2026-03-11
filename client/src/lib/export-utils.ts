@@ -1,11 +1,6 @@
-import * as XLSX from 'xlsx';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun } from 'docx';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-import stampImage from "@assets/لقطة_شاشة_2026-03-08_023328_1773047188235.png";
-
-// Create a print-ready version of the document with all inputs converted to visible text
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
   printDiv.style.width = '210mm';
@@ -19,46 +14,37 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   printDiv.style.textAlign = 'right';
   printDiv.style.boxSizing = 'border-box';
 
-  // Clone the original element
   const clone = element.cloneNode(true) as HTMLElement;
-  
-  // Replace all inputs with divs showing their values
+
   const inputs = clone.querySelectorAll('input, textarea');
   inputs.forEach(input => {
     const htmlInput = input as HTMLInputElement | HTMLTextAreaElement;
     const value = htmlInput.value;
-    
-    if (!value.trim()) return; // Skip empty inputs
-    
-    // Create a div to replace the input
+
     const div = document.createElement('div');
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordWrap = 'break-word';
     div.style.color = '#000000';
-    
-    // Preserve the styling
+
     const computedStyle = window.getComputedStyle(htmlInput);
     div.style.fontSize = computedStyle.fontSize;
     div.style.fontWeight = computedStyle.fontWeight;
     div.style.textAlign = computedStyle.textAlign;
     div.style.margin = computedStyle.margin;
     div.style.padding = computedStyle.padding;
-    
-    div.textContent = value;
+
+    div.textContent = value || ' ';
     htmlInput.parentNode?.replaceChild(div, htmlInput);
   });
 
-  // Remove all no-print elements
   const noPrint = clone.querySelectorAll('.no-print');
   noPrint.forEach(el => el.remove());
 
-  // Add borders to all tables
   const tables = clone.querySelectorAll('table');
   tables.forEach(table => {
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
-    
-    // Apply consistent styling to header cells
+
     const headerCells = table.querySelectorAll('th');
     headerCells.forEach(cell => {
       const element = cell as HTMLElement;
@@ -68,13 +54,12 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.height = '40px';
       element.style.verticalAlign = 'middle';
       element.style.textAlign = 'center';
-      element.style.backgroundColor = '#f3f4f6';
-      element.style.color = '#000000';
+      element.style.backgroundColor = '#1e293b';
+      element.style.color = '#ffffff';
       element.style.fontWeight = 'bold';
       element.style.fontSize = '12px';
     });
-    
-    // Apply consistent styling to data cells
+
     const dataCells = table.querySelectorAll('td');
     dataCells.forEach(cell => {
       const element = cell as HTMLElement;
@@ -90,7 +75,6 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     });
   });
 
-  // Optimize styles for print
   const allElements = clone.querySelectorAll('*');
   allElements.forEach(el => {
     const element = el as HTMLElement;
@@ -101,330 +85,173 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   return printDiv;
 };
 
-export const exportToExcel = (items: any[], quotationDetails: any) => {
-  // Prepare items data
-  const data = items.map((item, index) => ({
-    '#': index + 1,
-    'الصنف': item.name,
-    'الاسم النباتي': item.botanicalName || '',
-    'الوصف': item.description || '',
-    'الكمية': item.quantity,
-    'الوحدة': item.unit || 'وحدة',
-    'السعر': item.price,
-    'الإجمالي': item.total,
-  }));
+const createPageMiniHeader = (details: any, logoSrc: string): HTMLElement => {
+  const wrapper = document.createElement('div');
+  wrapper.style.width = '210mm';
+  wrapper.style.padding = '3mm 4mm 2mm';
+  wrapper.style.backgroundColor = '#ffffff';
+  wrapper.style.direction = 'rtl';
+  wrapper.style.boxSizing = 'border-box';
+  wrapper.style.borderBottom = '2px solid #e2e8f0';
+  wrapper.style.display = 'flex';
+  wrapper.style.alignItems = 'center';
+  wrapper.style.gap = '10px';
+  wrapper.style.fontFamily = 'Cairo, sans-serif';
 
-  // Add grand total row
-  data.push({
-    '#': '',
-    'الصنف': '',
-    'الاسم النباتي': '',
-    'الوصف': 'المجموع الكلي',
-    'الكمية': '',
-    'الوحدة': '',
-    'السعر': '',
-    'الإجمالي': quotationDetails.grandTotal,
-  });
-
-  // Add closing section
-  data.push({});
-  data.push({
-    '#': '',
-    'الصنف': 'واقبلوا فائق الاحترام....',
-    'الاسم النباتي': '',
-    'الوصف': '',
-    'الكمية': '',
-    'الوحدة': '',
-    'السعر': '',
-    'الإجمالي': '',
-  });
-  data.push({
-    '#': '',
-    'الصنف': 'مؤسســـــــة القادري الزراعية',
-    'الاسم النباتي': '',
-    'الوصف': '',
-    'الكمية': '',
-    'الوحدة': '',
-    'السعر': '',
-    'الإجمالي': '',
-  });
-  data.push({
-    '#': '',
-    'الصنف': 'المدير العام/ ثامر احمد القادري',
-    'الاسم النباتي': '',
-    'الوصف': '',
-    'الكمية': '',
-    'الوحدة': '',
-    'السعر': '',
-    'الإجمالي': '',
-  });
-
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 4 },   // #
-    { wch: 20 },  // الصنف
-    { wch: 18 },  // الاسم النباتي
-    { wch: 20 },  // الوصف
-    { wch: 8 },   // الكمية
-    { wch: 10 },  // الوحدة
-    { wch: 12 },  // السعر
-    { wch: 12 },  // الإجمالي
-  ];
-
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "عرض السعر");
-  XLSX.writeFile(workbook, `${quotationDetails.quotationNumber || 'Quotation'}.xlsx`);
-};
-
-export const exportToWord = async (elementId: string, filename: string, items?: any[], details?: any) => {
-  const element = document.getElementById(elementId);
-  if (!element) return;
-  
-  try {
-    // Build header section
-    const headerParagraphs = [
-      new Paragraph({
-        text: `مؤسسة ومشاتل القادري الزراعية`,
-        bidirectional: true,
-        bold: true,
-        size: 32,
-        alignment: AlignmentType.CENTER,
-      }),
-      new Paragraph({
-        text: `جرش – الرشايدة`,
-        bidirectional: true,
-        alignment: AlignmentType.CENTER,
-        size: 24,
-      }),
-      new Paragraph({
-        text: `Al-Qadri Agricultural Establishment - Jerash - Al-Rashaidah`,
-        alignment: AlignmentType.CENTER,
-        size: 20,
-      }),
-      new Paragraph({ text: "" }), // spacing
-    ];
-
-    // Quotation details section
-    const detailsParagraphs = [
-      new Paragraph({
-        text: `عرض سعر رقم: ${details?.quotationNumber || ''}`,
-        bidirectional: true,
-        bold: true,
-      }),
-      new Paragraph({
-        text: `التاريخ: ${details?.date || ''}`,
-        bidirectional: true,
-      }),
-      new Paragraph({
-        text: `اسم العميل: ${details?.customerName || ''}`,
-        bidirectional: true,
-      }),
-      new Paragraph({ text: "" }),
-    ];
-
-    // Build table rows (RTL - Right to Left)
-    const tableRows = [
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({ text: "الإجمالي", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "السعر", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الكمية", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الوصف", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "الاسم", bidirectional: true, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-          new TableCell({
-            children: [new Paragraph({ text: "#", alignment: AlignmentType.CENTER, bold: true })],
-            shading: { fill: "1F2937" },
-          }),
-        ],
-      }),
-      ...(items || []).map((item, index) =>
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [new Paragraph({ text: item.total?.toString() || "", alignment: AlignmentType.CENTER })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.price?.toString() || "", alignment: AlignmentType.CENTER })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.quantity?.toString() || "", alignment: AlignmentType.CENTER })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.description || "", bidirectional: true })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: item.name || "", bidirectional: true })],
-            }),
-            new TableCell({
-              children: [new Paragraph({ text: (index + 1).toString(), alignment: AlignmentType.CENTER })],
-            }),
-          ],
-        })
-      ),
-    ];
-
-    // Footer section
-    const footerParagraphs = [
-      new Paragraph({ text: "" }),
-      new Paragraph({
-        text: `الإجمالي الكلي: ${details?.grandTotal || 0}`,
-        bidirectional: true,
-        bold: true,
-        size: 24,
-      }),
-      new Paragraph({ text: "" }),
-      new Paragraph({
-        text: "واقبلوا فائق الاحترام....",
-        bidirectional: true,
-        alignment: AlignmentType.CENTER,
-        bold: true,
-        size: 24,
-      }),
-      new Paragraph({ text: "" }),
-      new Paragraph({
-        text: "المدير العام/ ثامر احمد القادري",
-        bidirectional: true,
-        alignment: AlignmentType.RIGHT,
-        bold: true,
-        size: 24,
-      }),
-    ];
-
-    // Create document
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: [
-          ...headerParagraphs,
-          ...detailsParagraphs,
-          new Table({
-            rows: tableRows,
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-              bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-              left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-              right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-            }
-          }),
-          ...footerParagraphs,
-        ],
-      }],
-    });
-
-    const docBlob = await Packer.toBlob(doc);
-    const url = window.URL.createObjectURL(docBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${filename}.docx`;
-    a.click();
-  } catch (error) {
-    console.error("Failed to generate Word document:", error);
+  if (logoSrc) {
+    const logo = document.createElement('img');
+    logo.src = logoSrc;
+    logo.crossOrigin = 'anonymous';
+    logo.style.width = '45px';
+    logo.style.height = '45px';
+    logo.style.objectFit = 'contain';
+    logo.style.flexShrink = '0';
+    wrapper.appendChild(logo);
   }
+
+  const textDiv = document.createElement('div');
+  textDiv.style.flex = '1';
+
+  const nameAr = document.createElement('div');
+  nameAr.style.fontSize = '13px';
+  nameAr.style.fontWeight = 'bold';
+  nameAr.style.color = '#1e293b';
+  nameAr.textContent = details.companyNameAr || 'مؤسسة ومشاتل القادري الزراعية';
+
+  const nameEn = document.createElement('div');
+  nameEn.style.fontSize = '9px';
+  nameEn.style.color = '#64748b';
+  nameEn.style.direction = 'ltr';
+  nameEn.style.textAlign = 'left';
+  nameEn.textContent = details.companyNameEn || 'Al-Qadri Agricultural Establishment';
+
+  textDiv.appendChild(nameAr);
+  textDiv.appendChild(nameEn);
+  wrapper.appendChild(textDiv);
+
+  return wrapper;
 };
 
-export const exportToPDF = async (elementId: string, filename: string, items?: any[], details?: any) => {
+const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
+  return html2canvas(el, {
+    scale: 3,
+    useCORS: true,
+    logging: false,
+    backgroundColor: '#ffffff',
+    allowTaint: true,
+    imageTimeout: 15000,
+    windowWidth: Math.round(210 * 96 / 25.4),
+  });
+};
+
+export const exportToPDF = async (
+  elementId: string,
+  filename: string,
+  items?: any[],
+  details?: any,
+  logoSrc?: string
+) => {
   const element = document.getElementById(elementId);
   if (!element) return;
-  
-  try {
-    // Create print-ready document with all text visible
-    const printDoc = createPrintDocument(element, items || [], details || {});
-    document.body.appendChild(printDoc);
-    
-    // Wait a moment for rendering
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Generate canvas from print-ready document with high quality
-    const canvas = await html2canvas(printDoc, { 
-      scale: 3,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      allowTaint: true,
-      imageTimeout: 0,
-      windowHeight: printDoc.scrollHeight,
-      windowWidth: 210 * 96 / 25.4 // A4 width
-    });
-    
-    // Clean up
-    document.body.removeChild(printDoc);
-    
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
 
+  try {
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
-    
-    // Use full page width with minimal margins
-    const imgWidth = pdfWidth - 4;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    const xPos = 2;
-    const yPos = 2;
-    
-    // Calculate pages needed based on content height
-    const contentHeightPerPage = (pdfHeight - 4) * (canvas.width / imgWidth); // Height in canvas pixels
-    const totalPages = Math.ceil(canvas.height / contentHeightPerPage);
-    
-    // Add each page to the PDF
-    for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
-      // Create a temporary canvas for this page
-      const pageCanvas = document.createElement('canvas');
-      pageCanvas.width = canvas.width;
-      pageCanvas.height = Math.min(contentHeightPerPage, canvas.height - (pageIndex * contentHeightPerPage));
-      
-      const ctx = pageCanvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(
-          canvas,
-          0,
-          pageIndex * contentHeightPerPage,
-          canvas.width,
-          pageCanvas.height,
-          0,
-          0,
-          pageCanvas.width,
-          pageCanvas.height
-        );
-      }
-      
-      // Convert page canvas to image
-      const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
-      const pageImgHeight = (pageCanvas.height * imgWidth) / canvas.width;
-      
-      // Add page to PDF (except first page which is already created)
+
+    const marginX = 2;
+    const marginY = 2;
+    const imgWidth = pdfWidth - marginX * 2;
+
+    // --- Render main document ---
+    const printDoc = createPrintDocument(element, items || [], details || {});
+    printDoc.style.position = 'fixed';
+    printDoc.style.top = '-9999px';
+    printDoc.style.left = '-9999px';
+    document.body.appendChild(printDoc);
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    const mainCanvas = await renderToCanvas(printDoc);
+    document.body.removeChild(printDoc);
+
+    // --- Render mini header for subsequent pages ---
+    let miniHeaderCanvas: HTMLCanvasElement | null = null;
+    let miniHeaderHeightMM = 0;
+
+    if (logoSrc || details) {
+      const miniHeader = createPageMiniHeader(details || {}, logoSrc || '');
+      miniHeader.style.position = 'fixed';
+      miniHeader.style.top = '-9999px';
+      miniHeader.style.left = '-9999px';
+      document.body.appendChild(miniHeader);
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      miniHeaderCanvas = await renderToCanvas(miniHeader);
+      document.body.removeChild(miniHeader);
+
+      miniHeaderHeightMM = (miniHeaderCanvas.height * imgWidth) / miniHeaderCanvas.width;
+    }
+
+    // --- Calculate page dimensions in canvas pixels ---
+    const canvasPixelsPerMM = mainCanvas.width / imgWidth;
+    const fullPageHeightPx = (pdfHeight - marginY * 2) * canvasPixelsPerMM;
+    const miniHeaderHeightPx = miniHeaderCanvas
+      ? (miniHeaderCanvas.height * mainCanvas.width) / miniHeaderCanvas.width
+      : 0;
+
+    // Available content height per page (page 2+ has mini header)
+    const contentHeightPage1Px = fullPageHeightPx;
+    const contentHeightSubsequentPx = fullPageHeightPx - miniHeaderHeightPx;
+
+    // --- Slice and add pages ---
+    let sourceY = 0;
+    let pageIndex = 0;
+
+    while (sourceY < mainCanvas.height) {
       if (pageIndex > 0) {
         pdf.addPage('a4');
       }
-      
-      pdf.addImage(pageImgData, 'JPEG', xPos, yPos, imgWidth, pageImgHeight);
+
+      let contentStartY = marginY;
+
+      // Draw mini header on pages 2+
+      if (pageIndex > 0 && miniHeaderCanvas) {
+        const miniImgData = miniHeaderCanvas.toDataURL('image/jpeg', 0.98);
+        pdf.addImage(miniImgData, 'JPEG', marginX, marginY, imgWidth, miniHeaderHeightMM);
+        contentStartY = marginY + miniHeaderHeightMM;
+      }
+
+      const availableContentPx = pageIndex === 0 ? contentHeightPage1Px : contentHeightSubsequentPx;
+      const sliceHeightPx = Math.min(availableContentPx, mainCanvas.height - sourceY);
+
+      if (sliceHeightPx <= 0) break;
+
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = mainCanvas.width;
+      pageCanvas.height = Math.round(sliceHeightPx);
+
+      const ctx = pageCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(
+          mainCanvas,
+          0, Math.round(sourceY),
+          mainCanvas.width, Math.round(sliceHeightPx),
+          0, 0,
+          mainCanvas.width, Math.round(sliceHeightPx)
+        );
+      }
+
+      const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
+      const pageHeightMM = sliceHeightPx / canvasPixelsPerMM;
+
+      pdf.addImage(pageImgData, 'JPEG', marginX, contentStartY, imgWidth, pageHeightMM);
+
+      sourceY += availableContentPx;
+      pageIndex++;
     }
-    
+
     pdf.save(`${filename}.pdf`);
   } catch (error) {
-    console.error("Failed to generate PDF:", error);
+    console.error('Failed to generate PDF:', error);
   }
 };

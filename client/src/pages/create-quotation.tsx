@@ -1,14 +1,13 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { 
-  Plus, FileText, Download, Printer, Save, FileSpreadsheet, 
-  Wand2, Trash2, Image as ImageIcon, CheckCircle2
+  Plus, FileText, Save, 
+  Wand2, Trash2, CheckCircle2
 } from "lucide-react";
 import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF, exportToExcel, exportToWord } from "@/lib/export-utils";
+import { exportToPDF } from "@/lib/export-utils";
 import { format } from "date-fns";
 import logoImage from "@assets/لقطة_شاشة_2026-03-08_080127_1773036971718.png";
-import closingImage from "@assets/image_1772930022686.png";
 import stampImage from "@assets/لقطة_شاشة_2026-03-08_023328_1773047188235.png";
 
 type Item = {
@@ -175,10 +174,6 @@ export default function CreateQuotation() {
     });
   };
 
-  const printDocument = () => {
-    window.print();
-  };
-
   return (
     <div className="max-w-7xl mx-auto p-2 sm:p-3 space-y-2 pb-20 min-h-screen flex flex-col print:p-0 print:space-y-0">
       {/* Top Toolbar */}
@@ -190,37 +185,17 @@ export default function CreateQuotation() {
         
         <div className="flex items-center gap-1">
           <button 
-            onClick={printDocument}
-            className="p-1.5 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all"
-            title="طباعة"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
-          
-          <div className="h-6 w-px bg-border mx-0.5" />
-          
-          <button 
-            onClick={() => exportToPDF("quotation-document", `Quote-${details.quotationNumber}`, items, details)}
+            onClick={() => exportToPDF(
+              "quotation-document",
+              `Quote-${details.quotationNumber}`,
+              items,
+              details,
+              logoBase64 || logoImage
+            )}
             className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all dark:bg-red-900/20 dark:text-red-400"
             title="تصدير PDF"
           >
             <FileText className="w-4 h-4" />
-          </button>
-          
-          <button 
-            onClick={() => exportToExcel(items, { ...details, grandTotal })}
-            className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all dark:bg-green-900/20 dark:text-green-400"
-            title="تصدير Excel"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-          </button>
-          
-          <button 
-            onClick={() => exportToWord("quotation-document", `Quote-${details.quotationNumber}`, items, { ...details, grandTotal })}
-            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all dark:bg-blue-900/20 dark:text-blue-400"
-            title="تصدير Word"
-          >
-            <Download className="w-4 h-4" />
           </button>
 
           <button 
