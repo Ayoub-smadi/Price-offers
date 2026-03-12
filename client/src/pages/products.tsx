@@ -296,7 +296,7 @@ export default function Products() {
     if (filtered.length === 0) { toast({ title: "لا توجد منتجات للتصدير", variant: "destructive" }); return; }
     setExporting(true);
     try {
-      await exportCatalogToPDF(filtered, '/favicon.png');
+      await exportCatalogToPDF(filtered);
       toast({ title: "تم تصدير الكتالوج بنجاح" });
     } catch {
       toast({ title: "خطأ في التصدير", variant: "destructive" });

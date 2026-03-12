@@ -369,6 +369,9 @@ export const exportToPDF = async (
 
 // ─── Catalog PDF Export ─────────────────────────────────────────────────────
 
+const COMPANY_PHONE = '00962777772211';
+const CURRENCY = 'دينار أردني';
+
 const loadImageAsDataUrl = (src: string): Promise<string> =>
   new Promise(resolve => {
     const img = new Image();
@@ -377,17 +380,28 @@ const loadImageAsDataUrl = (src: string): Promise<string> =>
       const c = document.createElement('canvas');
       c.width = img.naturalWidth;
       c.height = img.naturalHeight;
-      c.getContext('2d')!.drawImage(img, 0, 0);
-      resolve(c.toDataURL('image/jpeg', 0.9));
+      const ctx = c.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.92));
     };
     img.onerror = () => resolve('');
     img.src = src;
   });
 
+const el = (tag: string, css: string, text?: string): HTMLElement => {
+  const e = document.createElement(tag);
+  e.style.cssText = css;
+  if (text !== undefined) e.textContent = text;
+  return e;
+};
+
 const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<HTMLElement> => {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = `
-    width: 210mm;
+  const A4_PX = Math.round(210 * 96 / 25.4); // ≈ 794px
+
+  const wrap = el('div', `
+    width: ${A4_PX}px;
     background: #ffffff;
     font-family: Cairo, Arial, sans-serif;
     direction: rtl;
@@ -395,176 +409,166 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
     color: #1e293b;
     box-sizing: border-box;
     padding: 0;
-  `;
+  `);
 
-  // ── Header ──
-  const header = document.createElement('div');
-  header.style.cssText = `
-    background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 60%, #52b788 100%);
-    padding: 18px 20px 14px;
+  // ── Header ──────────────────────────────────────────────────────────────────
+  const header = el('div', `
+    background: #1a3c2e;
+    padding: 20px 24px 16px;
     display: flex;
     align-items: center;
-    gap: 14px;
-  `;
+    gap: 18px;
+  `);
 
-  if (logoSrc) {
-    const logoData = await loadImageAsDataUrl(logoSrc);
-    if (logoData) {
-      const logo = document.createElement('img');
-      logo.src = logoData;
-      logo.style.cssText = 'width:70px;height:70px;object-fit:contain;border-radius:10px;background:#fff;padding:4px;flex-shrink:0;';
-      header.appendChild(logo);
-    }
+  // Logo
+  const logoData = logoSrc ? await loadImageAsDataUrl(logoSrc) : '';
+  if (logoData) {
+    const logoWrap = el('div', 'width:90px;height:90px;background:#ffffff;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;');
+    const logo = document.createElement('img') as HTMLImageElement;
+    logo.src = logoData;
+    logo.style.cssText = 'width:82px;height:82px;object-fit:contain;';
+    logoWrap.appendChild(logo);
+    header.appendChild(logoWrap);
   }
 
-  const headerText = document.createElement('div');
-  headerText.style.cssText = 'flex:1;';
-
-  const companyName = document.createElement('div');
-  companyName.textContent = 'مؤسسة ومشاتل القادري الزراعية';
-  companyName.style.cssText = 'font-size:22px;font-weight:900;color:#ffffff;line-height:1.2;';
-  headerText.appendChild(companyName);
-
-  const companyEn = document.createElement('div');
-  companyEn.textContent = 'Al-Qadri Agricultural Establishment';
-  companyEn.style.cssText = 'font-size:10px;color:#a7f3d0;direction:ltr;text-align:left;margin-top:2px;';
-  headerText.appendChild(companyEn);
-
-  const tagline = document.createElement('div');
-  tagline.textContent = 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري';
-  tagline.style.cssText = 'font-size:12px;color:#d1fae5;margin-top:6px;font-weight:600;';
-  headerText.appendChild(tagline);
-  header.appendChild(headerText);
+  // Header text
+  const hText = el('div', 'flex:1;');
+  hText.appendChild(el('div', 'font-size:26px;font-weight:900;color:#ffffff;line-height:1.2;letter-spacing:-0.5px;', 'مؤسسة ومشاتل القادري الزراعية'));
+  hText.appendChild(el('div', 'font-size:11px;color:#86efac;direction:ltr;text-align:left;margin-top:3px;font-weight:600;', 'Al-Qadri Agricultural Nursery & Establishment'));
+  hText.appendChild(el('div', 'font-size:13px;color:#d1fae5;margin-top:10px;font-weight:700;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);', 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري'));
+  header.appendChild(hText);
   wrap.appendChild(header);
 
-  // ── Date bar ──
-  const datebar = document.createElement('div');
-  datebar.style.cssText = 'background:#f0fdf4;padding:6px 20px;font-size:10px;color:#166534;border-bottom:1px solid #bbf7d0;display:flex;justify-content:space-between;';
-  const dateLabel = document.createElement('span');
-  dateLabel.textContent = `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`;
-  const countLabel = document.createElement('span');
-  countLabel.textContent = `إجمالي الأصناف: ${products.length}`;
-  datebar.appendChild(dateLabel);
-  datebar.appendChild(countLabel);
-  wrap.appendChild(datebar);
+  // ── Info bar ──────────────────────────────────────────────────────────────
+  const infoBar = el('div', 'background:#f0fdf4;padding:7px 24px;border-bottom:2px solid #bbf7d0;display:flex;justify-content:space-between;align-items:center;');
+  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `☎ ${COMPANY_PHONE}`));
+  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
+  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `إجمالي الأصناف: ${products.length}`));
+  wrap.appendChild(infoBar);
 
-  // ── Products Grid (2 columns) ──
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:0;padding:12px;gap:10px;background:#f8fafc;';
+  // ── Products Grid (2 columns) ────────────────────────────────────────────
+  const CARD_IMG_H = 160;
+  const CARD_INFO_H = 110;
+  const CARD_H = CARD_IMG_H + CARD_INFO_H;
+  const GAP = 10;
+  const PAD = 12;
+  const colW = Math.floor((A4_PX - PAD * 2 - GAP) / 2);
+
+  const grid = el('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f8fafc;`);
 
   for (const product of products) {
-    const card = document.createElement('div');
-    card.style.cssText = `
+    const card = el('div', `
       background: #ffffff;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
       border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    `;
+      width: ${colW}px;
+    `);
 
-    // Image
-    const imgContainer = document.createElement('div');
-    imgContainer.style.cssText = 'width:100%;height:130px;overflow:hidden;background:#f1f5f9;display:flex;align-items:center;justify-content:center;';
+    // ── Product Image ──
+    const imgBox = el('div', `width:${colW}px;height:${CARD_IMG_H}px;overflow:hidden;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;`);
 
     if (product.imageUrl) {
       const imgData = await loadImageAsDataUrl(product.imageUrl);
       if (imgData) {
-        const img = document.createElement('img');
+        const img = document.createElement('img') as HTMLImageElement;
         img.src = imgData;
-        img.style.cssText = 'width:100%;height:130px;object-fit:cover;';
-        imgContainer.appendChild(img);
+        img.style.cssText = `width:${colW}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
+        imgBox.appendChild(img);
       } else {
-        imgContainer.innerHTML = '<div style="color:#94a3b8;font-size:28px;">🌿</div>';
+        imgBox.appendChild(el('div', 'font-size:40px;color:#94a3b8;', '🌿'));
       }
     } else {
-      imgContainer.innerHTML = '<div style="color:#94a3b8;font-size:28px;">🌿</div>';
+      imgBox.appendChild(el('div', 'font-size:40px;color:#94a3b8;', '🌿'));
     }
-    card.appendChild(imgContainer);
+    card.appendChild(imgBox);
 
-    // Info
-    const info = document.createElement('div');
-    info.style.cssText = 'padding:8px 10px 10px;';
+    // ── Product Info ──
+    const info = el('div', `padding:10px 12px 12px;height:${CARD_INFO_H}px;box-sizing:border-box;display:flex;flex-direction:column;`);
 
-    const unitBadge = document.createElement('div');
-    unitBadge.style.cssText = 'display:inline-block;background:#dcfce7;color:#166534;font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;margin-bottom:4px;';
-    unitBadge.textContent = product.unit || 'وحدة';
-    info.appendChild(unitBadge);
+    // Unit badge
+    info.appendChild(el('div',
+      'display:inline-block;background:#dcfce7;color:#166534;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;margin-bottom:5px;width:fit-content;',
+      product.unit || 'وحدة'
+    ));
 
-    const name = document.createElement('div');
-    name.textContent = product.name;
-    name.style.cssText = 'font-size:12px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:2px;';
-    info.appendChild(name);
+    // Name
+    info.appendChild(el('div',
+      'font-size:13px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:3px;overflow:hidden;',
+      product.name
+    ));
 
+    // Description (truncate to ~60 chars)
     if (product.description) {
-      const desc = document.createElement('div');
-      desc.textContent = product.description;
-      desc.style.cssText = 'font-size:9px;color:#64748b;line-height:1.4;margin-bottom:5px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;';
-      info.appendChild(desc);
+      const truncated = product.description.length > 65
+        ? product.description.slice(0, 62) + '...'
+        : product.description;
+      info.appendChild(el('div',
+        'font-size:9.5px;color:#64748b;line-height:1.45;margin-bottom:6px;flex:1;overflow:hidden;',
+        truncated
+      ));
+    } else {
+      const spacer = el('div', 'flex:1;');
+      info.appendChild(spacer);
     }
 
-    const priceRow = document.createElement('div');
-    priceRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:5px;border-top:1px solid #f1f5f9;';
-
-    const price = document.createElement('div');
-    price.style.cssText = 'font-size:16px;font-weight:900;color:#2d6a4f;';
-    price.textContent = `${Number(product.price).toLocaleString()}`;
-    priceRow.appendChild(price);
-
-    const currency = document.createElement('div');
-    currency.style.cssText = 'font-size:9px;color:#94a3b8;font-weight:600;';
-    currency.textContent = `ريال / ${product.unit || 'وحدة'}`;
-    priceRow.appendChild(currency);
-
+    // Price row
+    const priceRow = el('div', 'display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1.5px solid #f0fdf4;margin-top:auto;');
+    const priceWrap = el('div', '');
+    priceWrap.appendChild(el('div', 'font-size:20px;font-weight:900;color:#2d6a4f;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
+    priceWrap.appendChild(el('div', 'font-size:9px;color:#94a3b8;margin-top:1px;', CURRENCY));
+    priceRow.appendChild(priceWrap);
+    priceRow.appendChild(el('div', 'font-size:9px;color:#94a3b8;', `/ ${product.unit || 'وحدة'}`));
     info.appendChild(priceRow);
+
     card.appendChild(info);
     grid.appendChild(card);
   }
 
-  // Odd number: add empty filler
+  // Odd filler
   if (products.length % 2 !== 0) {
-    grid.appendChild(document.createElement('div'));
+    grid.appendChild(el('div', `width:${colW}px;`));
   }
-
   wrap.appendChild(grid);
 
-  // ── Footer ──
-  const footer = document.createElement('div');
-  footer.style.cssText = 'background:#1a3c2e;padding:8px 20px;text-align:center;';
-  const footerText = document.createElement('div');
-  footerText.textContent = 'مؤسسة ومشاتل القادري الزراعية • للتواصل والاستفسار يرجى الاتصال بنا';
-  footerText.style.cssText = 'color:#a7f3d0;font-size:9px;';
-  footer.appendChild(footerText);
+  // ── Footer ──────────────────────────────────────────────────────────────
+  const footer = el('div', 'background:#1a3c2e;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;');
+  footer.appendChild(el('div', 'color:#86efac;font-size:10px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
+  footer.appendChild(el('div', 'color:#d1fae5;font-size:10px;direction:ltr;', `☎ ${COMPANY_PHONE}`));
   wrap.appendChild(footer);
 
   return wrap;
 };
 
-export const exportCatalogToPDF = async (products: Product[], logoSrc: string = '') => {
+export const exportCatalogToPDF = async (products: Product[], _logoSrc: string = '') => {
   try {
-    const catalogEl = await buildCatalogHTML(products, logoSrc);
+    const catalogEl = await buildCatalogHTML(products, '/logo.png');
     catalogEl.style.position = 'fixed';
     catalogEl.style.top = '-9999px';
     catalogEl.style.left = '-9999px';
     document.body.appendChild(catalogEl);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
 
+    const A4_PX = Math.round(210 * 96 / 25.4);
     const canvas = await html2canvas(catalogEl, {
       scale: 3,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
       allowTaint: true,
-      imageTimeout: 15000,
-      windowWidth: Math.round(210 * 96 / 25.4),
+      imageTimeout: 20000,
+      windowWidth: A4_PX,
+      width: A4_PX,
     });
     document.body.removeChild(catalogEl);
 
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
-    const imgW = pdfW - 4;
+    const margin = 0;
+    const imgW = pdfW - margin * 2;
     const pxPerMM = canvas.width / imgW;
-    const pageHeightPx = (pdfH - 4) * pxPerMM;
+    const pageHeightPx = (pdfH - margin * 2) * pxPerMM;
 
     let srcY = 0;
     let pageIdx = 0;
@@ -577,9 +581,15 @@ export const exportCatalogToPDF = async (products: Product[], logoSrc: string = 
       const pg = document.createElement('canvas');
       pg.width = canvas.width;
       pg.height = Math.round(slicePx);
-      pg.getContext('2d')!.drawImage(canvas, 0, Math.round(srcY), canvas.width, Math.round(slicePx), 0, 0, canvas.width, Math.round(slicePx));
+      pg.getContext('2d')!.drawImage(
+        canvas,
+        0, Math.round(srcY),
+        canvas.width, Math.round(slicePx),
+        0, 0,
+        canvas.width, Math.round(slicePx)
+      );
 
-      pdf.addImage(pg.toDataURL('image/jpeg', 0.97), 'JPEG', 2, 2, imgW, slicePx / pxPerMM);
+      pdf.addImage(pg.toDataURL('image/jpeg', 0.97), 'JPEG', margin, margin, imgW, slicePx / pxPerMM);
       srcY += pageHeightPx;
       pageIdx++;
     }
