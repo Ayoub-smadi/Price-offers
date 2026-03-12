@@ -410,6 +410,13 @@ export default function CreateQuotation() {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
+                <td colSpan={5} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
+                <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{grandTotal.toLocaleString()}</td>
+                <td className="no-print"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
