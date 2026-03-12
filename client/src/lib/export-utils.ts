@@ -102,28 +102,71 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     element.style.boxShadow = 'none';
   });
 
-  // Fix SVG icon alignment - html2canvas struggles with SVG vertical alignment
-  const svgElements = clone.querySelectorAll('svg');
-  svgElements.forEach(svg => {
-    const el = svg as SVGElement & { style: CSSStyleDeclaration };
-    el.style.display = 'inline-block';
-    el.style.verticalAlign = 'middle';
-    el.style.position = 'relative';
-    el.style.top = '0';
-    el.style.flexShrink = '0';
-  });
-
-  // Fix flex containers that hold icons + text so items stay centered
-  // Iterate all elements and check class list for Tailwind flex classes
+  // Fix flex containers - apply styles inline since html2canvas ignores Tailwind classes
   const allCloned = clone.querySelectorAll('*');
   allCloned.forEach(container => {
     const el = container as HTMLElement;
     if (!el.classList) return;
-    const hasFlex = el.classList.contains('flex') || el.classList.contains('inline-flex');
-    if (hasFlex) {
+    if (el.classList.contains('flex') || el.classList.contains('inline-flex')) {
       el.style.display = 'flex';
-      el.style.alignItems = 'center';
+      if (el.classList.contains('items-center')) el.style.alignItems = 'center';
+      if (el.classList.contains('items-start')) el.style.alignItems = 'flex-start';
+      if (el.classList.contains('items-end')) el.style.alignItems = 'flex-end';
+      if (el.classList.contains('justify-center')) el.style.justifyContent = 'center';
+      if (el.classList.contains('justify-between')) el.style.justifyContent = 'space-between';
+      if (el.classList.contains('justify-end')) el.style.justifyContent = 'flex-end';
+      if (el.classList.contains('gap-1')) el.style.gap = '4px';
+      if (el.classList.contains('gap-2')) el.style.gap = '8px';
+      if (el.classList.contains('gap-4')) el.style.gap = '16px';
+      if (el.classList.contains('flex-wrap')) el.style.flexWrap = 'wrap';
     }
+  });
+
+  // Fix SVG icon alignment - wrap each SVG in a centering span so html2canvas renders it correctly
+  // Map Tailwind width classes to pixel values
+  const tailwindSizeMap: Record<string, string> = {
+    'w-2': '8px', 'w-3': '12px', 'w-4': '16px', 'w-5': '20px',
+    'w-6': '24px', 'w-8': '32px', 'w-10': '40px', 'w-12': '48px',
+  };
+  const tailwindHeightMap: Record<string, string> = {
+    'h-2': '8px', 'h-3': '12px', 'h-4': '16px', 'h-5': '20px',
+    'h-6': '24px', 'h-8': '32px', 'h-10': '40px', 'h-12': '48px',
+  };
+
+  const svgElements = clone.querySelectorAll('svg');
+  svgElements.forEach(svg => {
+    const svgEl = svg as SVGElement & { style: CSSStyleDeclaration };
+    const classes = Array.from(svgEl.classList);
+
+    // Determine size from Tailwind classes first, then fallback to attributes
+    let pxW = '12px';
+    let pxH = '12px';
+    for (const cls of classes) {
+      if (tailwindSizeMap[cls]) pxW = tailwindSizeMap[cls];
+      if (tailwindHeightMap[cls]) pxH = tailwindHeightMap[cls];
+    }
+
+    svgEl.setAttribute('width', pxW.replace('px', ''));
+    svgEl.setAttribute('height', pxH.replace('px', ''));
+    svgEl.style.display = 'block';
+    svgEl.style.width = pxW;
+    svgEl.style.height = pxH;
+    svgEl.style.overflow = 'visible';
+    svgEl.style.flexShrink = '0';
+
+    // Wrap in a span that uses inline-flex to guarantee vertical centering
+    const wrapper = document.createElement('span');
+    wrapper.style.display = 'inline-flex';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.justifyContent = 'center';
+    wrapper.style.width = pxW;
+    wrapper.style.height = pxH;
+    wrapper.style.flexShrink = '0';
+    wrapper.style.lineHeight = '1';
+    wrapper.style.verticalAlign = 'middle';
+
+    svg.parentNode?.insertBefore(wrapper, svg);
+    wrapper.appendChild(svg);
   });
 
   printDiv.appendChild(clone);
