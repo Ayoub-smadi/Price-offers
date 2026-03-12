@@ -490,11 +490,6 @@ ${details.companyNameAr}
                     <div>
                       <div className="font-semibold text-sm text-foreground">{p.name}</div>
                       {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
-                      {(p.stock ?? 0) <= 0 ? (
-                        <span className="text-[10px] font-bold text-red-500">نفد المخزون</span>
-                      ) : (
-                        <span className="text-[10px] font-semibold text-muted-foreground">رصيد: {p.stock} {p.unit}</span>
-                      )}
                     </div>
                     <div className="text-left mr-3">
                       <div className="font-black text-primary">{Number(p.price).toLocaleString()}</div>

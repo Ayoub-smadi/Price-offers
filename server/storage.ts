@@ -38,18 +38,21 @@ export class DatabaseStorage implements IStorage {
     let newItems: any[] = [];
     if (itemsToInsert.length > 0) {
       newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
-      // Deduct stock for matching products (case-insensitive name match)
+      // Save new products to catalog automatically (if not already there by name)
       const allProducts = await db.select().from(products);
       for (const item of items) {
-        const match = allProducts.find(
-          p => p.name.trim().toLowerCase() === String(item.name).trim().toLowerCase()
+        const name = String(item.name).trim();
+        if (!name) continue;
+        const alreadyExists = allProducts.some(
+          p => p.name.trim().toLowerCase() === name.toLowerCase()
         );
-        if (match) {
-          const currentStock = match.stock ?? 0;
-          const newStock = currentStock - Number(item.quantity);
-          await db.update(products)
-            .set({ stock: newStock })
-            .where(eq(products.id, match.id));
+        if (!alreadyExists) {
+          await db.insert(products).values({
+            name,
+            description: item.description ? String(item.description) : null,
+            unit: "وحدة",
+            price: String(item.price ?? 0),
+          });
         }
       }
     }
