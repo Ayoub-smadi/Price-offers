@@ -489,7 +489,7 @@ export default function EditQuotation() {
 
         {/* Contact Section */}
         <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center opacity-70">
-          <div className="text-[10px] font-bold text-slate-900 dark:text-slate-50 mb-2">مؤسسة ومشاتل القدري الزراعية</div>
+          <div className="text-[10px] font-bold text-slate-900 dark:text-slate-50 mb-2">مؤسسة ومشاتل القادري الزراعية</div>
           <div className="flex items-center justify-center gap-4 text-slate-600 dark:text-slate-400" dir="ltr">
             <div className="flex items-center gap-1">
               <Phone className="w-3 h-3 flex-shrink-0" />
