@@ -426,8 +426,8 @@ const C_GAP  = 12;   // gap between cards/rows
 const COLS   = 3;    // 3 cards per row
 const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP * (COLS - 1)) / COLS); // ~244px
 
-const CARD_IMG_H  = 178;  // tall portrait-style image
-const CARD_INFO_H = 100;  // name + description + price
+const CARD_IMG_H  = 163;  // tall portrait-style image
+const CARD_INFO_H = 115;  // name + description + price
 const CARD_BAR_H  = 5;
 const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 283px
 const ROW_H       = CARD_H + C_GAP;                        // 295px
