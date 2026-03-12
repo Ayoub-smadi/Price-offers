@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { quotations, quotationItems, products, users, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User } from "@shared/schema";
-import { eq, desc, isNull, isNotNull } from "drizzle-orm";
+import { eq, desc, isNull, isNotNull, asc, sql } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
 function hashPassword(password: string, salt: string): string {
@@ -38,6 +38,7 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  reorderProducts(items: { id: number; sortOrder: number }[]): Promise<void>;
   getUserByUsername(username: string): Promise<User | undefined>;
   changeUserPassword(username: string, newPasswordHash: string): Promise<void>;
   seedAdminUser(): Promise<void>;
@@ -126,7 +127,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(): Promise<Product[]> {
-    return db.select().from(products).orderBy(desc(products.createdAt));
+    return db.select().from(products).orderBy(asc(products.sortOrder), desc(products.createdAt));
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
@@ -146,6 +147,12 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  async reorderProducts(items: { id: number; sortOrder: number }[]): Promise<void> {
+    for (const item of items) {
+      await db.update(products).set({ sortOrder: item.sortOrder }).where(eq(products.id, item.id));
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {

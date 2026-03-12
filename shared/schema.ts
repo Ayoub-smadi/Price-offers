@@ -24,6 +24,9 @@ export const quotationItems = pgTable("quotation_items", {
   total: numeric("total").notNull(),
 });
 
+export const PRODUCT_CATEGORIES = ["أشجار", "شجيرات", "ورود", "نباتات زينة", "عام"] as const;
+export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -32,6 +35,8 @@ export const products = pgTable("products", {
   price: numeric("price").notNull().default("0"),
   stock: integer("stock").default(0),
   imageUrl: text("image_url"),
+  category: text("category").default("عام"),
+  sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

@@ -155,6 +155,18 @@ export async function registerRoutes(
     }
   });
 
+  app.put('/api/products/reorder', async (req, res) => {
+    try {
+      const schema = z.array(z.object({ id: z.number(), sortOrder: z.number() }));
+      const items = schema.parse(req.body);
+      await storage.reorderProducts(items);
+      res.status(204).end();
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.put('/api/products/:id', async (req, res) => {
     try {
       const id = Number(req.params.id);
