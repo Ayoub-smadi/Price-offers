@@ -371,6 +371,7 @@ export const exportToPDF = async (
 
 const COMPANY_PHONE = '00962777772211';
 const CURRENCY = 'دينار أردني';
+const FONT_URL = 'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap';
 
 const loadImageAsDataUrl = (src: string): Promise<string> =>
   new Promise(resolve => {
@@ -390,20 +391,40 @@ const loadImageAsDataUrl = (src: string): Promise<string> =>
     img.src = src;
   });
 
-const el = (tag: string, css: string, text?: string): HTMLElement => {
+const mkEl = (tag: string, css: string, text?: string): HTMLElement => {
   const e = document.createElement(tag);
   e.style.cssText = css;
   if (text !== undefined) e.textContent = text;
   return e;
 };
 
+const ensureCairoFont = async () => {
+  if (!document.getElementById('cairo-font-link')) {
+    const link = document.createElement('link');
+    link.id = 'cairo-font-link';
+    link.rel = 'stylesheet';
+    link.href = FONT_URL;
+    document.head.appendChild(link);
+  }
+  try {
+    await Promise.all([
+      document.fonts.load('400 16px Cairo'),
+      document.fonts.load('700 16px Cairo'),
+      document.fonts.load('900 16px Cairo'),
+    ]);
+    await document.fonts.ready;
+  } catch {
+    await new Promise(r => setTimeout(r, 1000));
+  }
+};
+
 const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<HTMLElement> => {
   const A4_PX = Math.round(210 * 96 / 25.4); // ≈ 794px
 
-  const wrap = el('div', `
+  const wrap = mkEl('div', `
     width: ${A4_PX}px;
-    background: #ffffff;
-    font-family: Cairo, Arial, sans-serif;
+    background: #f4f7f4;
+    font-family: 'Cairo', Arial, sans-serif;
     direction: rtl;
     text-align: right;
     color: #1e293b;
@@ -411,62 +432,75 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
     padding: 0;
   `);
 
+  // inject font link inside the wrapper too (for onclone)
+  const styleTag = document.createElement('style');
+  styleTag.textContent = `@import url('${FONT_URL}'); * { font-family: 'Cairo', Arial, sans-serif !important; }`;
+  wrap.appendChild(styleTag);
+
   // ── Header ──────────────────────────────────────────────────────────────────
-  const header = el('div', `
-    background: #1a3c2e;
-    padding: 20px 24px 16px;
+  const header = mkEl('div', `
+    background: linear-gradient(135deg, #0d2b1e 0%, #1a4a2e 50%, #22603a 100%);
+    padding: 22px 28px 18px;
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 20px;
+    border-bottom: 4px solid #52b788;
   `);
 
-  // Logo
   const logoData = logoSrc ? await loadImageAsDataUrl(logoSrc) : '';
   if (logoData) {
-    const logoWrap = el('div', 'width:90px;height:90px;background:#ffffff;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;');
+    const logoWrap = mkEl('div', 'width:96px;height:96px;background:#ffffff;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);');
     const logo = document.createElement('img') as HTMLImageElement;
     logo.src = logoData;
-    logo.style.cssText = 'width:82px;height:82px;object-fit:contain;';
+    logo.style.cssText = 'width:86px;height:86px;object-fit:contain;';
     logoWrap.appendChild(logo);
     header.appendChild(logoWrap);
   }
 
-  // Header text
-  const hText = el('div', 'flex:1;');
-  hText.appendChild(el('div', 'font-size:26px;font-weight:900;color:#ffffff;line-height:1.2;letter-spacing:-0.5px;', 'مؤسسة ومشاتل القادري الزراعية'));
-  hText.appendChild(el('div', 'font-size:11px;color:#86efac;direction:ltr;text-align:left;margin-top:3px;font-weight:600;', 'Al-Qadri Agricultural Nursery & Establishment'));
-  hText.appendChild(el('div', 'font-size:13px;color:#d1fae5;margin-top:10px;font-weight:700;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);', 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري'));
+  const hText = mkEl('div', 'flex:1;padding-right:4px;');
+  hText.appendChild(mkEl('div', 'font-size:28px;font-weight:900;color:#ffffff;line-height:1.1;', 'مؤسسة ومشاتل القادري الزراعية'));
+  hText.appendChild(mkEl('div', 'font-size:12px;color:#86efac;direction:ltr;text-align:left;margin-top:4px;font-weight:600;letter-spacing:0.5px;', 'Al-Qadri Agricultural Nursery & Establishment'));
+
+  const divider = mkEl('div', 'height:1px;background:rgba(255,255,255,0.2);margin:10px 0;');
+  hText.appendChild(divider);
+  hText.appendChild(mkEl('div', 'font-size:14px;color:#d1fae5;font-weight:700;', 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري'));
   header.appendChild(hText);
   wrap.appendChild(header);
 
   // ── Info bar ──────────────────────────────────────────────────────────────
-  const infoBar = el('div', 'background:#f0fdf4;padding:7px 24px;border-bottom:2px solid #bbf7d0;display:flex;justify-content:space-between;align-items:center;');
-  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `☎ ${COMPANY_PHONE}`));
-  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
-  infoBar.appendChild(el('span', 'font-size:11px;color:#166534;font-weight:600;', `إجمالي الأصناف: ${products.length}`));
+  const infoBar = mkEl('div', 'background:#ffffff;padding:8px 28px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;');
+  const phoneEl = mkEl('div', 'display:flex;align-items:center;gap:6px;');
+  phoneEl.appendChild(mkEl('span', 'font-size:13px;color:#166534;font-weight:700;direction:ltr;', COMPANY_PHONE));
+  phoneEl.appendChild(mkEl('span', 'font-size:13px;color:#166534;', ':هاتف'));
+  infoBar.appendChild(phoneEl);
+  infoBar.appendChild(mkEl('span', 'font-size:11px;color:#64748b;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
+  infoBar.appendChild(mkEl('span', 'font-size:11px;color:#64748b;font-weight:600;', `إجمالي الأصناف: ${products.length}`));
   wrap.appendChild(infoBar);
 
-  // ── Products Grid (2 columns) ────────────────────────────────────────────
-  const CARD_IMG_H = 160;
-  const CARD_INFO_H = 110;
-  const CARD_H = CARD_IMG_H + CARD_INFO_H;
-  const GAP = 10;
-  const PAD = 12;
+  // ── Products Grid ────────────────────────────────────────────────────────
+  const GAP = 12;
+  const PAD = 14;
   const colW = Math.floor((A4_PX - PAD * 2 - GAP) / 2);
+  const CARD_IMG_H = 165;
 
-  const grid = el('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f8fafc;`);
+  const grid = mkEl('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f4f7f4;`);
 
   for (const product of products) {
-    const card = el('div', `
+    // Card container
+    const card = mkEl('div', `
       background: #ffffff;
-      border-radius: 12px;
+      border-radius: 14px;
       overflow: hidden;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #e2efe6;
       width: ${colW}px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     `);
 
-    // ── Product Image ──
-    const imgBox = el('div', `width:${colW}px;height:${CARD_IMG_H}px;overflow:hidden;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;`);
+    // Green accent top bar
+    card.appendChild(mkEl('div', 'height:4px;background:linear-gradient(90deg,#2d6a4f,#52b788);'));
+
+    // ── Image area ──
+    const imgBox = mkEl('div', `width:${colW}px;height:${CARD_IMG_H}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;position:relative;`);
 
     if (product.imageUrl) {
       const imgData = await loadImageAsDataUrl(product.imageUrl);
@@ -476,65 +510,64 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
         img.style.cssText = `width:${colW}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
         imgBox.appendChild(img);
       } else {
-        imgBox.appendChild(el('div', 'font-size:40px;color:#94a3b8;', '🌿'));
+        imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
       }
     } else {
-      imgBox.appendChild(el('div', 'font-size:40px;color:#94a3b8;', '🌿'));
+      imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
     }
     card.appendChild(imgBox);
 
-    // ── Product Info ──
-    const info = el('div', `padding:10px 12px 12px;height:${CARD_INFO_H}px;box-sizing:border-box;display:flex;flex-direction:column;`);
+    // ── Info section ──
+    const info = mkEl('div', 'padding:12px 14px 14px;');
 
-    // Unit badge
-    info.appendChild(el('div',
-      'display:inline-block;background:#dcfce7;color:#166534;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;margin-bottom:5px;width:fit-content;',
-      product.unit || 'وحدة'
-    ));
-
-    // Name
-    info.appendChild(el('div',
-      'font-size:13px;font-weight:800;color:#0f172a;line-height:1.3;margin-bottom:3px;overflow:hidden;',
+    // Product name — large and prominent
+    info.appendChild(mkEl('div',
+      'font-size:15px;font-weight:900;color:#0f172a;line-height:1.3;margin-bottom:4px;',
       product.name
     ));
 
-    // Description (truncate to ~60 chars)
+    // Description — italic, muted
     if (product.description) {
-      const truncated = product.description.length > 65
-        ? product.description.slice(0, 62) + '...'
+      const truncated = product.description.length > 70
+        ? product.description.slice(0, 67) + '...'
         : product.description;
-      info.appendChild(el('div',
-        'font-size:9.5px;color:#64748b;line-height:1.45;margin-bottom:6px;flex:1;overflow:hidden;',
+      info.appendChild(mkEl('div',
+        'font-size:10px;color:#6b7280;line-height:1.5;margin-bottom:8px;font-style:italic;',
         truncated
       ));
     } else {
-      const spacer = el('div', 'flex:1;');
-      info.appendChild(spacer);
+      info.appendChild(mkEl('div', 'height:8px;'));
     }
 
-    // Price row
-    const priceRow = el('div', 'display:flex;justify-content:space-between;align-items:flex-end;padding-top:6px;border-top:1.5px solid #f0fdf4;margin-top:auto;');
-    const priceWrap = el('div', '');
-    priceWrap.appendChild(el('div', 'font-size:20px;font-weight:900;color:#2d6a4f;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
-    priceWrap.appendChild(el('div', 'font-size:9px;color:#94a3b8;margin-top:1px;', CURRENCY));
-    priceRow.appendChild(priceWrap);
-    priceRow.appendChild(el('div', 'font-size:9px;color:#94a3b8;', `/ ${product.unit || 'وحدة'}`));
-    info.appendChild(priceRow);
+    // Price row with green badge
+    const priceRow = mkEl('div', 'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #d1fae5;');
 
+    // Price badge
+    const priceBadge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:5px 12px;');
+    priceBadge.appendChild(mkEl('div', 'font-size:19px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
+    priceBadge.appendChild(mkEl('div', 'font-size:8.5px;color:#4ade80;font-weight:700;margin-top:1px;', CURRENCY));
+    priceRow.appendChild(priceBadge);
+
+    // Unit badge
+    priceRow.appendChild(mkEl('div',
+      'background:#dcfce7;color:#166534;font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:20px;',
+      product.unit || 'وحدة'
+    ));
+
+    info.appendChild(priceRow);
     card.appendChild(info);
     grid.appendChild(card);
   }
 
-  // Odd filler
   if (products.length % 2 !== 0) {
-    grid.appendChild(el('div', `width:${colW}px;`));
+    grid.appendChild(mkEl('div', `width:${colW}px;`));
   }
   wrap.appendChild(grid);
 
   // ── Footer ──────────────────────────────────────────────────────────────
-  const footer = el('div', 'background:#1a3c2e;padding:10px 24px;display:flex;justify-content:space-between;align-items:center;');
-  footer.appendChild(el('div', 'color:#86efac;font-size:10px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
-  footer.appendChild(el('div', 'color:#d1fae5;font-size:10px;direction:ltr;', `☎ ${COMPANY_PHONE}`));
+  const footer = mkEl('div', 'background:linear-gradient(135deg,#0d2b1e,#22603a);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #52b788;');
+  footer.appendChild(mkEl('div', 'color:#d1fae5;font-size:11px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
+  footer.appendChild(mkEl('div', 'color:#86efac;font-size:11px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
   wrap.appendChild(footer);
 
   return wrap;
@@ -542,37 +575,46 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
 
 export const exportCatalogToPDF = async (products: Product[], _logoSrc: string = '') => {
   try {
+    // 1. Pre-load Cairo font
+    await ensureCairoFont();
+
+    // 2. Build the HTML
     const catalogEl = await buildCatalogHTML(products, '/logo.png');
-    catalogEl.style.position = 'fixed';
-    catalogEl.style.top = '-9999px';
-    catalogEl.style.left = '-9999px';
+    catalogEl.style.cssText = 'position:fixed;top:-99999px;left:-99999px;z-index:-1;';
     document.body.appendChild(catalogEl);
-    await new Promise(r => setTimeout(r, 400));
+
+    // 3. Extra wait to let browser paint & render font
+    await new Promise(r => setTimeout(r, 800));
 
     const A4_PX = Math.round(210 * 96 / 25.4);
     const canvas = await html2canvas(catalogEl, {
       scale: 3,
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff',
+      backgroundColor: '#f4f7f4',
       allowTaint: true,
       imageTimeout: 20000,
       windowWidth: A4_PX,
       width: A4_PX,
+      onclone: (cloned: Document) => {
+        const s = cloned.createElement('link');
+        s.rel = 'stylesheet';
+        s.href = FONT_URL;
+        cloned.head.appendChild(s);
+      },
     });
     document.body.removeChild(catalogEl);
 
+    // 4. Build PDF pages
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pdfW = pdf.internal.pageSize.getWidth();
     const pdfH = pdf.internal.pageSize.getHeight();
-    const margin = 0;
-    const imgW = pdfW - margin * 2;
+    const imgW = pdfW;
     const pxPerMM = canvas.width / imgW;
-    const pageHeightPx = (pdfH - margin * 2) * pxPerMM;
+    const pageHeightPx = pdfH * pxPerMM;
 
     let srcY = 0;
     let pageIdx = 0;
-
     while (srcY < canvas.height) {
       if (pageIdx > 0) pdf.addPage('a4');
       const slicePx = Math.min(pageHeightPx, canvas.height - srcY);
@@ -583,13 +625,10 @@ export const exportCatalogToPDF = async (products: Product[], _logoSrc: string =
       pg.height = Math.round(slicePx);
       pg.getContext('2d')!.drawImage(
         canvas,
-        0, Math.round(srcY),
-        canvas.width, Math.round(slicePx),
-        0, 0,
-        canvas.width, Math.round(slicePx)
+        0, Math.round(srcY), canvas.width, Math.round(slicePx),
+        0, 0, canvas.width, Math.round(slicePx)
       );
-
-      pdf.addImage(pg.toDataURL('image/jpeg', 0.97), 'JPEG', margin, margin, imgW, slicePx / pxPerMM);
+      pdf.addImage(pg.toDataURL('image/jpeg', 0.97), 'JPEG', 0, 0, imgW, slicePx / pxPerMM);
       srcY += pageHeightPx;
       pageIdx++;
     }
