@@ -870,8 +870,9 @@ async function buildMainHeader(totalCount: number, logoSrc: string): Promise<HTM
   }
   const ht = mkEl('div', 'flex:1;direction:rtl;');
   ht.appendChild(mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;direction:rtl;unicode-bidi:bidi-override;', '\u200Fمؤسسة ومشاتل القادري الزراعية'));
+  ht.appendChild(mkEl('div', 'font-size:11.5px;color:#86efac;direction:ltr;text-align:left;margin-top:5px;font-weight:600;letter-spacing:0.6px;', 'Al-Qadri Agricultural Nursery & Establishment'));
   ht.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.18);margin:10px 0;'));
-  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;direction:rtl;unicode-bidi:bidi-override;', '\u200Fقائمة الأسعار - أسعار الأشجار والشجيرات والورود'));
+  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;direction:rtl;unicode-bidi:bidi-override;', '\u200Fقائمة الأسعار'));
   hdr.appendChild(ht);
   wrap.appendChild(hdr);
 
