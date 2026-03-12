@@ -480,7 +480,7 @@ export default function EditQuotation() {
                 <div className="text-sm font-bold text-slate-900 dark:text-slate-50">
                   المدير العام/ ثامر احمد القادري
                 </div>
-                <img src={stampImage} alt="Stamp" className="w-32 h-auto mt-1" />
+                <img src={stampImage} alt="Stamp" className="w-32 h-auto mt-4" />
               </div>
             </div>
           </div>
