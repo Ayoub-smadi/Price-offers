@@ -457,24 +457,32 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+// Canonical category order for the catalog
+const CATALOG_CAT_ORDER = ['أشجار', 'شجيرات', 'ورود', 'نباتات زينة'];
+
 // ── Build flat item list from products ────────────────────────────────────
 function buildItemList(products: Product[]): PageItem[] {
   const items: PageItem[] = [];
-  const knownCats: string[] = [];
   const grouped: Record<string, Product[]> = {};
 
   for (const p of products) {
     const cat = p.category || '';
-    if (cat && !knownCats.includes(cat)) knownCats.push(cat);
     if (cat) {
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(p);
     }
   }
 
+  // Sort categories: known order first, then any extra categories alphabetically
+  const knownCats = Object.keys(grouped);
+  const sortedCats = [
+    ...CATALOG_CAT_ORDER.filter(c => knownCats.includes(c)),
+    ...knownCats.filter(c => !CATALOG_CAT_ORDER.includes(c)).sort(),
+  ];
+
   const misc = products.filter(p => !p.category);
 
-  for (const cat of knownCats) {
+  for (const cat of sortedCats) {
     items.push({ type: 'cat', label: cat, count: grouped[cat].length });
     for (const row of chunk(grouped[cat], COLS)) items.push({ type: 'row', cards: row });
   }
