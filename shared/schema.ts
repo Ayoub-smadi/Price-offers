@@ -11,6 +11,7 @@ export const quotations = pgTable("quotations", {
   notes: text("notes"),
   grandTotal: numeric("grand_total").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const quotationItems = pgTable("quotation_items", {
