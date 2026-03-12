@@ -122,52 +122,74 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     }
   });
 
-  // Fix SVG icon alignment - wrap each SVG in a centering span so html2canvas renders it correctly
-  // Map Tailwind width classes to pixel values
-  const tailwindSizeMap: Record<string, string> = {
-    'w-2': '8px', 'w-3': '12px', 'w-4': '16px', 'w-5': '20px',
-    'w-6': '24px', 'w-8': '32px', 'w-10': '40px', 'w-12': '48px',
-  };
-  const tailwindHeightMap: Record<string, string> = {
-    'h-2': '8px', 'h-3': '12px', 'h-4': '16px', 'h-5': '20px',
-    'h-6': '24px', 'h-8': '32px', 'h-10': '40px', 'h-12': '48px',
-  };
-
+  // Remove all SVG elements - html2canvas cannot reliably align SVGs with inline text
+  // We rebuild the contact footer section manually below using plain text + Unicode
   const svgElements = clone.querySelectorAll('svg');
   svgElements.forEach(svg => {
-    const svgEl = svg as SVGElement & { style: CSSStyleDeclaration };
-    const classes = Array.from(svgEl.classList);
-
-    // Determine size from Tailwind classes first, then fallback to attributes
-    let pxW = '12px';
-    let pxH = '12px';
-    for (const cls of classes) {
-      if (tailwindSizeMap[cls]) pxW = tailwindSizeMap[cls];
-      if (tailwindHeightMap[cls]) pxH = tailwindHeightMap[cls];
-    }
-
-    svgEl.setAttribute('width', pxW.replace('px', ''));
-    svgEl.setAttribute('height', pxH.replace('px', ''));
-    svgEl.style.display = 'block';
-    svgEl.style.width = pxW;
-    svgEl.style.height = pxH;
-    svgEl.style.overflow = 'visible';
-    svgEl.style.flexShrink = '0';
-
-    // Wrap in a span that uses inline-flex to guarantee vertical centering
-    const wrapper = document.createElement('span');
-    wrapper.style.display = 'inline-flex';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.width = pxW;
-    wrapper.style.height = pxH;
-    wrapper.style.flexShrink = '0';
-    wrapper.style.lineHeight = '1';
-    wrapper.style.verticalAlign = 'middle';
-
-    svg.parentNode?.insertBefore(wrapper, svg);
-    wrapper.appendChild(svg);
+    svg.parentNode?.removeChild(svg);
   });
+
+  // Rebuild the contact footer if details are provided, replacing the cloned version
+  // Find the footer section (last border-t section in the clone) and replace its inner HTML
+  if (details && (details.phone || details.email || details.website)) {
+    // Find all border-t divs and take the last one (contact section)
+    const borderSections = clone.querySelectorAll('[class*="border-t"]');
+    const contactSection = borderSections[borderSections.length - 1] as HTMLElement | undefined;
+
+    if (contactSection) {
+      contactSection.innerHTML = '';
+      contactSection.style.borderTop = '1px solid #e2e8f0';
+      contactSection.style.paddingTop = '8px';
+      contactSection.style.textAlign = 'center';
+
+      const companyName = document.createElement('div');
+      companyName.textContent = details.companyNameAr || 'مؤسسة ومشاتل القادري الزراعية';
+      companyName.style.fontSize = '10px';
+      companyName.style.fontWeight = 'bold';
+      companyName.style.color = '#0f172a';
+      companyName.style.marginBottom = '6px';
+      contactSection.appendChild(companyName);
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.justifyContent = 'center';
+      row.style.gap = '20px';
+      row.style.direction = 'ltr';
+      row.style.fontSize = '10px';
+      row.style.color = '#475569';
+      row.style.fontFamily = 'Cairo, Arial, sans-serif';
+
+      const makeItem = (icon: string, text: string) => {
+        const item = document.createElement('span');
+        item.style.display = 'inline-flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '3px';
+        item.style.lineHeight = '1.4';
+
+        const iconSpan = document.createElement('span');
+        iconSpan.textContent = icon;
+        iconSpan.style.display = 'inline-block';
+        iconSpan.style.lineHeight = '1';
+        iconSpan.style.fontSize = '10px';
+        iconSpan.style.fontFamily = 'Arial, sans-serif';
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = text;
+        textSpan.style.fontWeight = '600';
+
+        item.appendChild(iconSpan);
+        item.appendChild(textSpan);
+        return item;
+      };
+
+      if (details.phone) row.appendChild(makeItem('☎', details.phone));
+      if (details.email) row.appendChild(makeItem('✉', details.email));
+      if (details.website) row.appendChild(makeItem('⊕', details.website));
+
+      contactSection.appendChild(row);
+    }
+  }
 
   printDiv.appendChild(clone);
   return printDiv;
