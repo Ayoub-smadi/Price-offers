@@ -296,6 +296,7 @@ function CategorySection({
   const [collapsed, setCollapsed] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(category.name);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -349,7 +350,7 @@ function CategorySection({
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          {!renaming && (
+          {!renaming && !confirmingDelete && (
             <button onClick={() => setRenaming(true)}
               className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
               title="إعادة تسمية القسم"
@@ -357,13 +358,29 @@ function CategorySection({
               <Pencil className="w-3.5 h-3.5" />
             </button>
           )}
-          {products.length === 0 && !renaming && (
-            <button onClick={() => onDeleteCategory(category.id)}
+          {!renaming && !confirmingDelete && (
+            <button onClick={() => setConfirmingDelete(true)}
               className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               title="حذف القسم"
               data-testid={`button-delete-category-${category.id}`}>
               <Trash2 className="w-3.5 h-3.5" />
             </button>
+          )}
+          {confirmingDelete && (
+            <div className="flex items-center gap-1.5 bg-destructive/10 border border-destructive/30 rounded-lg px-2 py-1">
+              <span className="text-xs text-destructive font-semibold">
+                {products.length > 0 ? `حذف القسم؟ (${products.length} منتج سيصبح غير مصنف)` : "حذف القسم؟"}
+              </span>
+              <button onClick={() => { onDeleteCategory(category.id); setConfirmingDelete(false); }}
+                className="p-1 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 transition-colors"
+                data-testid={`button-confirm-delete-category-${category.id}`}>
+                <Check className="w-3 h-3" />
+              </button>
+              <button onClick={() => setConfirmingDelete(false)}
+                className="p-1 bg-secondary text-secondary-foreground rounded transition-colors">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           )}
           <button onClick={() => onAddToCategory(category.name)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
@@ -420,6 +437,8 @@ export default function Products() {
   const [assigning, setAssigning] = useState<number | null>(null);
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [selectedExportCats, setSelectedExportCats] = useState<Set<string>>(new Set());
 
   const isLoading = productsLoading || categoriesLoading;
   const categoryList = categories || [];
@@ -541,18 +560,38 @@ export default function Products() {
     );
   };
 
-  const handleExportPDF = async () => {
+  const openExportDialog = () => {
     const allProducts = products || [];
     if (allProducts.length === 0) { toast({ title: "لا توجد منتجات للتصدير", variant: "destructive" }); return; }
+    setSelectedExportCats(new Set(categoryNames));
+    setShowExportDialog(true);
+  };
+
+  const handleExportPDF = async () => {
+    const allProducts = products || [];
+    const filtered = allProducts.filter(p => {
+      if (!p.category || !categoryNames.includes(p.category)) return selectedExportCats.has("__unclassified__");
+      return selectedExportCats.has(p.category);
+    });
+    if (filtered.length === 0) { toast({ title: "لا توجد منتجات في الأقسام المختارة", variant: "destructive" }); return; }
+    setShowExportDialog(false);
     setExporting(true);
     try {
-      await exportCatalogToPDF(allProducts);
+      await exportCatalogToPDF(filtered);
       toast({ title: "تم تصدير الكتالوج بنجاح" });
     } catch {
       toast({ title: "خطأ في التصدير", variant: "destructive" });
     } finally {
       setExporting(false);
     }
+  };
+
+  const toggleExportCat = (name: string) => {
+    setSelectedExportCats(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
   };
 
   const filterProduct = (p: Product) =>
@@ -579,7 +618,7 @@ export default function Products() {
             <Settings2 className="w-4 h-4" />
             إدارة الأقسام
           </button>
-          <button onClick={handleExportPDF} disabled={exporting || totalCount === 0}
+          <button onClick={openExportDialog} disabled={exporting || totalCount === 0}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
             data-testid="button-export-catalog">
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
@@ -629,6 +668,63 @@ export default function Products() {
             </button>
           </div>
           <p className="text-xs text-muted-foreground">يمكنك إعادة تسمية أي قسم بالضغط على أيقونة القلم بجانبه، أو حذف الأقسام الفارغة.</p>
+        </div>
+      )}
+
+      {/* Export Dialog */}
+      {showExportDialog && (
+        <div className="bg-card rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 p-5 space-y-4">
+          <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+            <FileDown className="w-5 h-5 text-emerald-600" />
+            اختر الأقسام للتصدير
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedExportCats(new Set([...categoryNames, "__unclassified__"]))}
+              className="text-xs text-primary hover:underline font-semibold">
+              تحديد الكل
+            </button>
+            <span className="text-muted-foreground text-xs">•</span>
+            <button
+              onClick={() => setSelectedExportCats(new Set())}
+              className="text-xs text-muted-foreground hover:underline">
+              إلغاء الكل
+            </button>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {categoryList.map(cat => (
+              <label key={cat.id}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${selectedExportCats.has(cat.name) ? `${getCategoryColor(cat.name)} font-semibold` : "border-border bg-background opacity-60"}`}
+                data-testid={`label-export-cat-${cat.id}`}>
+                <input type="checkbox" checked={selectedExportCats.has(cat.name)}
+                  onChange={() => toggleExportCat(cat.name)} className="accent-primary w-4 h-4 shrink-0" />
+                <span className="shrink-0">{getCategoryIcon(cat.name)}</span>
+                <span className="text-sm truncate">{cat.name}</span>
+                <span className="text-xs text-muted-foreground shrink-0">({getProductsForCategory(cat.name).length})</span>
+              </label>
+            ))}
+            {unclassifiedProducts.length > 0 && (
+              <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${selectedExportCats.has("__unclassified__") ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 font-semibold" : "border-border bg-background opacity-60"}`}
+                data-testid="label-export-cat-unclassified">
+                <input type="checkbox" checked={selectedExportCats.has("__unclassified__")}
+                  onChange={() => toggleExportCat("__unclassified__")} className="accent-primary w-4 h-4 shrink-0" />
+                <Inbox className="w-4 h-4 shrink-0 text-amber-600" />
+                <span className="text-sm truncate">غير مصنف</span>
+                <span className="text-xs text-muted-foreground shrink-0">({unclassifiedProducts.length})</span>
+              </label>
+            )}
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleExportPDF} disabled={selectedExportCats.size === 0}
+              className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              data-testid="button-confirm-export">
+              <FileDown className="w-4 h-4" /> تصدير PDF
+            </button>
+            <button onClick={() => setShowExportDialog(false)}
+              className="px-5 py-2 bg-secondary text-secondary-foreground rounded-xl text-sm font-semibold">
+              إلغاء
+            </button>
+          </div>
         </div>
       )}
 
