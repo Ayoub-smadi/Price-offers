@@ -31,6 +31,7 @@ export const products = pgTable("products", {
   unit: text("unit").default("وحدة"),
   price: numeric("price").notNull().default("0"),
   stock: integer("stock").default(0),
+  imageUrl: text("image_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

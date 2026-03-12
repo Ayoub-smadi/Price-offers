@@ -4,6 +4,29 @@ import { storage, verifyPassword, createPasswordHash } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertProductSchema } from "@shared/schema";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDir = path.resolve(__dirname, "../uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("ملفات الصور فقط مسموح بها"));
+  },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -104,6 +127,12 @@ export async function registerRoutes(
     } catch {
       res.status(500).json({ message: "Internal Error" });
     }
+  });
+
+  // ── Upload ───────────────────────────────────────────────────
+  app.post('/api/upload', upload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "لم يتم رفع أي ملف" });
+    res.json({ url: `/uploads/${req.file.filename}` });
   });
 
   // ── Products ─────────────────────────────────────────────────
