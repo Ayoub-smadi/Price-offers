@@ -3,10 +3,10 @@ import { useParams, useLocation } from "wouter";
 import {
   Plus, FileText, Save,
   Wand2, Trash2, CheckCircle2, ArrowRight,
-  Phone, Mail, Globe, Package, X, MessageCircle
+  Phone, Mail, Globe, Package, X, MessageCircle, BookmarkPlus
 } from "lucide-react";
 import { useQuotation, useUpdateQuotation, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
-import { useProducts } from "@/hooks/use-products";
+import { useProducts, useCreateProduct } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF } from "@/lib/export-utils";
 import { format } from "date-fns";
@@ -32,6 +32,7 @@ export default function EditQuotation() {
   const { data: quotation, isLoading, error } = useQuotation(quotationId);
   const updateMutation = useUpdateQuotation(quotationId);
   const parseMutation = useParseTextAPI();
+  const createProductMutation = useCreateProduct();
   const { data: catalogProducts } = useProducts();
 
   const [items, setItems] = useState<Item[]>([
@@ -137,6 +138,22 @@ export default function EditQuotation() {
     }]);
     setShowCatalog(false);
     setCatalogSearch("");
+  };
+
+  const saveItemToCatalog = (item: Item) => {
+    if (!item.name.trim()) {
+      toast({ title: "الاسم مطلوب", description: "أدخل اسم المنتج قبل الحفظ في الكتالوج.", variant: "destructive" });
+      return;
+    }
+    createProductMutation.mutate({
+      name: item.name.trim(),
+      description: item.description.trim() || undefined,
+      price: String(item.price),
+      unit: item.unit || "وحدة",
+    }, {
+      onSuccess: () => toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ "${item.name}" في الكتالوج بنجاح.` }),
+      onError: () => toast({ title: "خطأ في الحفظ", variant: "destructive" }),
+    });
   };
 
   const handleParseText = () => {
@@ -347,9 +364,19 @@ ${details.companyNameAr}
                   <td className="p-1.5 text-center"><input type="number" min="0" step="0.01" value={item.price || ''} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs font-semibold" /></td>
                   <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
                   <td className="p-1.5 text-center no-print">
-                    <button onClick={() => removeItem(item.id)} className="text-slate-400 hover:text-red-500 p-0.5 rounded opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
+                      <button
+                        onClick={() => saveItemToCatalog(item)}
+                        title="حفظ في الكتالوج"
+                        className="text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 p-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                        data-testid={`btn-save-catalog-${item.id}`}
+                      >
+                        <BookmarkPlus className="w-3 h-3" />
+                      </button>
+                      <button onClick={() => removeItem(item.id)} className="text-slate-400 hover:text-red-500 p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
