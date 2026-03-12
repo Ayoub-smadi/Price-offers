@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { History, PlusCircle, Quote, Package, BarChart3 } from "lucide-react";
+import { History, PlusCircle, Quote, Package, BarChart3, Trash2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -10,16 +10,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   const [location] = useLocation();
 
-  const navItems = [
+  const mainItems = [
     { title: "إنشاء عرض سعر", url: "/", icon: PlusCircle },
-    { title: "السجل", url: "/history", icon: History },
     { title: "كتالوج المنتجات", url: "/products", icon: Package },
     { title: "الإحصائيات", url: "/stats", icon: BarChart3 },
+    { title: "السجل", url: "/history", icon: History },
   ];
 
   return (
@@ -39,7 +40,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -58,6 +59,32 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator className="mx-4 my-2" />
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/trash"}
+                  className={`
+                    mx-3 my-1 rounded-xl px-4 py-6 transition-all duration-200
+                    ${location === "/trash"
+                      ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md shadow-destructive/20'
+                      : 'hover:bg-destructive/10 text-muted-foreground hover:text-destructive'}
+                  `}
+                >
+                  <Link href="/trash" className="flex items-center gap-3">
+                    <Trash2 className="w-5 h-5" />
+                    <span className="text-base font-semibold">سلة المحذوفات</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { quotations, quotationItems, products, users, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, isNull, isNotNull } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
 function hashPassword(password: string, salt: string): string {
@@ -29,7 +29,10 @@ export interface IStorage {
   getQuotation(id: number): Promise<QuotationWithItems | undefined>;
   createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems>;
   updateQuotation(id: number, quotation: Partial<InsertQuotation>, items: any[]): Promise<QuotationWithItems>;
-  deleteQuotation(id: number): Promise<void>;
+  softDeleteQuotation(id: number): Promise<void>;
+  getDeletedQuotations(): Promise<QuotationWithItems[]>;
+  restoreQuotation(id: number): Promise<void>;
+  permanentDeleteQuotation(id: number): Promise<void>;
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -42,7 +45,9 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getQuotations(): Promise<QuotationWithItems[]> {
-    const qList = await db.select().from(quotations).orderBy(desc(quotations.createdAt));
+    const qList = await db.select().from(quotations)
+      .where(isNull(quotations.deletedAt))
+      .orderBy(desc(quotations.createdAt));
     const result: QuotationWithItems[] = [];
     for (const q of qList) {
       const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
@@ -95,7 +100,27 @@ export class DatabaseStorage implements IStorage {
     return { ...updatedQ, items: newItems };
   }
 
-  async deleteQuotation(id: number): Promise<void> {
+  async softDeleteQuotation(id: number): Promise<void> {
+    await db.update(quotations).set({ deletedAt: new Date() }).where(eq(quotations.id, id));
+  }
+
+  async getDeletedQuotations(): Promise<QuotationWithItems[]> {
+    const qList = await db.select().from(quotations)
+      .where(isNotNull(quotations.deletedAt))
+      .orderBy(desc(quotations.deletedAt));
+    const result: QuotationWithItems[] = [];
+    for (const q of qList) {
+      const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
+      result.push({ ...q, items });
+    }
+    return result;
+  }
+
+  async restoreQuotation(id: number): Promise<void> {
+    await db.update(quotations).set({ deletedAt: null }).where(eq(quotations.id, id));
+  }
+
+  async permanentDeleteQuotation(id: number): Promise<void> {
     await db.delete(quotationItems).where(eq(quotationItems.quotationId, id));
     await db.delete(quotations).where(eq(quotations.id, id));
   }

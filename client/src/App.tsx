@@ -17,6 +17,7 @@ import EditQuotation from "./pages/edit-quotation";
 import Login from "./pages/login";
 import Products from "./pages/products";
 import Stats from "./pages/stats";
+import TrashPage from "./pages/trash";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/quotation/:id" component={EditQuotation} />
       <Route path="/products" component={Products} />
       <Route path="/stats" component={Stats} />
+      <Route path="/trash" component={TrashPage} />
       <Route component={NotFound} />
     </Switch>
   );

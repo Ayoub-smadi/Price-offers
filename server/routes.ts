@@ -70,7 +70,36 @@ export async function registerRoutes(
       const id = Number(req.params.id);
       const existing = await storage.getQuotation(id);
       if (!existing) return res.status(404).json({ message: "Not found" });
-      await storage.deleteQuotation(id);
+      await storage.softDeleteQuotation(id);
+      res.status(204).end();
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Trash ────────────────────────────────────────────────────
+  app.get('/api/trash', async (_req, res) => {
+    try {
+      res.json(await storage.getDeletedQuotations());
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post('/api/trash/:id/restore', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await storage.restoreQuotation(id);
+      res.status(204).end();
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.delete('/api/trash/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      await storage.permanentDeleteQuotation(id);
       res.status(204).end();
     } catch {
       res.status(500).json({ message: "Internal Error" });
