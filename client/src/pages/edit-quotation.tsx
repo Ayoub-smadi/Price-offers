@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { 
   Plus, FileText, Save, 
-  Wand2, Trash2, CheckCircle2, ArrowRight
+  Wand2, Trash2, CheckCircle2, ArrowRight,
+  Phone, Mail, Globe
 } from "lucide-react";
 import { useQuotation, useUpdateQuotation, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
@@ -487,27 +488,36 @@ export default function EditQuotation() {
         </div>
 
         {/* Contact Section */}
-        <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center text-[10px] space-y-0.5 opacity-70">
-          <div className="font-bold text-slate-900 dark:text-slate-50">مؤسسة ومشاتل القدري الزراعية</div>
-          <div className="space-y-0.5 text-slate-600 dark:text-slate-400">
-            <input
-              value={details.phone}
-              onChange={(e) => setDetails({...details, phone: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none font-semibold truncate"
-              dir="ltr"
-            />
-            <input
-              value={details.email}
-              onChange={(e) => setDetails({...details, email: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none truncate"
-              dir="ltr"
-            />
-            <input
-              value={details.website}
-              onChange={(e) => setDetails({...details, website: e.target.value})}
-              className="text-xs bg-transparent border-none p-0 focus:ring-0 text-center w-full focus:outline-none truncate"
-              dir="ltr"
-            />
+        <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center opacity-70">
+          <div className="text-[10px] font-bold text-slate-900 dark:text-slate-50 mb-2">مؤسسة ومشاتل القدري الزراعية</div>
+          <div className="flex items-center justify-center gap-4 text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-1">
+              <Phone className="w-3 h-3 flex-shrink-0" />
+              <input
+                value={details.phone}
+                onChange={(e) => setDetails({...details, phone: e.target.value})}
+                className="text-[10px] bg-transparent border-none p-0 focus:ring-0 focus:outline-none font-semibold w-28"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <Mail className="w-3 h-3 flex-shrink-0" />
+              <input
+                value={details.email}
+                onChange={(e) => setDetails({...details, email: e.target.value})}
+                className="text-[10px] bg-transparent border-none p-0 focus:ring-0 focus:outline-none w-36"
+                dir="ltr"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <Globe className="w-3 h-3 flex-shrink-0" />
+              <input
+                value={details.website}
+                onChange={(e) => setDetails({...details, website: e.target.value})}
+                className="text-[10px] bg-transparent border-none p-0 focus:ring-0 focus:outline-none w-36"
+                dir="ltr"
+              />
+            </div>
           </div>
         </div>
       </div>
