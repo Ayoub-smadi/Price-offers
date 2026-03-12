@@ -426,11 +426,11 @@ const C_PAD  = 20;   // horizontal + vertical page padding
 const C_GAP  = 14;   // gap between cards/rows
 const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP) / 2); // ~377px
 
-const CARD_IMG_H  = 152;
-const CARD_INFO_H = 110; // name + desc + price row (with generous spacing)
-const CARD_BAR_H  = 4;
-const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 266px
-const ROW_H       = CARD_H + C_GAP;                        // 280px
+const CARD_IMG_H  = 190;
+const CARD_INFO_H = 108; // name + desc + price row
+const CARD_BAR_H  = 5;
+const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 303px
+const ROW_H       = CARD_H + C_GAP;                        // 317px
 const CAT_H       = 48;   // category section header
 const MAIN_HDR_H  = 180;  // page 1 header + info bar
 const FOOTER_H    = 46;
@@ -485,13 +485,17 @@ function assignToPages(items: PageItem[]): PageItem[][] {
   let avail = PAGE1_AVAIL;
   let used  = 0;
 
+  // accounting heights (each item's visual height + the flex gap that follows it)
+  const hCat = CAT_H + C_GAP;
+  const hRow = ROW_H; // ROW_H already = CARD_H + C_GAP
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const h    = item.type === 'cat' ? CAT_H : ROW_H;
+    const h    = item.type === 'cat' ? hCat : hRow;
 
     if (item.type === 'cat') {
       // Ensure cat header + ≥1 row stay together on same page
-      const nextH = i + 1 < items.length && items[i + 1].type === 'row' ? ROW_H : 0;
+      const nextH = i + 1 < items.length && items[i + 1].type === 'row' ? hRow : 0;
       if (used > 0 && used + h + nextH > avail) {
         pages.push([]);
         avail = PAGEN_AVAIL;
@@ -547,8 +551,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
 
   // info section — fixed height to guarantee no overflow
   const info = mkEl('div', `
-    padding:14px 16px 14px;
-    flex:1;
+    padding:12px 16px 12px;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
@@ -557,15 +560,16 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     overflow:hidden;
   `);
 
-  const nameDesc = mkEl('div', 'overflow:hidden;');
+  // name + description
+  const nameDesc = mkEl('div', 'overflow:hidden;flex:1;');
   nameDesc.appendChild(mkEl('div',
-    'font-size:16px;font-weight:900;color:#0f172a;line-height:1.25;margin-bottom:6px;',
+    'font-size:17px;font-weight:900;color:#0a1628;line-height:1.2;margin-bottom:5px;',
     product.name
   ));
   if (product.description) {
-    const truncated = product.description.length > 65 ? product.description.slice(0, 62) + '...' : product.description;
+    const truncated = product.description.length > 70 ? product.description.slice(0, 67) + '...' : product.description;
     nameDesc.appendChild(mkEl('div',
-      'font-size:10.5px;color:#64748b;line-height:1.5;font-style:italic;',
+      'font-size:11px;color:#374151;line-height:1.4;font-weight:600;',
       truncated
     ));
   }
@@ -573,11 +577,11 @@ async function buildCard(product: Product): Promise<HTMLElement> {
 
   // price row (always at bottom)
   const priceRow = mkEl('div',
-    'display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1.5px dashed #d1fae5;margin-top:8px;'
+    'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:2px solid #d1fae5;flex-shrink:0;'
   );
-  const badge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:6px 14px;');
-  badge.appendChild(mkEl('div', 'font-size:20px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
-  badge.appendChild(mkEl('div', 'font-size:8px;color:#4ade80;font-weight:700;margin-top:2px;', CURRENCY));
+  const badge = mkEl('div', 'display:flex;align-items:baseline;gap:5px;background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:5px 12px;');
+  badge.appendChild(mkEl('span', 'font-size:22px;font-weight:900;color:#14532d;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
+  badge.appendChild(mkEl('span', 'font-size:13px;font-weight:700;color:#166534;', 'د.أ'));
   priceRow.appendChild(badge);
   priceRow.appendChild(mkEl('div',
     'background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;',
@@ -600,21 +604,23 @@ async function buildRow(cards: Product[]): Promise<HTMLElement> {
 function buildCatHeader(label: string, count: number): HTMLElement {
   const s = CATEGORY_STYLES[label] || CATEGORY_STYLES['متنوعة'];
   const bar = mkEl('div', `
-    background:${s.header};
-    padding:0 20px;
+    background:linear-gradient(135deg,${s.header},${s.bar.split(',')[0]});
+    padding:0 22px;
     height:${CAT_H}px;
     display:flex;
     align-items:center;
-    gap:12px;
-    border-radius:10px;
-    margin-bottom:${C_GAP}px;
+    gap:14px;
+    border-radius:12px;
+    flex-shrink:0;
+    border-right:6px solid ${s.badge};
   `);
-  bar.appendChild(mkEl('div', `font-size:19px;font-weight:900;color:${s.text};letter-spacing:0.3px;`, label));
+  bar.appendChild(mkEl('div', `font-size:21px;font-weight:900;color:#ffffff;letter-spacing:0.5px;`, label));
   bar.appendChild(mkEl('div', `
-    background:${s.badge};
-    color:${s.header};
-    font-size:11px;font-weight:700;
-    padding:3px 12px;border-radius:20px;
+    background:rgba(255,255,255,0.22);
+    color:#ffffff;
+    font-size:12px;font-weight:700;
+    padding:4px 14px;border-radius:20px;
+    border:1.5px solid rgba(255,255,255,0.4);
   `, `${count} صنف`));
   return bar;
 }
