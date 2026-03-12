@@ -548,29 +548,29 @@ ${details.companyNameAr}
                   <button
                     key={p.id}
                     onClick={() => addFromCatalog(p)}
-                    className="w-full text-right p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all flex justify-between items-center group"
+                    className="w-full text-right rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all flex overflow-hidden group"
                   >
-                    <div className="flex items-center gap-3">
-                      {p.imageUrl ? (
-                        <img
-                          src={p.imageUrl}
-                          alt={p.name}
-                          className="w-12 h-12 rounded-lg object-cover shrink-0 border border-border"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center shrink-0 border border-border">
-                          <Package className="w-5 h-5 text-muted-foreground opacity-50" />
-                        </div>
-                      )}
-                      <div>
-                        <div className="font-semibold text-sm text-foreground">{p.name}</div>
-                        {p.description && <div className="text-xs text-muted-foreground line-clamp-1">{p.description}</div>}
+                    {p.imageUrl ? (
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="w-16 h-20 object-cover shrink-0"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-16 h-20 bg-secondary flex items-center justify-center shrink-0">
+                        <Package className="w-6 h-6 text-muted-foreground opacity-40" />
                       </div>
-                    </div>
-                    <div className="text-left mr-3 shrink-0">
-                      <div className="font-black text-primary">{Number(p.price).toLocaleString()}</div>
-                      <div className="text-xs text-muted-foreground">{p.unit}</div>
+                    )}
+                    <div className="flex flex-1 items-center justify-between px-3 py-2 min-w-0">
+                      <div className="min-w-0">
+                        <div className="font-bold text-sm text-foreground leading-tight">{p.name}</div>
+                        {p.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{p.description}</div>}
+                      </div>
+                      <div className="text-left mr-2 shrink-0">
+                        <div className="font-black text-base text-primary">{Number(p.price).toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground text-center">{p.unit}</div>
+                      </div>
                     </div>
                   </button>
                 ))
