@@ -60,7 +60,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.fontSize = '12px';
     });
 
-    const dataCells = table.querySelectorAll('td');
+    const dataCells = table.querySelectorAll('tbody td');
     dataCells.forEach(cell => {
       const element = cell as HTMLElement;
       element.style.border = '1px solid #000000';
@@ -72,6 +72,27 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.whiteSpace = 'normal';
       element.style.backgroundColor = '#ffffff';
       element.style.color = '#000000';
+    });
+
+    // Style tfoot (grand total row) to match on-screen appearance
+    const tfootCells = Array.from(table.querySelectorAll('tfoot td'));
+    const lastTfootIdx = tfootCells.length - 1;
+    tfootCells.forEach((cell, idx) => {
+      const element = cell as HTMLElement;
+      element.style.border = '1px solid #000000';
+      element.style.padding = '10px 8px';
+      element.style.minHeight = '40px';
+      element.style.height = '40px';
+      element.style.verticalAlign = 'middle';
+      element.style.backgroundColor = '#0f172a';
+      element.style.color = '#ffffff';
+      element.style.fontWeight = 'bold';
+      if (idx === lastTfootIdx) {
+        element.style.backgroundColor = '#1e3a8a';
+        element.style.fontSize = '14px';
+        element.style.fontWeight = '900';
+        element.style.textAlign = 'center';
+      }
     });
   });
 
