@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { Product } from '@shared/schema';
+import { PRODUCT_CATEGORIES } from '@shared/schema';
 
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
@@ -418,8 +419,66 @@ const ensureCairoFont = async () => {
   }
 };
 
+const CATEGORY_STYLES: Record<string, { bar: string; header: string; text: string; badge: string }> = {
+  "أشجار":       { bar: '#2d6a4f,#52b788', header: '#0d4a2e', text: '#d1fae5', badge: '#bbf7d0' },
+  "شجيرات":      { bar: '#166534,#4ade80', header: '#14532d', text: '#dcfce7', badge: '#a7f3d0' },
+  "ورود":        { bar: '#9f1239,#fb7185', header: '#881337', text: '#fce7f3', badge: '#fbcfe8' },
+  "نباتات زينة": { bar: '#5b21b6,#a78bfa', header: '#4c1d95', text: '#ede9fe', badge: '#ddd6fe' },
+};
+
+const buildProductCard = async (product: Product, colW: number, cardImgH: number): Promise<HTMLElement> => {
+  const cat = product.category || '';
+  const style = CATEGORY_STYLES[cat] || CATEGORY_STYLES['أشجار'];
+
+  const card = mkEl('div', `
+    background: #ffffff;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e2efe6;
+    width: ${colW}px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  `);
+
+  card.appendChild(mkEl('div', `height:4px;background:linear-gradient(90deg,${style.bar});`));
+
+  const imgBox = mkEl('div', `width:${colW}px;height:${cardImgH}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;`);
+  if (product.imageUrl) {
+    const imgData = await loadImageAsDataUrl(product.imageUrl);
+    if (imgData) {
+      const img = document.createElement('img') as HTMLImageElement;
+      img.src = imgData;
+      img.style.cssText = `width:${colW}px;height:${cardImgH}px;object-fit:cover;display:block;`;
+      imgBox.appendChild(img);
+    } else {
+      imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
+    }
+  } else {
+    imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
+  }
+  card.appendChild(imgBox);
+
+  const info = mkEl('div', 'padding:12px 14px 14px;');
+  info.appendChild(mkEl('div', 'font-size:15px;font-weight:900;color:#0f172a;line-height:1.3;margin-bottom:4px;', product.name));
+  if (product.description) {
+    const truncated = product.description.length > 70 ? product.description.slice(0, 67) + '...' : product.description;
+    info.appendChild(mkEl('div', 'font-size:10px;color:#6b7280;line-height:1.5;margin-bottom:8px;font-style:italic;', truncated));
+  } else {
+    info.appendChild(mkEl('div', 'height:8px;'));
+  }
+
+  const priceRow = mkEl('div', 'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #d1fae5;');
+  const priceBadge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:5px 12px;');
+  priceBadge.appendChild(mkEl('div', 'font-size:19px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
+  priceBadge.appendChild(mkEl('div', 'font-size:8.5px;color:#4ade80;font-weight:700;margin-top:1px;', CURRENCY));
+  priceRow.appendChild(priceBadge);
+  priceRow.appendChild(mkEl('div', 'background:#dcfce7;color:#166534;font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:20px;', product.unit || 'وحدة'));
+  info.appendChild(priceRow);
+  card.appendChild(info);
+  return card;
+};
+
 const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<HTMLElement> => {
-  const A4_PX = Math.round(210 * 96 / 25.4); // ≈ 794px
+  const A4_PX = Math.round(210 * 96 / 25.4);
 
   const wrap = mkEl('div', `
     width: ${A4_PX}px;
@@ -432,21 +491,12 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
     padding: 0;
   `);
 
-  // inject font link inside the wrapper too (for onclone)
   const styleTag = document.createElement('style');
   styleTag.textContent = `@import url('${FONT_URL}'); * { font-family: 'Cairo', Arial, sans-serif !important; }`;
   wrap.appendChild(styleTag);
 
-  // ── Header ──────────────────────────────────────────────────────────────────
-  const header = mkEl('div', `
-    background: linear-gradient(135deg, #0d2b1e 0%, #1a4a2e 50%, #22603a 100%);
-    padding: 22px 28px 18px;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    border-bottom: 4px solid #52b788;
-  `);
-
+  // ── Header ───────────────────────────────────────────────────────────────
+  const header = mkEl('div', `background:linear-gradient(135deg,#0d2b1e 0%,#1a4a2e 50%,#22603a 100%);padding:22px 28px 18px;display:flex;align-items:center;gap:20px;border-bottom:4px solid #52b788;`);
   const logoData = logoSrc ? await loadImageAsDataUrl(logoSrc) : '';
   if (logoData) {
     const logoWrap = mkEl('div', 'width:96px;height:96px;background:#ffffff;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);');
@@ -456,18 +506,15 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
     logoWrap.appendChild(logo);
     header.appendChild(logoWrap);
   }
-
   const hText = mkEl('div', 'flex:1;padding-right:4px;');
   hText.appendChild(mkEl('div', 'font-size:28px;font-weight:900;color:#ffffff;line-height:1.1;', 'مؤسسة ومشاتل القادري الزراعية'));
   hText.appendChild(mkEl('div', 'font-size:12px;color:#86efac;direction:ltr;text-align:left;margin-top:4px;font-weight:600;letter-spacing:0.5px;', 'Al-Qadri Agricultural Nursery & Establishment'));
-
-  const divider = mkEl('div', 'height:1px;background:rgba(255,255,255,0.2);margin:10px 0;');
-  hText.appendChild(divider);
+  hText.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.2);margin:10px 0;'));
   hText.appendChild(mkEl('div', 'font-size:14px;color:#d1fae5;font-weight:700;', 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري'));
   header.appendChild(hText);
   wrap.appendChild(header);
 
-  // ── Info bar ──────────────────────────────────────────────────────────────
+  // ── Info bar ─────────────────────────────────────────────────────────────
   const infoBar = mkEl('div', 'background:#ffffff;padding:8px 28px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;');
   const phoneEl = mkEl('div', 'display:flex;align-items:center;gap:6px;');
   phoneEl.appendChild(mkEl('span', 'font-size:13px;color:#166534;font-weight:700;direction:ltr;', COMPANY_PHONE));
@@ -477,94 +524,56 @@ const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<H
   infoBar.appendChild(mkEl('span', 'font-size:11px;color:#64748b;font-weight:600;', `إجمالي الأصناف: ${products.length}`));
   wrap.appendChild(infoBar);
 
-  // ── Products Grid ────────────────────────────────────────────────────────
+  // ── Category sections ─────────────────────────────────────────────────────
   const GAP = 12;
   const PAD = 14;
   const colW = Math.floor((A4_PX - PAD * 2 - GAP) / 2);
-  const CARD_IMG_H = 165;
+  const CARD_IMG_H = 155;
 
-  const grid = mkEl('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f4f7f4;`);
-
-  for (const product of products) {
-    // Card container
-    const card = mkEl('div', `
-      background: #ffffff;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid #e2efe6;
-      width: ${colW}px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    `);
-
-    // Green accent top bar
-    card.appendChild(mkEl('div', 'height:4px;background:linear-gradient(90deg,#2d6a4f,#52b788);'));
-
-    // ── Image area ──
-    const imgBox = mkEl('div', `width:${colW}px;height:${CARD_IMG_H}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;position:relative;`);
-
-    if (product.imageUrl) {
-      const imgData = await loadImageAsDataUrl(product.imageUrl);
-      if (imgData) {
-        const img = document.createElement('img') as HTMLImageElement;
-        img.src = imgData;
-        img.style.cssText = `width:${colW}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
-        imgBox.appendChild(img);
-      } else {
-        imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
-      }
+  const grouped: Record<string, Product[]> = {};
+  const unclassified: Product[] = [];
+  for (const p of products) {
+    const cat = p.category || '';
+    if (PRODUCT_CATEGORIES.includes(cat as any)) {
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(p);
     } else {
-      imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
+      unclassified.push(p);
     }
-    card.appendChild(imgBox);
-
-    // ── Info section ──
-    const info = mkEl('div', 'padding:12px 14px 14px;');
-
-    // Product name — large and prominent
-    info.appendChild(mkEl('div',
-      'font-size:15px;font-weight:900;color:#0f172a;line-height:1.3;margin-bottom:4px;',
-      product.name
-    ));
-
-    // Description — italic, muted
-    if (product.description) {
-      const truncated = product.description.length > 70
-        ? product.description.slice(0, 67) + '...'
-        : product.description;
-      info.appendChild(mkEl('div',
-        'font-size:10px;color:#6b7280;line-height:1.5;margin-bottom:8px;font-style:italic;',
-        truncated
-      ));
-    } else {
-      info.appendChild(mkEl('div', 'height:8px;'));
-    }
-
-    // Price row with green badge
-    const priceRow = mkEl('div', 'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #d1fae5;');
-
-    // Price badge
-    const priceBadge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:5px 12px;');
-    priceBadge.appendChild(mkEl('div', 'font-size:19px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
-    priceBadge.appendChild(mkEl('div', 'font-size:8.5px;color:#4ade80;font-weight:700;margin-top:1px;', CURRENCY));
-    priceRow.appendChild(priceBadge);
-
-    // Unit badge
-    priceRow.appendChild(mkEl('div',
-      'background:#dcfce7;color:#166534;font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:20px;',
-      product.unit || 'وحدة'
-    ));
-
-    info.appendChild(priceRow);
-    card.appendChild(info);
-    grid.appendChild(card);
   }
 
-  if (products.length % 2 !== 0) {
-    grid.appendChild(mkEl('div', `width:${colW}px;`));
-  }
-  wrap.appendChild(grid);
+  const renderSection = async (sectionProducts: Product[], categoryName: string) => {
+    if (sectionProducts.length === 0) return;
+    const catStyle = CATEGORY_STYLES[categoryName] || { bar: '#374151,#6b7280', header: '#1f2937', text: '#f3f4f6', badge: '#e5e7eb' };
 
-  // ── Footer ──────────────────────────────────────────────────────────────
+    const section = mkEl('div', 'margin-bottom:0;');
+
+    const catHeader = mkEl('div', `background:${catStyle.header};padding:10px 20px;display:flex;align-items:center;gap:10px;`);
+    catHeader.appendChild(mkEl('div', `font-size:18px;font-weight:900;color:${catStyle.text};`, categoryName));
+    catHeader.appendChild(mkEl('div', `background:${catStyle.badge};color:${catStyle.header};font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;`, `${sectionProducts.length} صنف`));
+    section.appendChild(catHeader);
+
+    const grid = mkEl('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f4f7f4;`);
+    for (const product of sectionProducts) {
+      grid.appendChild(await buildProductCard(product, colW, CARD_IMG_H));
+    }
+    if (sectionProducts.length % 2 !== 0) {
+      grid.appendChild(mkEl('div', `width:${colW}px;`));
+    }
+    section.appendChild(grid);
+    wrap.appendChild(section);
+  };
+
+  for (const cat of PRODUCT_CATEGORIES) {
+    if (grouped[cat] && grouped[cat].length > 0) {
+      await renderSection(grouped[cat], cat);
+    }
+  }
+  if (unclassified.length > 0) {
+    await renderSection(unclassified, 'متنوعة');
+  }
+
+  // ── Footer ────────────────────────────────────────────────────────────────
   const footer = mkEl('div', 'background:linear-gradient(135deg,#0d2b1e,#22603a);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #52b788;');
   footer.appendChild(mkEl('div', 'color:#d1fae5;font-size:11px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
   footer.appendChild(mkEl('div', 'color:#86efac;font-size:11px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
