@@ -590,6 +590,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       direction:rtl;
       unicode-bidi:bidi-override;
     `;
+    catBadge.setAttribute('dir', 'rtl');
     catBadge.textContent = '\u200F' + product.category;
     imgBox.appendChild(catBadge);
   }
@@ -644,6 +645,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     display:block;
     overflow:hidden;
   `;
+  textArea.setAttribute('dir', 'rtl');
 
   // Product name
   const nameEl = document.createElement('div');
@@ -657,6 +659,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     unicode-bidi:bidi-override;
     display:block;
   `;
+  nameEl.setAttribute('dir', 'rtl');
   nameEl.textContent = '\u200F' + product.name;
   textArea.appendChild(nameEl);
 
@@ -693,6 +696,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       overflow:hidden;
       text-overflow:ellipsis;
     `;
+    descEl.setAttribute('dir', 'rtl');
     descEl.textContent = '\u200F' + arabicDesc;
     textArea.appendChild(descEl);
   }
@@ -710,6 +714,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       unicode-bidi:bidi-override;
       display:block;
     `;
+    htEl.setAttribute('dir', 'rtl');
     htEl.textContent = '\u200F' + heightInfo;
     textArea.appendChild(htEl);
   }
@@ -798,8 +803,9 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     flex-shrink:0;
     box-shadow:0 3px 10px rgba(0,0,0,0.18);
   `);
+  wrap.setAttribute('dir', 'rtl');
 
-  // Thick left accent stripe
+  // Thick accent stripe
   wrap.appendChild(mkEl('div', `width:10px;background:linear-gradient(180deg,${s.badge},${s.bar.split(',')[1] || s.badge});flex-shrink:0;`));
 
   // Inner content
@@ -811,10 +817,12 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     padding:0 20px 0 14px;
     direction:rtl;
   `);
+  inner.setAttribute('dir', 'rtl');
 
-  // Left side: icon + label
-  const leftSide = mkEl('div', 'display:flex;align-items:center;gap:10px;');
-  leftSide.appendChild(mkEl('span', 'font-size:20px;line-height:1;', '🌱'));
+  // Right side: icon + label (in RTL, first child is on the right)
+  const labelSide = mkEl('div', 'display:flex;align-items:center;gap:10px;direction:rtl;');
+  labelSide.setAttribute('dir', 'rtl');
+
   const labelEl = mkEl('div', `
     font-size:21px;
     font-weight:900;
@@ -825,11 +833,14 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     direction:rtl;
     unicode-bidi:bidi-override;
   `);
+  labelEl.setAttribute('dir', 'rtl');
   labelEl.textContent = '\u200F' + label;
-  leftSide.appendChild(labelEl);
-  inner.appendChild(leftSide);
 
-  // Right side: count badge
+  labelSide.appendChild(mkEl('span', 'font-size:20px;line-height:1;', '🌱'));
+  labelSide.appendChild(labelEl);
+  inner.appendChild(labelSide);
+
+  // Left side: count badge
   const countBadge = mkEl('div', `
     background:rgba(255,255,255,0.22);
     color:#ffffff;
@@ -842,6 +853,7 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     direction:rtl;
     unicode-bidi:bidi-override;
   `);
+  countBadge.setAttribute('dir', 'rtl');
   countBadge.textContent = `\u200F${count} صنف`;
   inner.appendChild(countBadge);
 
@@ -869,20 +881,38 @@ async function buildMainHeader(totalCount: number, logoSrc: string): Promise<HTM
     hdr.appendChild(lw);
   }
   const ht = mkEl('div', 'flex:1;direction:rtl;');
-  ht.appendChild(mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;direction:rtl;unicode-bidi:bidi-override;', '\u200Fمؤسسة ومشاتل القادري الزراعية'));
+  ht.setAttribute('dir', 'rtl');
+  const companyNameEl = mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;direction:rtl;unicode-bidi:bidi-override;');
+  companyNameEl.setAttribute('dir', 'rtl');
+  companyNameEl.textContent = '\u200Fمؤسسة ومشاتل القادري الزراعية';
+  ht.appendChild(companyNameEl);
   ht.appendChild(mkEl('div', 'font-size:11.5px;color:#86efac;direction:ltr;text-align:left;margin-top:5px;font-weight:600;letter-spacing:0.6px;', 'Al-Qadri Agricultural Nursery & Establishment'));
   ht.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.18);margin:10px 0;'));
-  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;direction:rtl;unicode-bidi:bidi-override;', '\u200Fقائمة الأسعار'));
+  const priceListEl = mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;direction:rtl;unicode-bidi:bidi-override;');
+  priceListEl.setAttribute('dir', 'rtl');
+  priceListEl.textContent = '\u200Fقائمة الأسعار';
+  ht.appendChild(priceListEl);
   hdr.appendChild(ht);
   wrap.appendChild(hdr);
 
   const info = mkEl('div', `background:#ffffff;padding:8px ${C_PAD + 8}px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;direction:rtl;`);
+  info.setAttribute('dir', 'rtl');
   const ph = mkEl('div', 'display:flex;align-items:center;gap:6px;direction:rtl;');
+  ph.setAttribute('dir', 'rtl');
   ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;font-weight:700;direction:ltr;unicode-bidi:embed;', COMPANY_PHONE));
-  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;direction:rtl;unicode-bidi:bidi-override;', '\u200F:هاتف'));
+  const hatelEl = mkEl('span', 'font-size:12.5px;color:#166534;direction:rtl;unicode-bidi:bidi-override;');
+  hatelEl.setAttribute('dir', 'rtl');
+  hatelEl.textContent = '\u200Fهاتف:';
+  ph.appendChild(hatelEl);
   info.appendChild(ph);
-  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:bidi-override;', `\u200Fتاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
-  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:bidi-override;', `\u200Fإجمالي الأصناف: ${totalCount}`));
+  const dateEl = mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:bidi-override;');
+  dateEl.setAttribute('dir', 'rtl');
+  dateEl.textContent = `\u200Fتاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`;
+  info.appendChild(dateEl);
+  const totalEl = mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:bidi-override;');
+  totalEl.setAttribute('dir', 'rtl');
+  totalEl.textContent = `\u200Fإجمالي الأصناف: ${totalCount}`;
+  info.appendChild(totalEl);
   wrap.appendChild(info);
   return wrap;
 }
@@ -897,7 +927,10 @@ function buildFooter(pageNum: number, totalPages: number): HTMLElement {
     border-top:3px solid #52b788;
     flex-shrink:0;
   `);
-  f.appendChild(mkEl('div', 'color:#d1fae5;font-size:10.5px;font-weight:700;direction:rtl;unicode-bidi:bidi-override;', '\u200Fمؤسسة ومشاتل القادري الزراعية'));
+  const footerNameEl = mkEl('div', 'color:#d1fae5;font-size:10.5px;font-weight:700;direction:rtl;unicode-bidi:bidi-override;');
+  footerNameEl.setAttribute('dir', 'rtl');
+  footerNameEl.textContent = '\u200Fمؤسسة ومشاتل القادري الزراعية';
+  f.appendChild(footerNameEl);
   f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:600;', `${pageNum} / ${totalPages}`));
   f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
   return f;
@@ -927,6 +960,7 @@ async function renderPage(
     flex-direction:column;
     position:relative;
   `);
+  page.setAttribute('dir', 'rtl');
   page.appendChild(styleEl);
 
   // ── main header (page 1 only) ──
