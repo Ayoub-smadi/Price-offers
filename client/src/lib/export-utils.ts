@@ -595,25 +595,39 @@ async function buildCard(product: Product): Promise<HTMLElement> {
   card.appendChild(imgBox);
 
   // ── 3. Parse description ───────────────────────────────────────────────
-  let scientificName = '';
-  let heightInfo = '';
+  const hasArabic = (str: string) => /[\u0600-\u06FF]/.test(str);
+
+  let scientificName = '';   // Latin only — shown LTR italic
+  let heightInfo    = '';   // Arabic height text
+  let arabicDesc    = '';   // fallback: any Arabic description shown RTL
+
   if (product.description) {
     const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
     const dashIdx = cleaned.search(/\s[–—-]\s/);
     if (dashIdx > 0) {
-      scientificName = cleaned.slice(0, dashIdx).trim();
-      const rest = cleaned.slice(dashIdx).replace(/^[\s–—-]+/, '').trim();
-      const hMatch = rest.match(/ارتفاع[\s\d.,]+م/);
-      heightInfo = hMatch ? hMatch[0] : '';
+      const leftPart = cleaned.slice(0, dashIdx).trim();
+      const rest     = cleaned.slice(dashIdx).replace(/^[\s–—-]+/, '').trim();
+      const hMatch   = rest.match(/ارتفاع[\s\d.,]+م/);
+      heightInfo     = hMatch ? hMatch[0] : '';
+      if (!hasArabic(leftPart)) {
+        scientificName = leftPart;
+      } else {
+        arabicDesc = leftPart;
+      }
     } else {
       const hMatch = cleaned.match(/ارتفاع[\s\d.,]+م/);
-      heightInfo = hMatch ? hMatch[0] : '';
-      if (!heightInfo) scientificName = cleaned.slice(0, 35);
+      heightInfo   = hMatch ? hMatch[0] : '';
+      if (!heightInfo) {
+        if (hasArabic(cleaned)) {
+          arabicDesc = cleaned.slice(0, 50);
+        } else {
+          scientificName = cleaned.slice(0, 35);
+        }
+      }
     }
   }
 
-  // ── 4. Text area (name + sci + height) ────────────────────────────────
-  // Fixed height = CARD_INFO_H minus the price bar height (42px)
+  // ── 4. Text area (name + desc + height) ───────────────────────────────
   const PRICE_BAR_H = 42;
   const TEXT_AREA_H = CARD_INFO_H - PRICE_BAR_H;
 
@@ -639,12 +653,13 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     line-height:1.25;
     text-align:right;
     direction:rtl;
+    unicode-bidi:embed;
     display:block;
   `;
   nameEl.textContent = product.name;
   textArea.appendChild(nameEl);
 
-  // Scientific name (Latin, LTR)
+  // Scientific name (Latin only → LTR italic)
   if (scientificName) {
     const sciEl = document.createElement('div');
     sciEl.style.cssText = `
@@ -661,6 +676,26 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     textArea.appendChild(sciEl);
   }
 
+  // Arabic description (fallback when no Latin sci name)
+  if (arabicDesc) {
+    const descEl = document.createElement('div');
+    descEl.style.cssText = `
+      font-size:9px;
+      color:#64748b;
+      font-weight:500;
+      margin-top:3px;
+      direction:rtl;
+      text-align:right;
+      unicode-bidi:embed;
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    `;
+    descEl.textContent = arabicDesc;
+    textArea.appendChild(descEl);
+  }
+
   // Height info (Arabic)
   if (heightInfo) {
     const htEl = document.createElement('div');
@@ -671,6 +706,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       margin-top:3px;
       direction:rtl;
       text-align:right;
+      unicode-bidi:embed;
       display:block;
     `;
     htEl.textContent = heightInfo;
@@ -785,6 +821,8 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     font-family:'Cairo',Arial,sans-serif;
     letter-spacing:0.5px;
     text-shadow:0 1px 4px rgba(0,0,0,0.35);
+    direction:rtl;
+    unicode-bidi:embed;
   `);
   labelEl.textContent = label;
   leftSide.appendChild(labelEl);
@@ -800,6 +838,8 @@ function buildCatHeader(label: string, count: number): HTMLElement {
     border-radius:20px;
     border:1.5px solid rgba(255,255,255,0.45);
     white-space:nowrap;
+    direction:rtl;
+    unicode-bidi:embed;
   `);
   countBadge.textContent = `${count} صنف`;
   inner.appendChild(countBadge);
@@ -827,21 +867,21 @@ async function buildMainHeader(totalCount: number, logoSrc: string): Promise<HTM
     lw.appendChild(li);
     hdr.appendChild(lw);
   }
-  const ht = mkEl('div', 'flex:1;');
-  ht.appendChild(mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;', 'مؤسسة ومشاتل القادري الزراعية'));
+  const ht = mkEl('div', 'flex:1;direction:rtl;');
+  ht.appendChild(mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;direction:rtl;unicode-bidi:embed;', 'مؤسسة ومشاتل القادري الزراعية'));
   ht.appendChild(mkEl('div', 'font-size:11.5px;color:#86efac;direction:ltr;text-align:left;margin-top:5px;font-weight:600;letter-spacing:0.6px;', 'Al-Qadri Agricultural Nursery & Establishment'));
   ht.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.18);margin:10px 0;'));
-  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;', 'أسعار الأشجار والشجيرات والورود'));
+  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;direction:rtl;unicode-bidi:embed;', 'أسعار الأشجار والشجيرات والورود'));
   hdr.appendChild(ht);
   wrap.appendChild(hdr);
 
-  const info = mkEl('div', `background:#ffffff;padding:8px ${C_PAD + 8}px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;`);
-  const ph = mkEl('div', 'display:flex;align-items:center;gap:6px;');
-  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;font-weight:700;direction:ltr;', COMPANY_PHONE));
-  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;', ':هاتف'));
+  const info = mkEl('div', `background:#ffffff;padding:8px ${C_PAD + 8}px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;direction:rtl;`);
+  const ph = mkEl('div', 'display:flex;align-items:center;gap:6px;direction:rtl;');
+  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;font-weight:700;direction:ltr;unicode-bidi:embed;', COMPANY_PHONE));
+  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;direction:rtl;unicode-bidi:embed;', ':هاتف'));
   info.appendChild(ph);
-  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
-  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;', `إجمالي الأصناف: ${totalCount}`));
+  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:embed;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
+  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;direction:rtl;unicode-bidi:embed;', `إجمالي الأصناف: ${totalCount}`));
   wrap.appendChild(info);
   return wrap;
 }
@@ -856,7 +896,7 @@ function buildFooter(pageNum: number, totalPages: number): HTMLElement {
     border-top:3px solid #52b788;
     flex-shrink:0;
   `);
-  f.appendChild(mkEl('div', 'color:#d1fae5;font-size:10.5px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
+  f.appendChild(mkEl('div', 'color:#d1fae5;font-size:10.5px;font-weight:700;direction:rtl;unicode-bidi:embed;', 'مؤسسة ومشاتل القادري الزراعية'));
   f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:600;', `${pageNum} / ${totalPages}`));
   f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
   return f;
