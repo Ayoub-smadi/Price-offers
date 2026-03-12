@@ -579,9 +579,27 @@ async function buildCard(product: Product): Promise<HTMLElement> {
 
   card.appendChild(imgBox);
 
+  // ── Parse description into scientific name + height info ─────────────────
+  let scientificName = '';
+  let heightInfo = '';
+  if (product.description) {
+    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
+    const dashIdx = cleaned.search(/\s[–—-]\s/);
+    if (dashIdx > 0) {
+      scientificName = cleaned.slice(0, dashIdx).trim();
+      const rest = cleaned.slice(dashIdx + 3).trim();
+      const hMatch = rest.match(/ارتفاع[\s\d.,]+م/);
+      if (hMatch) heightInfo = hMatch[0];
+    } else {
+      const hMatch = cleaned.match(/ارتفاع[\s\d.,]+م/);
+      if (hMatch) heightInfo = hMatch[0];
+      else scientificName = cleaned.slice(0, 35);
+    }
+  }
+
   // ── info section ───────────────────────────────────────────────────────
   const info = mkEl('div', `
-    padding:9px 11px 10px;
+    padding:10px 12px 0;
     display:flex;
     flex-direction:column;
     height:${CARD_INFO_H}px;
@@ -591,76 +609,85 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     background:#ffffff;
   `);
 
-  // Product name — large and bold
+  // Product name — allow wrapping up to 2 lines
   const nameEl = mkEl('div', `
     font-size:14px;
     font-weight:900;
     color:#0a1628;
-    line-height:1.2;
-    white-space:nowrap;
+    line-height:1.3;
+    word-break:keep-all;
     overflow:hidden;
-    text-overflow:ellipsis;
     flex-shrink:0;
+    max-height:36px;
   `);
   nameEl.textContent = product.name;
   info.appendChild(nameEl);
 
-  // Description — full text below name, smaller
-  if (product.description) {
-    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
-    const descEl = mkEl('div', `
-      font-size:8.5px;
-      color:#64748b;
+  // Scientific name (Latin) — direction ltr, italic
+  if (scientificName) {
+    const sciEl = mkEl('div', `
+      font-size:8px;
+      color:#94a3b8;
+      font-style:italic;
       font-weight:500;
-      margin-top:3px;
-      line-height:1.45;
+      margin-top:2px;
+      direction:ltr;
+      text-align:left;
+      white-space:nowrap;
       overflow:hidden;
-      display:-webkit-box;
-      -webkit-line-clamp:2;
-      -webkit-box-orient:vertical;
+      text-overflow:ellipsis;
       flex-shrink:0;
     `);
-    descEl.textContent = cleaned;
-    info.appendChild(descEl);
+    sciEl.textContent = scientificName;
+    info.appendChild(sciEl);
+  }
+
+  // Height info (Arabic)
+  if (heightInfo) {
+    const htEl = mkEl('div', `
+      font-size:8.5px;
+      color:#64748b;
+      font-weight:600;
+      margin-top:2px;
+      direction:rtl;
+      flex-shrink:0;
+    `);
+    htEl.textContent = heightInfo;
+    info.appendChild(htEl);
   }
 
   // Spacer
   info.appendChild(mkEl('div', 'flex:1;'));
 
-  // ── Price row at bottom ─────────────────────────────────────────────────
-  const priceRow = mkEl('div', `
+  // ── Price band — full-width coloured bar at the very bottom ────────────
+  const priceBar = mkEl('div', `
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding-top:7px;
-    border-top:1.5px solid ${s.badge};
+    background:${s.header};
+    margin:0 -12px;
+    padding:8px 12px;
     flex-shrink:0;
   `);
 
-  // Price badge
-  const priceBadge = mkEl('div', `
-    display:flex;
-    align-items:baseline;
-    gap:3px;
-    background:${s.header};
-    border-radius:9px;
-    padding:4px 9px;
-  `);
-  priceBadge.appendChild(mkEl('span', `font-size:17px;font-weight:900;color:#ffffff;line-height:1;`, Number(product.price).toLocaleString('ar-JO')));
-  priceBadge.appendChild(mkEl('span', `font-size:9.5px;font-weight:700;color:${s.text};`, 'د.أ'));
-  priceRow.appendChild(priceBadge);
+  // Price + currency
+  const priceLeft = mkEl('div', 'display:flex;align-items:baseline;gap:4px;');
+  priceLeft.appendChild(mkEl('span', `font-size:20px;font-weight:900;color:#ffffff;line-height:1;`, Number(product.price).toLocaleString('ar-JO')));
+  priceLeft.appendChild(mkEl('span', `font-size:11px;font-weight:700;color:${s.text};`, 'د.أ'));
+  priceBar.appendChild(priceLeft);
 
-  // Unit badge
-  priceRow.appendChild(mkEl('div', `
-    background:${s.badge};
-    color:${s.header};
-    font-size:9px;
+  // Unit pill
+  priceBar.appendChild(mkEl('div', `
+    background:rgba(255,255,255,0.22);
+    color:#ffffff;
+    font-size:9.5px;
     font-weight:800;
-    padding:4px 9px;
+    padding:3px 10px;
     border-radius:20px;
+    border:1px solid rgba(255,255,255,0.35);
   `, product.unit || 'وحدة'));
 
-  info.appendChild(priceRow);
+  info.appendChild(priceBar);
   card.appendChild(info);
   return card;
 }
