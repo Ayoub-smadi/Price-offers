@@ -7,6 +7,7 @@ export interface IStorage {
   getQuotation(id: number): Promise<QuotationWithItems | undefined>;
   createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems>;
   updateQuotation(id: number, quotation: Partial<InsertQuotation>, items: any[]): Promise<QuotationWithItems>;
+  deleteQuotation(id: number): Promise<void>;
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
@@ -68,6 +69,11 @@ export class DatabaseStorage implements IStorage {
       newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
     }
     return { ...updatedQ, items: newItems };
+  }
+
+  async deleteQuotation(id: number): Promise<void> {
+    await db.delete(quotationItems).where(eq(quotationItems.quotationId, id));
+    await db.delete(quotations).where(eq(quotations.id, id));
   }
 
   async getProducts(): Promise<Product[]> {

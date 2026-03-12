@@ -65,6 +65,18 @@ export async function registerRoutes(
     }
   });
 
+  app.delete('/api/quotations/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const existing = await storage.getQuotation(id);
+      if (!existing) return res.status(404).json({ message: "Not found" });
+      await storage.deleteQuotation(id);
+      res.status(204).end();
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   // ── Products ─────────────────────────────────────────────────
   app.get('/api/products', async (_req, res) => {
     try {

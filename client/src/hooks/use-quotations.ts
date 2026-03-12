@@ -75,6 +75,22 @@ export function useUpdateQuotation(id: number) {
   });
 }
 
+export function useDeleteQuotation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/quotations/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete quotation');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
+    },
+  });
+}
+
 export function useParseText() {
   return useMutation({
     mutationFn: async (data: ParseTextInput) => {

@@ -1,14 +1,31 @@
-import { useQuotations } from "@/hooks/use-quotations";
+import { useQuotations, useDeleteQuotation } from "@/hooks/use-quotations";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { FileText, Calendar, User, Search, Hash } from "lucide-react";
+import { FileText, Calendar, User, Search, Hash, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function History() {
   const { data: quotations, isLoading, error } = useQuotations();
+  const deleteMutation = useDeleteQuotation();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [confirmId, setConfirmId] = useState<number | null>(null);
   const [, navigate] = useLocation();
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast({ title: "تم الحذف", description: "تم حذف عرض السعر بنجاح." });
+        setConfirmId(null);
+      },
+      onError: () => {
+        toast({ title: "خطأ في الحذف", variant: "destructive" });
+        setConfirmId(null);
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -52,6 +69,7 @@ export default function History() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-card border-2 border-border pl-4 pr-10 py-2.5 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
             placeholder="ابحث بالاسم أو الرقم..."
+            data-testid="input-search"
           />
         </div>
       </div>
@@ -68,6 +86,7 @@ export default function History() {
             <div 
               key={quote.id} 
               className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300 group"
+              data-testid={`card-quotation-${quote.id}`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="bg-primary/10 text-primary px-3 py-1 rounded-lg font-bold text-sm flex items-center gap-1">
@@ -96,12 +115,46 @@ export default function History() {
                 <span className="text-sm text-muted-foreground">
                   يحتوي على {quote.items?.length || 0} أصناف
                 </span>
-                <button
-                  onClick={() => navigate(`/quotation/${quote.id}`)}
-                  className="text-primary font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                >
-                  عرض التفاصيل
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
+                  {confirmId === quote.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-destructive font-bold">تأكيد الحذف؟</span>
+                      <button
+                        onClick={() => handleDelete(quote.id)}
+                        disabled={deleteMutation.isPending}
+                        className="text-xs font-bold text-white bg-destructive hover:bg-destructive/90 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+                        data-testid={`button-confirm-delete-${quote.id}`}
+                      >
+                        {deleteMutation.isPending ? "..." : "نعم"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(null)}
+                        className="text-xs font-bold text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg transition-colors"
+                        data-testid={`button-cancel-delete-${quote.id}`}
+                      >
+                        لا
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setConfirmId(quote.id)}
+                        className="text-muted-foreground hover:text-destructive p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                        title="حذف العرض"
+                        data-testid={`button-delete-${quote.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/quotation/${quote.id}`)}
+                        className="text-primary font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
+                        data-testid={`button-view-${quote.id}`}
+                      >
+                        عرض التفاصيل
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
