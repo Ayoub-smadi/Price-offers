@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { FileText, History, PlusCircle, Settings, Quote } from "lucide-react";
+import { History, PlusCircle, Quote, Package, BarChart3 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +18,8 @@ export function AppSidebar() {
   const navItems = [
     { title: "إنشاء عرض سعر", url: "/", icon: PlusCircle },
     { title: "السجل", url: "/history", icon: History },
+    { title: "كتالوج المنتجات", url: "/products", icon: Package },
+    { title: "الإحصائيات", url: "/stats", icon: BarChart3 },
   ];
 
   return (
@@ -39,13 +41,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={location === item.url}
                     className={`
                       mx-3 my-1 rounded-xl px-4 py-6 transition-all duration-200
-                      ${location === item.url 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20' 
+                      ${location === item.url
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md shadow-primary/20'
                         : 'hover:bg-secondary text-foreground/80'}
                     `}
                   >

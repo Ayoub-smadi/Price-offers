@@ -11,11 +11,12 @@ import { LogOut } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// Pages
 import CreateQuotation from "./pages/create-quotation";
 import History from "./pages/history";
 import EditQuotation from "./pages/edit-quotation";
 import Login from "./pages/login";
+import Products from "./pages/products";
+import Stats from "./pages/stats";
 
 function Router() {
   return (
@@ -23,6 +24,8 @@ function Router() {
       <Route path="/" component={CreateQuotation} />
       <Route path="/history" component={History} />
       <Route path="/quotation/:id" component={EditQuotation} />
+      <Route path="/products" component={Products} />
+      <Route path="/stats" component={Stats} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -34,7 +37,6 @@ function App() {
   );
 
   const handleLogin = () => setIsAuthenticated(true);
-
   const handleLogout = () => {
     localStorage.removeItem("aq_auth");
     setIsAuthenticated(false);
@@ -64,7 +66,6 @@ function App() {
             <div className="flex min-h-screen w-full bg-background overflow-hidden rtl-reverse">
               <AppSidebar />
               <div className="flex flex-col flex-1 w-full relative">
-                {/* Header Navbar */}
                 <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-40 no-print">
                   <div className="flex items-center gap-4">
                     <SidebarTrigger className="hover:bg-secondary p-2 rounded-xl transition-colors" />
@@ -81,8 +82,6 @@ function App() {
                     </button>
                   </div>
                 </header>
-
-                {/* Main Content Area */}
                 <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
                   <Router />
                 </main>

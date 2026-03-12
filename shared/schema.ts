@@ -23,6 +23,15 @@ export const quotationItems = pgTable("quotation_items", {
   total: numeric("total").notNull(),
 });
 
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  unit: text("unit").default("وحدة"),
+  price: numeric("price").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const quotationsRelations = relations(quotations, ({ many }) => ({
   items: many(quotationItems),
 }));
@@ -36,12 +45,16 @@ export const quotationItemsRelations = relations(quotationItems, ({ one }) => ({
 
 export const insertQuotationSchema = createInsertSchema(quotations).omit({ id: true, createdAt: true });
 export const insertQuotationItemSchema = createInsertSchema(quotationItems).omit({ id: true });
+export const insertProductSchema = createInsertSchema(products).omit({ id: true, createdAt: true });
 
 export type Quotation = typeof quotations.$inferSelect;
 export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
 
 export type QuotationItem = typeof quotationItems.$inferSelect;
 export type InsertQuotationItem = z.infer<typeof insertQuotationItemSchema>;
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
 
 export const createQuotationRequestSchema = insertQuotationSchema.extend({
   date: z.coerce.date(),
