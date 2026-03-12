@@ -517,9 +517,10 @@ ${details.companyNameAr}
 
       {/* Catalog Modal */}
       {showCatalog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCatalog(false)}>
-          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowCatalog(false)}>
+          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <h2 className="font-bold text-lg text-foreground flex items-center gap-2">
                 <Package className="w-5 h-5 text-primary" />
                 اختر من الكتالوج
@@ -528,52 +529,63 @@ ${details.companyNameAr}
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="p-3 border-b border-border">
+            {/* Search */}
+            <div className="px-5 py-3 border-b border-border shrink-0">
               <input
                 value={catalogSearch}
                 onChange={e => setCatalogSearch(e.target.value)}
                 placeholder="ابحث في المنتجات..."
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
                 autoFocus
               />
             </div>
-            <div className="overflow-y-auto flex-1 p-3 space-y-2">
+            {/* Grid */}
+            <div className="overflow-y-auto flex-1 p-4">
               {filteredCatalog.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Package className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <div className="text-center py-12 text-muted-foreground">
+                  <Package className="w-12 h-12 mx-auto mb-3 opacity-20" />
                   <p className="text-sm">لا توجد منتجات{catalogSearch ? " مطابقة" : " في الكتالوج"}</p>
                 </div>
               ) : (
-                filteredCatalog.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => addFromCatalog(p)}
-                    className="w-full text-right rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all flex overflow-hidden group"
-                  >
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        className="w-16 h-20 object-cover shrink-0"
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    ) : (
-                      <div className="w-16 h-20 bg-secondary flex items-center justify-center shrink-0">
-                        <Package className="w-6 h-6 text-muted-foreground opacity-40" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {filteredCatalog.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => addFromCatalog(p)}
+                      className="group text-right rounded-xl border border-border hover:border-primary hover:shadow-md transition-all duration-200 overflow-hidden bg-background flex flex-col"
+                    >
+                      {/* Image */}
+                      <div className="w-full aspect-[4/3] overflow-hidden bg-secondary shrink-0">
+                        {p.imageUrl ? (
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={e => {
+                              (e.target as HTMLImageElement).parentElement!.innerHTML =
+                                `<div class="w-full h-full flex items-center justify-center"><svg xmlns='http://www.w3.org/2000/svg' class='w-8 h-8 opacity-30' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM9 12a3 3 0 116 0 3 3 0 01-6 0z'/></svg></div>`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-8 h-8 text-muted-foreground opacity-30" />
+                          </div>
+                        )}
                       </div>
-                    )}
-                    <div className="flex flex-1 items-center justify-between px-3 py-2 min-w-0">
-                      <div className="min-w-0">
-                        <div className="font-bold text-sm text-foreground leading-tight">{p.name}</div>
-                        {p.description && <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-snug">{p.description}</div>}
+                      {/* Info */}
+                      <div className="p-3 flex flex-col flex-1">
+                        <div className="font-bold text-sm text-foreground leading-tight line-clamp-1">{p.name}</div>
+                        {p.description && (
+                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug flex-1">{p.description}</div>
+                        )}
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{p.unit}</span>
+                          <span className="font-black text-sm text-primary">{Number(p.price).toLocaleString()} ر.س</span>
+                        </div>
                       </div>
-                      <div className="text-left mr-2 shrink-0">
-                        <div className="font-black text-base text-primary">{Number(p.price).toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground text-center">{p.unit}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
           </div>
