@@ -40,7 +40,7 @@ export default function CreateQuotation() {
     date: format(new Date(), "yyyy-MM-dd"),
     notes: "",
     phone: "00962777772211",
-    email: "thamerqadri@gmail.com",
+    email: "tamerqadri@gmail.com",
     website: "www.alkadri-plants.com",
   });
 
