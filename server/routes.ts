@@ -57,6 +57,35 @@ export async function registerRoutes(
     }
   });
 
+  app.put('/api/quotations/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = api.quotations.create.input.parse(req.body);
+      const { items, ...qData } = input;
+      const existing = await storage.getQuotation(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Not found" });
+      }
+      const data = await storage.updateQuotation(id, {
+        ...qData,
+        grandTotal: String(qData.grandTotal)
+      }, items.map(i => ({
+        ...i,
+        price: String(i.price),
+        total: String(i.total)
+      })));
+      res.json(data);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
+      }
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.post(api.parser.parseText.path, async (req, res) => {
     try {
       const input = api.parser.parseText.input.parse(req.body);

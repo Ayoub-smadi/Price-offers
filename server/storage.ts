@@ -6,6 +6,7 @@ export interface IStorage {
   getQuotations(): Promise<QuotationWithItems[]>;
   getQuotation(id: number): Promise<QuotationWithItems | undefined>;
   createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems>;
+  updateQuotation(id: number, quotation: Partial<InsertQuotation>, items: any[]): Promise<QuotationWithItems>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -34,6 +35,17 @@ export class DatabaseStorage implements IStorage {
       newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
     }
     return { ...newQ, items: newItems };
+  }
+
+  async updateQuotation(id: number, quotation: Partial<InsertQuotation>, items: any[]): Promise<QuotationWithItems> {
+    const [updatedQ] = await db.update(quotations).set(quotation).where(eq(quotations.id, id)).returning();
+    await db.delete(quotationItems).where(eq(quotationItems.quotationId, id));
+    let newItems: any[] = [];
+    if (items.length > 0) {
+      const itemsToInsert = items.map(item => ({ ...item, quotationId: id }));
+      newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
+    }
+    return { ...updatedQ, items: newItems };
   }
 }
 

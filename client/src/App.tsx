@@ -12,12 +12,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 // Pages
 import CreateQuotation from "./pages/create-quotation";
 import History from "./pages/history";
+import EditQuotation from "./pages/edit-quotation";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={CreateQuotation} />
       <Route path="/history" component={History} />
+      <Route path="/quotation/:id" component={EditQuotation} />
       <Route component={NotFound} />
     </Switch>
   );

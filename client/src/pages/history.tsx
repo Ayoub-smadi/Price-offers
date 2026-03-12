@@ -3,10 +3,12 @@ import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { FileText, Calendar, User, Search, Hash } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 export default function History() {
   const { data: quotations, isLoading, error } = useQuotations();
   const [search, setSearch] = useState("");
+  const [, navigate] = useLocation();
 
   if (isLoading) {
     return (
@@ -94,7 +96,10 @@ export default function History() {
                 <span className="text-sm text-muted-foreground">
                   يحتوي على {quote.items?.length || 0} أصناف
                 </span>
-                <button className="text-primary font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                <button
+                  onClick={() => navigate(`/quotation/${quote.id}`)}
+                  className="text-primary font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                >
                   عرض التفاصيل
                 </button>
               </div>

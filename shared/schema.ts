@@ -44,6 +44,7 @@ export type QuotationItem = typeof quotationItems.$inferSelect;
 export type InsertQuotationItem = z.infer<typeof insertQuotationItemSchema>;
 
 export const createQuotationRequestSchema = insertQuotationSchema.extend({
+  date: z.coerce.date(),
   items: z.array(insertQuotationItemSchema.omit({ quotationId: true })),
 });
 

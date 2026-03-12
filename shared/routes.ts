@@ -40,6 +40,16 @@ export const api = {
         400: errorSchemas.validation,
       },
     },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/quotations/:id' as const,
+      input: createQuotationRequestSchema,
+      responses: {
+        200: z.custom<any>(), // Returns updated QuotationWithItems
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
   },
   parser: {
     parseText: {

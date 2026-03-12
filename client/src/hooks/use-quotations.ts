@@ -51,6 +51,30 @@ export function useCreateQuotation() {
   });
 }
 
+export function useUpdateQuotation(id: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: QuotationInput) => {
+      const url = buildUrl('/api/quotations/:id', { id });
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `خطأ: ${res.statusText}`);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
+      queryClient.invalidateQueries({ queryKey: [api.quotations.get.path, id] });
+    },
+  });
+}
+
 export function useParseText() {
   return useMutation({
     mutationFn: async (data: ParseTextInput) => {
