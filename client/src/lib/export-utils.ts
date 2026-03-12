@@ -419,232 +419,377 @@ const ensureCairoFont = async () => {
   }
 };
 
+// ── Page-aware catalog layout constants ────────────────────────────────────
+const A4_W   = Math.round(210 * 96 / 25.4); // 794px
+const A4_H   = Math.round(297 * 96 / 25.4); // 1122px
+const C_PAD  = 20;   // horizontal + vertical page padding
+const C_GAP  = 14;   // gap between cards/rows
+const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP) / 2); // ~377px
+
+const CARD_IMG_H  = 152;
+const CARD_INFO_H = 110; // name + desc + price row (with generous spacing)
+const CARD_BAR_H  = 4;
+const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 266px
+const ROW_H       = CARD_H + C_GAP;                        // 280px
+const CAT_H       = 48;   // category section header
+const MAIN_HDR_H  = 180;  // page 1 header + info bar
+const FOOTER_H    = 46;
+const PAGE1_AVAIL = A4_H - MAIN_HDR_H - FOOTER_H - C_PAD * 2; // ≈842px
+const PAGEN_AVAIL = A4_H - FOOTER_H - C_PAD * 2;              // ≈1022px
+
 const CATEGORY_STYLES: Record<string, { bar: string; header: string; text: string; badge: string }> = {
   "أشجار":       { bar: '#2d6a4f,#52b788', header: '#0d4a2e', text: '#d1fae5', badge: '#bbf7d0' },
   "شجيرات":      { bar: '#166534,#4ade80', header: '#14532d', text: '#dcfce7', badge: '#a7f3d0' },
   "ورود":        { bar: '#9f1239,#fb7185', header: '#881337', text: '#fce7f3', badge: '#fbcfe8' },
   "نباتات زينة": { bar: '#5b21b6,#a78bfa', header: '#4c1d95', text: '#ede9fe', badge: '#ddd6fe' },
+  "متنوعة":      { bar: '#374151,#9ca3af', header: '#1f2937', text: '#f3f4f6', badge: '#e5e7eb' },
 };
 
-const buildProductCard = async (product: Product, colW: number, cardImgH: number): Promise<HTMLElement> => {
-  const cat = product.category || '';
-  const style = CATEGORY_STYLES[cat] || CATEGORY_STYLES['أشجار'];
+// ── Types ──────────────────────────────────────────────────────────────────
+type CatItem  = { type: 'cat'; label: string; count: number };
+type RowItem  = { type: 'row'; cards: Product[] };
+type PageItem = CatItem | RowItem;
+
+// ── Chunk helper ──────────────────────────────────────────────────────────
+function chunk<T>(arr: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+// ── Build flat item list from products ────────────────────────────────────
+function buildItemList(products: Product[]): PageItem[] {
+  const items: PageItem[] = [];
+  const grouped: Record<string, Product[]> = {};
+  for (const cat of PRODUCT_CATEGORIES) {
+    const ps = products.filter(p => p.category === cat);
+    if (ps.length) grouped[cat] = ps;
+  }
+  const misc = products.filter(p => !PRODUCT_CATEGORIES.includes(p.category as any));
+
+  for (const cat of PRODUCT_CATEGORIES) {
+    if (!grouped[cat]) continue;
+    items.push({ type: 'cat', label: cat, count: grouped[cat].length });
+    for (const row of chunk(grouped[cat], 2)) items.push({ type: 'row', cards: row });
+  }
+  if (misc.length) {
+    items.push({ type: 'cat', label: 'متنوعة', count: misc.length });
+    for (const row of chunk(misc, 2)) items.push({ type: 'row', cards: row });
+  }
+  return items;
+}
+
+// ── Page layout: assign items to pages ───────────────────────────────────
+function assignToPages(items: PageItem[]): PageItem[][] {
+  const pages: PageItem[][] = [[]];
+  let avail = PAGE1_AVAIL;
+  let used  = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const h    = item.type === 'cat' ? CAT_H : ROW_H;
+
+    if (item.type === 'cat') {
+      // Ensure cat header + ≥1 row stay together on same page
+      const nextH = i + 1 < items.length && items[i + 1].type === 'row' ? ROW_H : 0;
+      if (used > 0 && used + h + nextH > avail) {
+        pages.push([]);
+        avail = PAGEN_AVAIL;
+        used  = 0;
+      }
+    } else {
+      if (used + h > avail) {
+        pages.push([]);
+        avail = PAGEN_AVAIL;
+        used  = 0;
+      }
+    }
+    pages[pages.length - 1].push(item);
+    used += h;
+  }
+  return pages;
+}
+
+// ── Build one card element ────────────────────────────────────────────────
+async function buildCard(product: Product): Promise<HTMLElement> {
+  const s = CATEGORY_STYLES[product.category || ''] || CATEGORY_STYLES['متنوعة'];
 
   const card = mkEl('div', `
-    background: #ffffff;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid #e2efe6;
-    width: ${colW}px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    width:${C_COL}px;
+    background:#ffffff;
+    border-radius:14px;
+    overflow:hidden;
+    border:1px solid #e2efe6;
+    box-shadow:0 3px 10px rgba(0,0,0,0.07);
+    display:flex;
+    flex-direction:column;
   `);
 
-  card.appendChild(mkEl('div', `height:4px;background:linear-gradient(90deg,${style.bar});`));
+  // coloured accent bar
+  card.appendChild(mkEl('div', `height:${CARD_BAR_H}px;background:linear-gradient(90deg,${s.bar});flex-shrink:0;`));
 
-  const imgBox = mkEl('div', `width:${colW}px;height:${cardImgH}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;`);
+  // image
+  const imgBox = mkEl('div', `width:${C_COL}px;height:${CARD_IMG_H}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;`);
   if (product.imageUrl) {
-    const imgData = await loadImageAsDataUrl(product.imageUrl);
-    if (imgData) {
+    const data = await loadImageAsDataUrl(product.imageUrl);
+    if (data) {
       const img = document.createElement('img') as HTMLImageElement;
-      img.src = imgData;
-      img.style.cssText = `width:${colW}px;height:${cardImgH}px;object-fit:cover;display:block;`;
+      img.src = data;
+      img.style.cssText = `width:${C_COL}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
       imgBox.appendChild(img);
     } else {
-      imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
+      imgBox.appendChild(mkEl('div', 'font-size:48px;line-height:1;', '🌿'));
     }
   } else {
-    imgBox.appendChild(mkEl('div', 'font-size:50px;', '🌿'));
+    imgBox.appendChild(mkEl('div', 'font-size:48px;line-height:1;', '🌿'));
   }
   card.appendChild(imgBox);
 
-  const info = mkEl('div', 'padding:12px 14px 14px;');
-  info.appendChild(mkEl('div', 'font-size:15px;font-weight:900;color:#0f172a;line-height:1.3;margin-bottom:4px;', product.name));
-  if (product.description) {
-    const truncated = product.description.length > 70 ? product.description.slice(0, 67) + '...' : product.description;
-    info.appendChild(mkEl('div', 'font-size:10px;color:#6b7280;line-height:1.5;margin-bottom:8px;font-style:italic;', truncated));
-  } else {
-    info.appendChild(mkEl('div', 'height:8px;'));
-  }
+  // info section — fixed height to guarantee no overflow
+  const info = mkEl('div', `
+    padding:14px 16px 14px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    height:${CARD_INFO_H}px;
+    box-sizing:border-box;
+    overflow:hidden;
+  `);
 
-  const priceRow = mkEl('div', 'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px dashed #d1fae5;');
-  const priceBadge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:5px 12px;');
-  priceBadge.appendChild(mkEl('div', 'font-size:19px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
-  priceBadge.appendChild(mkEl('div', 'font-size:8.5px;color:#4ade80;font-weight:700;margin-top:1px;', CURRENCY));
-  priceRow.appendChild(priceBadge);
-  priceRow.appendChild(mkEl('div', 'background:#dcfce7;color:#166534;font-size:9.5px;font-weight:700;padding:4px 10px;border-radius:20px;', product.unit || 'وحدة'));
+  const nameDesc = mkEl('div', 'overflow:hidden;');
+  nameDesc.appendChild(mkEl('div',
+    'font-size:16px;font-weight:900;color:#0f172a;line-height:1.25;margin-bottom:6px;',
+    product.name
+  ));
+  if (product.description) {
+    const truncated = product.description.length > 65 ? product.description.slice(0, 62) + '...' : product.description;
+    nameDesc.appendChild(mkEl('div',
+      'font-size:10.5px;color:#64748b;line-height:1.5;font-style:italic;',
+      truncated
+    ));
+  }
+  info.appendChild(nameDesc);
+
+  // price row (always at bottom)
+  const priceRow = mkEl('div',
+    'display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1.5px dashed #d1fae5;margin-top:8px;'
+  );
+  const badge = mkEl('div', 'background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:6px 14px;');
+  badge.appendChild(mkEl('div', 'font-size:20px;font-weight:900;color:#166534;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
+  badge.appendChild(mkEl('div', 'font-size:8px;color:#4ade80;font-weight:700;margin-top:2px;', CURRENCY));
+  priceRow.appendChild(badge);
+  priceRow.appendChild(mkEl('div',
+    'background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;',
+    product.unit || 'وحدة'
+  ));
   info.appendChild(priceRow);
   card.appendChild(info);
   return card;
-};
+}
 
-const buildCatalogHTML = async (products: Product[], logoSrc: string): Promise<HTMLElement> => {
-  const A4_PX = Math.round(210 * 96 / 25.4);
+// ── Build one row (2 cards) ───────────────────────────────────────────────
+async function buildRow(cards: Product[]): Promise<HTMLElement> {
+  const row = mkEl('div', `display:flex;gap:${C_GAP}px;height:${CARD_H}px;`);
+  for (const p of cards) row.appendChild(await buildCard(p));
+  if (cards.length === 1) row.appendChild(mkEl('div', `width:${C_COL}px;flex-shrink:0;`)); // placeholder
+  return row;
+}
 
-  const wrap = mkEl('div', `
-    width: ${A4_PX}px;
-    background: #f4f7f4;
-    font-family: 'Cairo', Arial, sans-serif;
-    direction: rtl;
-    text-align: right;
-    color: #1e293b;
-    box-sizing: border-box;
-    padding: 0;
+// ── Build category header bar ─────────────────────────────────────────────
+function buildCatHeader(label: string, count: number): HTMLElement {
+  const s = CATEGORY_STYLES[label] || CATEGORY_STYLES['متنوعة'];
+  const bar = mkEl('div', `
+    background:${s.header};
+    padding:0 20px;
+    height:${CAT_H}px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    border-radius:10px;
+    margin-bottom:${C_GAP}px;
   `);
+  bar.appendChild(mkEl('div', `font-size:19px;font-weight:900;color:${s.text};letter-spacing:0.3px;`, label));
+  bar.appendChild(mkEl('div', `
+    background:${s.badge};
+    color:${s.header};
+    font-size:11px;font-weight:700;
+    padding:3px 12px;border-radius:20px;
+  `, `${count} صنف`));
+  return bar;
+}
 
-  const styleTag = document.createElement('style');
-  styleTag.textContent = `@import url('${FONT_URL}'); * { font-family: 'Cairo', Arial, sans-serif !important; }`;
-  wrap.appendChild(styleTag);
+// ── Build main page header (page 1 only) ──────────────────────────────────
+async function buildMainHeader(totalCount: number, logoSrc: string): Promise<HTMLElement> {
+  const wrap = mkEl('div', 'margin-bottom:0;');
 
-  // ── Header ───────────────────────────────────────────────────────────────
-  const header = mkEl('div', `background:linear-gradient(135deg,#0d2b1e 0%,#1a4a2e 50%,#22603a 100%);padding:22px 28px 18px;display:flex;align-items:center;gap:20px;border-bottom:4px solid #52b788;`);
+  const hdr = mkEl('div', `
+    background:linear-gradient(135deg,#0d2b1e 0%,#1a4a2e 50%,#22603a 100%);
+    padding:20px ${C_PAD + 8}px 16px;
+    display:flex;align-items:center;gap:18px;
+    border-bottom:4px solid #52b788;
+  `);
   const logoData = logoSrc ? await loadImageAsDataUrl(logoSrc) : '';
   if (logoData) {
-    const logoWrap = mkEl('div', 'width:96px;height:96px;background:#ffffff;border-radius:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:5px;box-shadow:0 4px 12px rgba(0,0,0,0.3);');
-    const logo = document.createElement('img') as HTMLImageElement;
-    logo.src = logoData;
-    logo.style.cssText = 'width:86px;height:86px;object-fit:contain;';
-    logoWrap.appendChild(logo);
-    header.appendChild(logoWrap);
+    const lw = mkEl('div', 'width:92px;height:92px;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,0.3);');
+    const li = document.createElement('img') as HTMLImageElement;
+    li.src = logoData;
+    li.style.cssText = 'width:84px;height:84px;object-fit:contain;';
+    lw.appendChild(li);
+    hdr.appendChild(lw);
   }
-  const hText = mkEl('div', 'flex:1;padding-right:4px;');
-  hText.appendChild(mkEl('div', 'font-size:28px;font-weight:900;color:#ffffff;line-height:1.1;', 'مؤسسة ومشاتل القادري الزراعية'));
-  hText.appendChild(mkEl('div', 'font-size:12px;color:#86efac;direction:ltr;text-align:left;margin-top:4px;font-weight:600;letter-spacing:0.5px;', 'Al-Qadri Agricultural Nursery & Establishment'));
-  hText.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.2);margin:10px 0;'));
-  hText.appendChild(mkEl('div', 'font-size:14px;color:#d1fae5;font-weight:700;', 'أسعار الأشجار والشجيرات والورود لدى مشاتل القادري'));
-  header.appendChild(hText);
-  wrap.appendChild(header);
+  const ht = mkEl('div', 'flex:1;');
+  ht.appendChild(mkEl('div', 'font-size:27px;font-weight:900;color:#ffffff;line-height:1.1;', 'مؤسسة ومشاتل القادري الزراعية'));
+  ht.appendChild(mkEl('div', 'font-size:11.5px;color:#86efac;direction:ltr;text-align:left;margin-top:5px;font-weight:600;letter-spacing:0.6px;', 'Al-Qadri Agricultural Nursery & Establishment'));
+  ht.appendChild(mkEl('div', 'height:1px;background:rgba(255,255,255,0.18);margin:10px 0;'));
+  ht.appendChild(mkEl('div', 'font-size:13.5px;color:#d1fae5;font-weight:700;', 'أسعار الأشجار والشجيرات والورود'));
+  hdr.appendChild(ht);
+  wrap.appendChild(hdr);
 
-  // ── Info bar ─────────────────────────────────────────────────────────────
-  const infoBar = mkEl('div', 'background:#ffffff;padding:8px 28px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;');
-  const phoneEl = mkEl('div', 'display:flex;align-items:center;gap:6px;');
-  phoneEl.appendChild(mkEl('span', 'font-size:13px;color:#166534;font-weight:700;direction:ltr;', COMPANY_PHONE));
-  phoneEl.appendChild(mkEl('span', 'font-size:13px;color:#166534;', ':هاتف'));
-  infoBar.appendChild(phoneEl);
-  infoBar.appendChild(mkEl('span', 'font-size:11px;color:#64748b;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
-  infoBar.appendChild(mkEl('span', 'font-size:11px;color:#64748b;font-weight:600;', `إجمالي الأصناف: ${products.length}`));
-  wrap.appendChild(infoBar);
-
-  // ── Category sections ─────────────────────────────────────────────────────
-  const GAP = 12;
-  const PAD = 14;
-  const colW = Math.floor((A4_PX - PAD * 2 - GAP) / 2);
-  const CARD_IMG_H = 155;
-
-  const grouped: Record<string, Product[]> = {};
-  const unclassified: Product[] = [];
-  for (const p of products) {
-    const cat = p.category || '';
-    if (PRODUCT_CATEGORIES.includes(cat as any)) {
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(p);
-    } else {
-      unclassified.push(p);
-    }
-  }
-
-  const renderSection = async (sectionProducts: Product[], categoryName: string) => {
-    if (sectionProducts.length === 0) return;
-    const catStyle = CATEGORY_STYLES[categoryName] || { bar: '#374151,#6b7280', header: '#1f2937', text: '#f3f4f6', badge: '#e5e7eb' };
-
-    const section = mkEl('div', 'margin-bottom:0;');
-
-    const catHeader = mkEl('div', `background:${catStyle.header};padding:10px 20px;display:flex;align-items:center;gap:10px;`);
-    catHeader.appendChild(mkEl('div', `font-size:18px;font-weight:900;color:${catStyle.text};`, categoryName));
-    catHeader.appendChild(mkEl('div', `background:${catStyle.badge};color:${catStyle.header};font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;`, `${sectionProducts.length} صنف`));
-    section.appendChild(catHeader);
-
-    const grid = mkEl('div', `display:grid;grid-template-columns:${colW}px ${colW}px;gap:${GAP}px;padding:${PAD}px;background:#f4f7f4;`);
-    for (const product of sectionProducts) {
-      grid.appendChild(await buildProductCard(product, colW, CARD_IMG_H));
-    }
-    if (sectionProducts.length % 2 !== 0) {
-      grid.appendChild(mkEl('div', `width:${colW}px;`));
-    }
-    section.appendChild(grid);
-    wrap.appendChild(section);
-  };
-
-  for (const cat of PRODUCT_CATEGORIES) {
-    if (grouped[cat] && grouped[cat].length > 0) {
-      await renderSection(grouped[cat], cat);
-    }
-  }
-  if (unclassified.length > 0) {
-    await renderSection(unclassified, 'متنوعة');
-  }
-
-  // ── Footer ────────────────────────────────────────────────────────────────
-  const footer = mkEl('div', 'background:linear-gradient(135deg,#0d2b1e,#22603a);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;border-top:3px solid #52b788;');
-  footer.appendChild(mkEl('div', 'color:#d1fae5;font-size:11px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
-  footer.appendChild(mkEl('div', 'color:#86efac;font-size:11px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
-  wrap.appendChild(footer);
-
+  const info = mkEl('div', `background:#ffffff;padding:8px ${C_PAD + 8}px;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;`);
+  const ph = mkEl('div', 'display:flex;align-items:center;gap:6px;');
+  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;font-weight:700;direction:ltr;', COMPANY_PHONE));
+  ph.appendChild(mkEl('span', 'font-size:12.5px;color:#166534;', ':هاتف'));
+  info.appendChild(ph);
+  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;', `تاريخ الإصدار: ${new Date().toLocaleDateString('ar-JO', { year: 'numeric', month: 'long', day: 'numeric' })}`));
+  info.appendChild(mkEl('span', 'font-size:10.5px;color:#64748b;font-weight:600;', `إجمالي الأصناف: ${totalCount}`));
+  wrap.appendChild(info);
   return wrap;
-};
+}
 
-export const exportCatalogToPDF = async (products: Product[], _logoSrc: string = '') => {
+// ── Build page footer ─────────────────────────────────────────────────────
+function buildFooter(pageNum: number, totalPages: number): HTMLElement {
+  const f = mkEl('div', `
+    height:${FOOTER_H}px;
+    background:linear-gradient(135deg,#0d2b1e,#22603a);
+    display:flex;justify-content:space-between;align-items:center;
+    padding:0 ${C_PAD + 8}px;
+    border-top:3px solid #52b788;
+    flex-shrink:0;
+  `);
+  f.appendChild(mkEl('div', 'color:#d1fae5;font-size:10.5px;font-weight:700;', 'مؤسسة ومشاتل القادري الزراعية'));
+  f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:600;', `${pageNum} / ${totalPages}`));
+  f.appendChild(mkEl('div', 'color:#86efac;font-size:10.5px;font-weight:700;direction:ltr;', `${COMPANY_PHONE} :☎`));
+  return f;
+}
+
+// ── Render one A4 page ────────────────────────────────────────────────────
+async function renderPage(
+  pageItems: PageItem[],
+  isFirst: boolean,
+  logoSrc: string,
+  totalCount: number,
+  pageNum: number,
+  totalPages: number
+): Promise<HTMLCanvasElement> {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `@import url('${FONT_URL}'); * { font-family: 'Cairo', Arial, sans-serif !important; box-sizing: border-box; }`;
+
+  const page = mkEl('div', `
+    width:${A4_W}px;
+    height:${A4_H}px;
+    background:#f0f4f0;
+    font-family:'Cairo',Arial,sans-serif;
+    direction:rtl;
+    text-align:right;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  `);
+  page.appendChild(styleEl);
+
+  // ── main header (page 1 only) ──
+  if (isFirst) {
+    page.appendChild(await buildMainHeader(totalCount, logoSrc));
+  }
+
+  // ── content area ──
+  const content = mkEl('div', `
+    flex:1;
+    padding:${C_PAD}px;
+    display:flex;
+    flex-direction:column;
+    gap:${C_GAP}px;
+    overflow:hidden;
+  `);
+
+  for (const item of pageItems) {
+    if (item.type === 'cat') {
+      content.appendChild(buildCatHeader(item.label, item.count));
+    } else {
+      const rowEl = await buildRow(item.cards);
+      content.appendChild(rowEl);
+    }
+  }
+  page.appendChild(content);
+
+  // ── footer ──
+  page.appendChild(buildFooter(pageNum, totalPages));
+
+  // ── render to canvas ──
+  page.style.position = 'fixed';
+  page.style.top = '-99999px';
+  page.style.left = '-99999px';
+  page.style.zIndex = '-1';
+  document.body.appendChild(page);
+  await new Promise(r => setTimeout(r, 300));
+
+  const canvas = await html2canvas(page, {
+    scale: 3,
+    useCORS: true,
+    logging: false,
+    backgroundColor: '#f0f4f0',
+    allowTaint: true,
+    imageTimeout: 20000,
+    windowWidth: A4_W,
+    width: A4_W,
+    height: A4_H,
+    onclone: (doc: Document) => {
+      const lnk = doc.createElement('link');
+      lnk.rel = 'stylesheet';
+      lnk.href = FONT_URL;
+      doc.head.appendChild(lnk);
+    },
+  });
+
+  document.body.removeChild(page);
+  return canvas;
+}
+
+// ── Main export function ──────────────────────────────────────────────────
+export const exportCatalogToPDF = async (products: Product[]) => {
   try {
-    // 1. Pre-load Cairo font
     await ensureCairoFont();
 
-    // 2. Build the HTML
-    const catalogEl = await buildCatalogHTML(products, '/logo.png');
-    catalogEl.style.cssText = 'position:fixed;top:-99999px;left:-99999px;z-index:-1;';
-    document.body.appendChild(catalogEl);
+    const items   = buildItemList(products);
+    const pages   = assignToPages(items);
+    const total   = pages.length;
+    const logoSrc = '/logo.png';
 
-    // 3. Extra wait to let browser paint & render font
-    await new Promise(r => setTimeout(r, 800));
+    const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pdfW   = pdf.internal.pageSize.getWidth();
+    const pdfH   = pdf.internal.pageSize.getHeight();
 
-    const A4_PX = Math.round(210 * 96 / 25.4);
-    const canvas = await html2canvas(catalogEl, {
-      scale: 3,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#f4f7f4',
-      allowTaint: true,
-      imageTimeout: 20000,
-      windowWidth: A4_PX,
-      width: A4_PX,
-      onclone: (cloned: Document) => {
-        const s = cloned.createElement('link');
-        s.rel = 'stylesheet';
-        s.href = FONT_URL;
-        cloned.head.appendChild(s);
-      },
-    });
-    document.body.removeChild(catalogEl);
+    for (let i = 0; i < pages.length; i++) {
+      if (i > 0) pdf.addPage('a4');
 
-    // 4. Build PDF pages
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = pdf.internal.pageSize.getHeight();
-    const imgW = pdfW;
-    const pxPerMM = canvas.width / imgW;
-    const pageHeightPx = pdfH * pxPerMM;
+      const canvas = await renderPage(pages[i], i === 0, logoSrc, products.length, i + 1, total);
 
-    let srcY = 0;
-    let pageIdx = 0;
-    while (srcY < canvas.height) {
-      if (pageIdx > 0) pdf.addPage('a4');
-      const slicePx = Math.min(pageHeightPx, canvas.height - srcY);
-      if (slicePx <= 0) break;
+      const imgData = canvas.toDataURL('image/jpeg', 0.97);
+      const ratio   = canvas.height / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfW * ratio);
 
-      const pg = document.createElement('canvas');
-      pg.width = canvas.width;
-      pg.height = Math.round(slicePx);
-      pg.getContext('2d')!.drawImage(
-        canvas,
-        0, Math.round(srcY), canvas.width, Math.round(slicePx),
-        0, 0, canvas.width, Math.round(slicePx)
-      );
-      pdf.addImage(pg.toDataURL('image/jpeg', 0.97), 'JPEG', 0, 0, imgW, slicePx / pxPerMM);
-      srcY += pageHeightPx;
-      pageIdx++;
+      // If the rendered height exceeds one PDF page height, warn (shouldn't happen now)
+      if (pdfW * ratio > pdfH) {
+        console.warn(`Page ${i + 1} exceeds A4 height — layout may need adjustment`);
+      }
     }
 
     const dateStr = new Date().toLocaleDateString('ar-JO').replace(/\//g, '-');
     pdf.save(`كتالوج-مشاتل-القادري-${dateStr}.pdf`);
   } catch (err) {
     console.error('Catalog PDF error:', err);
+    throw err;
   }
 };
