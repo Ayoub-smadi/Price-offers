@@ -24,8 +24,18 @@ export const quotationItems = pgTable("quotation_items", {
   total: numeric("total").notNull(),
 });
 
-export const PRODUCT_CATEGORIES = ["أشجار", "شجيرات", "ورود", "نباتات زينة"] as const;
-export type ProductCategory = typeof PRODUCT_CATEGORIES[number];
+export const DEFAULT_PRODUCT_CATEGORIES = ["أشجار", "شجيرات", "ورود", "نباتات زينة"] as const;
+
+export const productCategories = pgTable("product_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProductCategorySchema = createInsertSchema(productCategories).omit({ id: true, createdAt: true });
+export type ProductCategory = typeof productCategories.$inferSelect;
+export type InsertProductCategory = z.infer<typeof insertProductCategorySchema>;
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),

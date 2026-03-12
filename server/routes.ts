@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { storage, verifyPassword, createPasswordHash } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertProductSchema } from "@shared/schema";
+import { insertProductSchema, insertProductCategorySchema } from "@shared/schema";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -182,6 +182,59 @@ export async function registerRoutes(
   app.delete('/api/products/:id', async (req, res) => {
     try {
       await storage.deleteProduct(Number(req.params.id));
+      res.status(204).end();
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Product Categories ────────────────────────────────────────
+  app.get('/api/product-categories', async (_req, res) => {
+    try {
+      res.json(await storage.getProductCategories());
+    } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post('/api/product-categories', async (req, res) => {
+    try {
+      const input = insertProductCategorySchema.parse(req.body);
+      const cat = await storage.createProductCategory(input);
+      res.status(201).json(cat);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.put('/api/product-categories/reorder', async (req, res) => {
+    try {
+      const schema = z.array(z.object({ id: z.number(), sortOrder: z.number() }));
+      const items = schema.parse(req.body);
+      await storage.reorderProductCategories(items);
+      res.status(204).end();
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.put('/api/product-categories/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      const input = insertProductCategorySchema.partial().parse(req.body);
+      const cat = await storage.updateProductCategory(id, input);
+      res.json(cat);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.delete('/api/product-categories/:id', async (req, res) => {
+    try {
+      await storage.deleteProductCategory(Number(req.params.id));
       res.status(204).end();
     } catch {
       res.status(500).json({ message: "Internal Error" });

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { quotations, quotationItems, products, users, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User } from "@shared/schema";
+import { quotations, quotationItems, products, users, productCategories, DEFAULT_PRODUCT_CATEGORIES, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User, type ProductCategory, type InsertProductCategory } from "@shared/schema";
 import { eq, desc, isNull, isNotNull, asc, sql } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
@@ -42,6 +42,12 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   changeUserPassword(username: string, newPasswordHash: string): Promise<void>;
   seedAdminUser(): Promise<void>;
+  getProductCategories(): Promise<ProductCategory[]>;
+  createProductCategory(data: InsertProductCategory): Promise<ProductCategory>;
+  updateProductCategory(id: number, data: Partial<InsertProductCategory>): Promise<ProductCategory>;
+  deleteProductCategory(id: number): Promise<void>;
+  reorderProductCategories(items: { id: number; sortOrder: number }[]): Promise<void>;
+  seedDefaultCategories(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -170,6 +176,41 @@ export class DatabaseStorage implements IStorage {
       const passwordHash = createPasswordHash("Ayoub123");
       await db.insert(users).values({ username: "Ayoub", passwordHash });
       console.log("[seed] تم إنشاء حساب الأدمن: Ayoub / Ayoub123");
+    }
+    await this.seedDefaultCategories();
+  }
+
+  async getProductCategories(): Promise<ProductCategory[]> {
+    return db.select().from(productCategories).orderBy(asc(productCategories.sortOrder), asc(productCategories.createdAt));
+  }
+
+  async createProductCategory(data: InsertProductCategory): Promise<ProductCategory> {
+    const [cat] = await db.insert(productCategories).values(data).returning();
+    return cat;
+  }
+
+  async updateProductCategory(id: number, data: Partial<InsertProductCategory>): Promise<ProductCategory> {
+    const [cat] = await db.update(productCategories).set(data).where(eq(productCategories.id, id)).returning();
+    return cat;
+  }
+
+  async deleteProductCategory(id: number): Promise<void> {
+    await db.delete(productCategories).where(eq(productCategories.id, id));
+  }
+
+  async reorderProductCategories(items: { id: number; sortOrder: number }[]): Promise<void> {
+    for (const item of items) {
+      await db.update(productCategories).set({ sortOrder: item.sortOrder }).where(eq(productCategories.id, item.id));
+    }
+  }
+
+  async seedDefaultCategories(): Promise<void> {
+    const existing = await this.getProductCategories();
+    if (existing.length === 0) {
+      for (let i = 0; i < DEFAULT_PRODUCT_CATEGORIES.length; i++) {
+        await db.insert(productCategories).values({ name: DEFAULT_PRODUCT_CATEGORIES[i], sortOrder: i }).onConflictDoNothing();
+      }
+      console.log("[seed] تم إنشاء الأقسام الافتراضية");
     }
   }
 }

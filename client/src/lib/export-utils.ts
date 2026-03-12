@@ -1,7 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { Product } from '@shared/schema';
-import { PRODUCT_CATEGORIES } from '@shared/schema';
 
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
@@ -461,15 +460,21 @@ function chunk<T>(arr: T[], size: number): T[][] {
 // ── Build flat item list from products ────────────────────────────────────
 function buildItemList(products: Product[]): PageItem[] {
   const items: PageItem[] = [];
+  const knownCats: string[] = [];
   const grouped: Record<string, Product[]> = {};
-  for (const cat of PRODUCT_CATEGORIES) {
-    const ps = products.filter(p => p.category === cat);
-    if (ps.length) grouped[cat] = ps;
-  }
-  const misc = products.filter(p => !PRODUCT_CATEGORIES.includes(p.category as any));
 
-  for (const cat of PRODUCT_CATEGORIES) {
-    if (!grouped[cat]) continue;
+  for (const p of products) {
+    const cat = p.category || '';
+    if (cat && !knownCats.includes(cat)) knownCats.push(cat);
+    if (cat) {
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(p);
+    }
+  }
+
+  const misc = products.filter(p => !p.category);
+
+  for (const cat of knownCats) {
     items.push({ type: 'cat', label: cat, count: grouped[cat].length });
     for (const row of chunk(grouped[cat], COLS)) items.push({ type: 'row', cards: row });
   }

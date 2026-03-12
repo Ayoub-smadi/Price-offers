@@ -1,11 +1,11 @@
 import { useState, useRef } from "react";
-import { Package, Plus, Pencil, Trash2, Check, X, Search, Sparkles, Camera, ImageOff, FileDown, GripVertical, Loader2, Trees, Flower2, Leaf, ChevronDown, ChevronUp, Tag, Inbox } from "lucide-react";
+import { Package, Plus, Pencil, Trash2, Check, X, Search, Sparkles, Camera, ImageOff, FileDown, GripVertical, Loader2, Trees, Flower2, Leaf, ChevronDown, ChevronUp, Tag, Inbox, FolderPlus, Settings2 } from "lucide-react";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/use-products";
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/use-categories";
 import { useToast } from "@/hooks/use-toast";
 import { exportCatalogToPDF } from "@/lib/export-utils";
 import { queryClient } from "@/lib/queryClient";
-import type { Product } from "@shared/schema";
-import { PRODUCT_CATEGORIES, type ProductCategory } from "@shared/schema";
+import type { Product, ProductCategory } from "@shared/schema";
 import {
   DndContext,
   closestCenter,
@@ -24,7 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-type ProductForm = { name: string; description: string; unit: string; price: string; imageUrl?: string; category: ProductCategory | "" };
+type ProductForm = { name: string; description: string; unit: string; price: string; imageUrl?: string; category: string };
 const emptyForm: ProductForm = { name: "", description: "", unit: "وحدة", price: "", imageUrl: "", category: "" };
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -55,7 +55,17 @@ const CATEGORY_BTN_COLORS: Record<string, string> = {
   "نباتات زينة": "bg-violet-100 hover:bg-violet-200 text-violet-800 border border-violet-300",
 };
 
-const isUnclassified = (p: Product) => !p.category || !PRODUCT_CATEGORIES.includes(p.category as ProductCategory);
+const DEFAULT_CATEGORY_COLOR = "bg-sky-50 border-sky-200 dark:bg-sky-950/30 dark:border-sky-800";
+const DEFAULT_BADGE_COLOR = "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200";
+const DEFAULT_BTN_COLOR = "bg-sky-100 hover:bg-sky-200 text-sky-800 border border-sky-300";
+const DEFAULT_ICON = <Tag className="w-4 h-4" />;
+
+function getCategoryColor(name: string) { return CATEGORY_COLORS[name] || DEFAULT_CATEGORY_COLOR; }
+function getCategoryBadge(name: string) { return CATEGORY_BADGE_COLORS[name] || DEFAULT_BADGE_COLOR; }
+function getCategoryBtn(name: string) { return CATEGORY_BTN_COLORS[name] || DEFAULT_BTN_COLOR; }
+function getCategoryIcon(name: string) { return CATEGORY_ICONS[name] || DEFAULT_ICON; }
+
+const isUnclassified = (p: Product, categoryNames: string[]) => !p.category || !categoryNames.includes(p.category);
 
 function ProductImage({ url, className }: { url?: string | null; className?: string }) {
   const [error, setError] = useState(false);
@@ -104,17 +114,14 @@ function ImageUploadButton({ productId, onUploaded }: { productId?: number; onUp
 }
 
 function UnclassifiedCard({
-  product,
-  onAssign,
-  onStartEdit,
-  onDelete,
-  assigning,
+  product, onAssign, onStartEdit, onDelete, assigning, categories,
 }: {
   product: Product;
-  onAssign: (id: number, cat: ProductCategory) => void;
+  onAssign: (id: number, catName: string) => void;
   onStartEdit: (p: Product) => void;
   onDelete: (id: number) => void;
   assigning: number | null;
+  categories: ProductCategory[];
 }) {
   return (
     <div className="bg-card rounded-2xl border-2 border-amber-200 dark:border-amber-800 overflow-hidden group relative">
@@ -144,15 +151,15 @@ function UnclassifiedCard({
             <Tag className="w-3 h-3" /> اختر القسم:
           </p>
           <div className="flex flex-wrap gap-1">
-            {PRODUCT_CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <button
-                key={cat}
-                onClick={() => onAssign(product.id, cat)}
+                key={cat.id}
+                onClick={() => onAssign(product.id, cat.name)}
                 disabled={assigning === product.id}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${CATEGORY_BTN_COLORS[cat]}`}
-                data-testid={`button-assign-${product.id}-${cat}`}>
-                {CATEGORY_ICONS[cat]}
-                {cat}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${getCategoryBtn(cat.name)}`}
+                data-testid={`button-assign-${product.id}-${cat.name}`}>
+                {getCategoryIcon(cat.name)}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -168,7 +175,7 @@ function UnclassifiedCard({
 }
 
 function SortableProductCard({
-  product, editingId, editForm, setEditForm, onStartEdit, onUpdate, onDelete, updatePending, setEditingId,
+  product, editingId, editForm, setEditForm, onStartEdit, onUpdate, onDelete, updatePending, setEditingId, categories,
 }: {
   product: Product;
   editingId: number | null;
@@ -179,6 +186,7 @@ function SortableProductCard({
   onDelete: (id: number) => void;
   updatePending: boolean;
   setEditingId: (id: number | null) => void;
+  categories: ProductCategory[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, zIndex: isDragging ? 50 : undefined };
@@ -208,11 +216,11 @@ function SortableProductCard({
             className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary" placeholder="الوصف" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1">القسم</label>
-            <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value as ProductCategory })}
+            <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })}
               className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary"
               data-testid={`select-category-edit-${product.id}`}>
               <option value="">— غير مصنف —</option>
-              {PRODUCT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
             </select>
           </div>
           <div className="flex gap-2 pt-1">
@@ -267,7 +275,7 @@ function SortableProductCard({
 }
 
 function CategorySection({
-  category, products, editingId, editForm, setEditForm, onStartEdit, onUpdate, onDelete, updatePending, setEditingId, onReorder, onAddToCategory,
+  category, products, editingId, editForm, setEditForm, onStartEdit, onUpdate, onDelete, updatePending, setEditingId, onReorder, onAddToCategory, categories, onDeleteCategory, onRenameCategory,
 }: {
   category: ProductCategory;
   products: Product[];
@@ -279,10 +287,15 @@ function CategorySection({
   onDelete: (id: number) => void;
   updatePending: boolean;
   setEditingId: (id: number | null) => void;
-  onReorder: (category: ProductCategory, newOrder: Product[]) => void;
-  onAddToCategory: (category: ProductCategory) => void;
+  onReorder: (categoryName: string, newOrder: Product[]) => void;
+  onAddToCategory: (categoryName: string) => void;
+  categories: ProductCategory[];
+  onDeleteCategory: (id: number) => void;
+  onRenameCategory: (id: number, name: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(category.name);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -292,34 +305,79 @@ function CategorySection({
     if (!over || active.id === over.id) return;
     const oldIndex = products.findIndex(p => p.id === Number(active.id));
     const newIndex = products.findIndex(p => p.id === Number(over.id));
-    onReorder(category, arrayMove(products, oldIndex, newIndex));
+    onReorder(category.name, arrayMove(products, oldIndex, newIndex));
   };
 
   return (
-    <div className={`rounded-2xl border-2 overflow-hidden ${CATEGORY_COLORS[category]}`}>
+    <div className={`rounded-2xl border-2 overflow-hidden ${getCategoryColor(category.name)}`}>
       <div className="flex items-center justify-between px-5 py-3">
-        <button onClick={() => setCollapsed(c => !c)}
-          className="flex items-center gap-2 font-bold text-base text-foreground hover:opacity-80 transition-opacity"
-          data-testid={`button-collapse-${category}`}>
-          <span className={`${CATEGORY_BADGE_COLORS[category].split(" ").slice(0, 2).join(" ")} p-1.5 rounded-lg`}>
-            {CATEGORY_ICONS[category]}
-          </span>
-          {category}
-          <span className="text-sm font-normal text-muted-foreground">({products.length})</span>
-          {collapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronUp className="w-4 h-4 text-muted-foreground" />}
-        </button>
-        <button onClick={() => onAddToCategory(category)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
-          data-testid={`button-add-to-category-${category}`}>
-          <Plus className="w-3.5 h-3.5" /> إضافة
-        </button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <button onClick={() => setCollapsed(c => !c)}
+            className="flex items-center gap-2 font-bold text-base text-foreground hover:opacity-80 transition-opacity min-w-0"
+            data-testid={`button-collapse-${category.name}`}>
+            <span className={`${getCategoryBadge(category.name).split(" ").slice(0, 2).join(" ")} p-1.5 rounded-lg shrink-0`}>
+              {getCategoryIcon(category.name)}
+            </span>
+            {renaming ? null : (
+              <span className="truncate">{category.name}</span>
+            )}
+            <span className="text-sm font-normal text-muted-foreground shrink-0">({products.length})</span>
+            {collapsed ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0" />}
+          </button>
+          {renaming && (
+            <div className="flex items-center gap-1 flex-1 min-w-0">
+              <input
+                autoFocus
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && newName.trim()) { onRenameCategory(category.id, newName.trim()); setRenaming(false); }
+                  if (e.key === "Escape") { setRenaming(false); setNewName(category.name); }
+                }}
+                className="bg-background border border-primary rounded-lg px-2 py-1 text-sm font-semibold outline-none w-40"
+                data-testid={`input-rename-category-${category.id}`}
+              />
+              <button onClick={() => { if (newName.trim()) { onRenameCategory(category.id, newName.trim()); setRenaming(false); } }}
+                className="p-1 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => { setRenaming(false); setNewName(category.name); }}
+                className="p-1 bg-secondary text-secondary-foreground rounded-lg">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {!renaming && (
+            <button onClick={() => setRenaming(true)}
+              className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              title="إعادة تسمية القسم"
+              data-testid={`button-rename-category-${category.id}`}>
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {products.length === 0 && !renaming && (
+            <button onClick={() => onDeleteCategory(category.id)}
+              className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+              title="حذف القسم"
+              data-testid={`button-delete-category-${category.id}`}>
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button onClick={() => onAddToCategory(category.name)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 transition-colors"
+            data-testid={`button-add-to-category-${category.name}`}>
+            <Plus className="w-3.5 h-3.5" /> إضافة
+          </button>
+        </div>
       </div>
       {!collapsed && (
         <div className="px-4 pb-4">
           {products.length === 0 ? (
             <div className="text-center py-8 rounded-xl border border-dashed border-border/60">
               <p className="text-muted-foreground text-sm">لا توجد منتجات في هذا القسم</p>
-              <button onClick={() => onAddToCategory(category)} className="mt-2 text-primary text-xs hover:underline">أضف أول منتج</button>
+              <button onClick={() => onAddToCategory(category.name)} className="mt-2 text-primary text-xs hover:underline">أضف أول منتج</button>
             </div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -329,7 +387,7 @@ function CategorySection({
                     <SortableProductCard key={product.id} product={product} editingId={editingId}
                       editForm={editForm} setEditForm={setEditForm} onStartEdit={onStartEdit}
                       onUpdate={onUpdate} onDelete={onDelete} updatePending={updatePending}
-                      setEditingId={setEditingId} />
+                      setEditingId={setEditingId} categories={categories} />
                   ))}
                 </div>
               </SortableContext>
@@ -342,10 +400,14 @@ function CategorySection({
 }
 
 export default function Products() {
-  const { data: products, isLoading } = useProducts();
+  const { data: products, isLoading: productsLoading } = useProducts();
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
+  const createCategoryMutation = useCreateCategory();
+  const updateCategoryMutation = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
   const { toast } = useToast();
 
   const [search, setSearch] = useState("");
@@ -356,30 +418,35 @@ export default function Products() {
   const [exporting, setExporting] = useState(false);
   const [categoryOrders, setCategoryOrders] = useState<Record<string, number[]>>({});
   const [assigning, setAssigning] = useState<number | null>(null);
+  const [showManageCategories, setShowManageCategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
-  const unclassifiedProducts = (products || []).filter(isUnclassified);
+  const isLoading = productsLoading || categoriesLoading;
+  const categoryList = categories || [];
+  const categoryNames = categoryList.map(c => c.name);
+  const unclassifiedProducts = (products || []).filter(p => isUnclassified(p, categoryNames));
   const totalCount = products?.length ?? 0;
 
-  const getProductsForCategory = (cat: ProductCategory): Product[] => {
+  const getProductsForCategory = (catName: string): Product[] => {
     if (!products) return [];
-    const catProducts = products.filter(p => (p.category as ProductCategory) === cat);
-    const order = categoryOrders[cat];
+    const catProducts = products.filter(p => p.category === catName);
+    const order = categoryOrders[catName];
     if (!order) return catProducts;
     const sorted = order.map(id => catProducts.find(p => p.id === id)).filter(Boolean) as Product[];
     const newOnes = catProducts.filter(p => !order.includes(p.id));
     return [...sorted, ...newOnes];
   };
 
-  const handleAssign = async (productId: number, category: ProductCategory) => {
+  const handleAssign = async (productId: number, categoryName: string) => {
     setAssigning(productId);
     try {
       await fetch(`/api/products/${productId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category }),
+        body: JSON.stringify({ category: categoryName }),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      toast({ title: `تم نقل المنتج إلى قسم ${category}` });
+      toast({ title: `تم نقل المنتج إلى قسم ${categoryName}` });
     } catch {
       toast({ title: "خطأ في التصنيف", variant: "destructive" });
     } finally {
@@ -387,10 +454,10 @@ export default function Products() {
     }
   };
 
-  const handleReorder = async (category: ProductCategory, newOrder: Product[]) => {
-    setCategoryOrders(prev => ({ ...prev, [category]: newOrder.map(p => p.id) }));
+  const handleReorder = async (categoryName: string, newOrder: Product[]) => {
+    setCategoryOrders(prev => ({ ...prev, [categoryName]: newOrder.map(p => p.id) }));
     const allProducts = products || [];
-    const otherItems = allProducts.filter(p => (p.category as ProductCategory) !== category).map(p => ({ id: p.id, sortOrder: p.sortOrder ?? 0 }));
+    const otherItems = allProducts.filter(p => p.category !== categoryName).map(p => ({ id: p.id, sortOrder: p.sortOrder ?? 0 }));
     const newCatItems = newOrder.map((p, idx) => ({ id: p.id, sortOrder: idx }));
     try {
       await fetch("/api/products/reorder", {
@@ -404,8 +471,8 @@ export default function Products() {
     }
   };
 
-  const handleAddToCategory = (category: ProductCategory) => {
-    setForm({ ...emptyForm, category });
+  const handleAddToCategory = (categoryName: string) => {
+    setForm({ ...emptyForm, category: categoryName });
     setShowAdd(true);
     setTimeout(() => document.getElementById("add-form-top")?.scrollIntoView({ behavior: "smooth" }), 100);
   };
@@ -423,7 +490,7 @@ export default function Products() {
 
   const startEdit = (p: Product) => {
     setEditingId(p.id);
-    setEditForm({ name: p.name, description: p.description || "", unit: p.unit || "وحدة", price: String(p.price), imageUrl: p.imageUrl || "", category: (p.category as ProductCategory) || "" });
+    setEditForm({ name: p.name, description: p.description || "", unit: p.unit || "وحدة", price: String(p.price), imageUrl: p.imageUrl || "", category: p.category || "" });
   };
 
   const handleUpdate = () => {
@@ -442,6 +509,36 @@ export default function Products() {
       onSuccess: () => toast({ title: "تم الحذف" }),
       onError: () => toast({ title: "خطأ في الحذف", variant: "destructive" }),
     });
+  };
+
+  const handleAddCategory = () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (categoryNames.includes(name)) { toast({ title: "هذا القسم موجود مسبقاً", variant: "destructive" }); return; }
+    createCategoryMutation.mutate(
+      { name, sortOrder: categoryList.length },
+      {
+        onSuccess: () => { toast({ title: `تم إضافة قسم "${name}"` }); setNewCategoryName(""); },
+        onError: () => toast({ title: "خطأ في إضافة القسم", variant: "destructive" }),
+      }
+    );
+  };
+
+  const handleDeleteCategory = (id: number) => {
+    deleteCategoryMutation.mutate(id, {
+      onSuccess: () => toast({ title: "تم حذف القسم" }),
+      onError: () => toast({ title: "خطأ في حذف القسم", variant: "destructive" }),
+    });
+  };
+
+  const handleRenameCategory = (id: number, name: string) => {
+    updateCategoryMutation.mutate(
+      { id, name },
+      {
+        onSuccess: () => toast({ title: "تم تغيير اسم القسم" }),
+        onError: () => toast({ title: "خطأ في تغيير الاسم", variant: "destructive" }),
+      }
+    );
   };
 
   const handleExportPDF = async () => {
@@ -476,160 +573,192 @@ export default function Products() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={() => setShowManageCategories(v => !v)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-colors shadow-sm border ${showManageCategories ? "bg-primary text-primary-foreground border-primary" : "bg-background text-foreground border-border hover:border-primary/50"}`}
+            data-testid="button-manage-categories">
+            <Settings2 className="w-4 h-4" />
+            إدارة الأقسام
+          </button>
           <button onClick={handleExportPDF} disabled={exporting || totalCount === 0}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50"
             data-testid="button-export-catalog">
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
-            {exporting ? "جاري التصدير..." : "تصدير PDF"}
+            تصدير كتالوج
           </button>
-          <button onClick={() => { setForm(emptyForm); setShowAdd(true); }}
+          <button onClick={() => { setForm(emptyForm); setShowAdd(v => !v); }}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-            data-testid="button-add-product">
-            <Plus className="w-4 h-4" /> منتج جديد
+            data-testid="button-toggle-add">
+            <Plus className="w-4 h-4" />
+            منتج جديد
           </button>
         </div>
       </div>
 
+      {/* Manage Categories Panel */}
+      {showManageCategories && (
+        <div className="bg-card rounded-2xl border-2 border-primary/20 p-5 space-y-4">
+          <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+            <FolderPlus className="w-5 h-5 text-primary" />
+            إدارة الأقسام
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {categoryList.map(cat => (
+              <div key={cat.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-sm font-semibold ${getCategoryColor(cat.name)}`}>
+                {getCategoryIcon(cat.name)}
+                <span>{cat.name}</span>
+              </div>
+            ))}
+            {categoryList.length === 0 && <p className="text-muted-foreground text-sm">لا توجد أقسام بعد</p>}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAddCategory()}
+              placeholder="اسم القسم الجديد (مثل: أشجار فاكهة)"
+              className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-sm outline-none focus:border-primary"
+              data-testid="input-new-category"
+            />
+            <button
+              onClick={handleAddCategory}
+              disabled={!newCategoryName.trim() || createCategoryMutation.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+              data-testid="button-add-category">
+              {createCategoryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              إضافة قسم
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">يمكنك إعادة تسمية أي قسم بالضغط على أيقونة القلم بجانبه، أو حذف الأقسام الفارغة.</p>
+        </div>
+      )}
+
       {/* Search */}
       <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          className="w-full bg-card border-2 border-border pl-4 pr-10 py-2.5 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-          placeholder="ابحث في المنتجات..." data-testid="input-search-products" />
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="بحث في المنتجات..."
+          className="w-full bg-background border border-border rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-primary"
+          data-testid="input-search-products"
+        />
       </div>
 
       {/* Add Form */}
       {showAdd && (
-        <div id="add-form-top" className="bg-card border-2 border-primary/30 rounded-2xl p-5 space-y-4 shadow-lg">
-          <h3 className="font-bold text-lg text-foreground">إضافة منتج جديد</h3>
-          <div className="flex items-center gap-4">
+        <div id="add-form-top" className="bg-card rounded-2xl border-2 border-primary/30 p-5 space-y-3">
+          <h2 className="font-bold text-base text-foreground">إضافة منتج جديد</h2>
+          <div className="flex items-center gap-3">
             <ProductImage url={form.imageUrl} className="w-20 h-20 shrink-0 rounded-xl" />
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <ImageUploadButton onUploaded={url => setForm({ ...form, imageUrl: url })} />
-              {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="text-xs text-destructive hover:underline text-right">إزالة الصورة</button>}
+              {form.imageUrl && <button type="button" onClick={() => setForm({ ...form, imageUrl: "" })} className="text-xs text-destructive hover:underline text-right">إزالة</button>}
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-semibold text-muted-foreground block mb-1">اسم المنتج *</label>
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} autoFocus
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                placeholder="مثال: سرو ليلاندي" data-testid="input-product-name" />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-muted-foreground block mb-1">القسم</label>
-              <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value as ProductCategory })}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                data-testid="select-category-new">
-                <option value="">— غير مصنف —</option>
-                {PRODUCT_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-muted-foreground block mb-1">الوحدة</label>
-              <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                placeholder="وحدة / متر / كيلو..." />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-muted-foreground block mb-1">السعر الافتراضي</label>
-              <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                placeholder="0.00" />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="text-sm font-semibold text-muted-foreground block mb-1">الوصف</label>
-              <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                placeholder="وصف مختصر..." />
-            </div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:border-primary" placeholder="اسم المنتج *" data-testid="input-product-name" />
+          <div className="grid grid-cols-2 gap-2">
+            <input value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="الوحدة" data-testid="input-product-unit" />
+            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="السعر" data-testid="input-product-price" />
           </div>
-          <div className="flex items-center gap-3 pt-2">
+          <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="الوصف (اختياري)" data-testid="input-product-description" />
+          <div>
+            <label className="text-xs font-semibold text-muted-foreground block mb-1">القسم</label>
+            <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
+              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+              data-testid="select-product-category">
+              <option value="">— غير مصنف —</option>
+              {categoryList.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2 pt-1">
             <button onClick={handleCreate} disabled={createMutation.isPending}
-              className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
-              <Check className="w-4 h-4" />
-              {createMutation.isPending ? "جاري الحفظ..." : "حفظ"}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 disabled:opacity-50">
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              إضافة
             </button>
-            <button onClick={() => { setShowAdd(false); setForm(emptyForm); }}
-              className="flex items-center gap-2 px-5 py-2 bg-secondary text-secondary-foreground rounded-lg font-semibold hover:bg-secondary/80 transition-colors">
+            <button onClick={() => setShowAdd(false)}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-secondary text-secondary-foreground rounded-xl text-sm font-semibold">
               <X className="w-4 h-4" /> إلغاء
             </button>
           </div>
         </div>
       )}
 
-      {isLoading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => <div key={i} className="h-40 bg-muted rounded-2xl animate-pulse" />)}
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : totalCount === 0 && !search ? (
-        <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border">
-          <Package className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-foreground">الكتالوج فارغ</h3>
-          <p className="text-muted-foreground mt-2 max-w-sm mx-auto text-sm">
-            سيُملأ الكتالوج تلقائياً عند حفظ أول عرض سعر، أو أضف منتجاً يدوياً الآن
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-5">
+      )}
 
-          {/* ── غير مصنف section ── */}
-          {(() => {
-            const filtered = unclassifiedProducts.filter(filterProduct);
-            if (search && filtered.length === 0) return null;
+      {/* Categories */}
+      {!isLoading && (
+        <div className="space-y-6">
+          {categoryList.map(cat => {
+            const catProducts = getProductsForCategory(cat.name).filter(filterProduct);
             return (
-              <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-3">
-                  <div className="flex items-center gap-2 font-bold text-base text-amber-900 dark:text-amber-100">
-                    <span className="bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-200 p-1.5 rounded-lg">
-                      <Inbox className="w-4 h-4" />
-                    </span>
-                    غير مصنف
-                    <span className="text-sm font-normal text-muted-foreground">({filtered.length})</span>
-                  </div>
-                  <p className="text-xs text-amber-700 dark:text-amber-300 font-medium hidden sm:block">
-                    اختر القسم لكل منتج ↓
-                  </p>
-                </div>
-                {filtered.length === 0 ? (
-                  <div className="px-5 pb-4 text-center py-6 text-muted-foreground text-sm">
-                    ✅ جميع المنتجات مصنّفة
-                  </div>
-                ) : (
-                  <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filtered.map(p => (
-                      <UnclassifiedCard key={p.id} product={p}
-                        onAssign={handleAssign} onStartEdit={startEdit}
-                        onDelete={handleDelete} assigning={assigning} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Category sections ── */}
-          {PRODUCT_CATEGORIES.map(cat => {
-            const catProducts = getProductsForCategory(cat).filter(filterProduct);
-            if (search && catProducts.length === 0) return null;
-            return (
-              <CategorySection key={cat} category={cat} products={catProducts}
-                editingId={editingId} editForm={editForm} setEditForm={setEditForm}
-                onStartEdit={startEdit} onUpdate={handleUpdate} onDelete={handleDelete}
-                updatePending={updateMutation.isPending} setEditingId={setEditingId}
-                onReorder={handleReorder} onAddToCategory={handleAddToCategory} />
+              <CategorySection
+                key={cat.id}
+                category={cat}
+                products={catProducts}
+                editingId={editingId}
+                editForm={editForm}
+                setEditForm={setEditForm}
+                onStartEdit={startEdit}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+                updatePending={updateMutation.isPending}
+                setEditingId={setEditingId}
+                onReorder={handleReorder}
+                onAddToCategory={handleAddToCategory}
+                categories={categoryList}
+                onDeleteCategory={handleDeleteCategory}
+                onRenameCategory={handleRenameCategory}
+              />
             );
           })}
 
-          {/* No search results */}
-          {search && unclassifiedProducts.filter(filterProduct).length === 0 &&
-            PRODUCT_CATEGORIES.every(cat => getProductsForCategory(cat).filter(filterProduct).length === 0) && (
-              <div className="text-center py-16 bg-card rounded-3xl border border-dashed border-border">
-                <Search className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-foreground">لا توجد نتائج مطابقة</h3>
-                <p className="text-muted-foreground mt-1 text-sm">جرب كلمة بحث مختلفة</p>
+          {/* Unclassified */}
+          {unclassifiedProducts.filter(filterProduct).length > 0 && (
+            <div className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 overflow-hidden bg-amber-50 dark:bg-amber-950/20">
+              <div className="flex items-center gap-2 px-5 py-3">
+                <span className="bg-amber-100 dark:bg-amber-900 p-1.5 rounded-lg">
+                  <Inbox className="w-4 h-4 text-amber-700 dark:text-amber-300" />
+                </span>
+                <span className="font-bold text-base text-foreground">غير مصنف</span>
+                <span className="text-sm font-normal text-muted-foreground">({unclassifiedProducts.filter(filterProduct).length})</span>
               </div>
-            )}
+              <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {unclassifiedProducts.filter(filterProduct).map(product => (
+                  <UnclassifiedCard
+                    key={product.id}
+                    product={product}
+                    onAssign={handleAssign}
+                    onStartEdit={startEdit}
+                    onDelete={handleDelete}
+                    assigning={assigning}
+                    categories={categoryList}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {totalCount === 0 && !showAdd && (
+            <div className="text-center py-20">
+              <Package className="w-16 h-16 mx-auto text-muted-foreground/30 mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground">لا توجد منتجات بعد</h3>
+              <p className="text-sm text-muted-foreground/70 mt-1">ابدأ بإضافة أول منتج في الكتالوج</p>
+              <button onClick={() => setShowAdd(true)} className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors">
+                إضافة منتج
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
