@@ -21,6 +21,7 @@ type Item = {
   unit: string;
   price: number;
   total: number;
+  imageUrl?: string;
 };
 
 export default function EditQuotation() {
@@ -135,6 +136,7 @@ export default function EditQuotation() {
       unit: product.unit || "وحدة",
       price: Number(product.price),
       total: Number(product.price),
+      imageUrl: product.imageUrl || "",
     }]);
     setShowCatalog(false);
     setCatalogSearch("");
@@ -384,7 +386,19 @@ ${details.companyNameAr}
               {items.map((item, index) => (
                 <tr key={item.id} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group">
                   <td className="p-1.5 text-center text-slate-600 font-semibold text-xs">{index + 1}</td>
-                  <td className="p-1.5"><input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs font-medium truncate" placeholder="الاسم" /></td>
+                  <td className="p-1.5">
+                    <div className="flex items-center gap-1.5">
+                      {item.imageUrl && (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-8 h-8 rounded object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      )}
+                      <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs font-medium truncate" placeholder="الاسم" />
+                    </div>
+                  </td>
                   <td className="p-1.5"><input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs text-slate-600 truncate" placeholder="الوصف" /></td>
                   <td className="p-1.5 text-center"><input type="number" min="1" value={item.quantity || ''} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs font-medium" /></td>
                   <td className="p-1.5 text-center"><input type="number" min="0" step="0.01" value={item.price || ''} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 px-1.5 py-1 rounded text-xs font-semibold" /></td>
