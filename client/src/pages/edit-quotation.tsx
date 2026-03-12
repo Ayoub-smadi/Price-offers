@@ -522,8 +522,16 @@ ${details.companyNameAr}
 
       {/* Catalog Modal */}
       {showCatalog && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowCatalog(false)}>
-          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowCatalog(false)}
+        >
+          <div
+            className="bg-card rounded-2xl border border-border shadow-2xl flex flex-col"
+            style={{ width: '100%', maxWidth: '680px', maxHeight: '88vh' }}
+            onClick={e => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <h2 className="font-bold text-lg text-foreground flex items-center gap-2">
@@ -535,7 +543,7 @@ ${details.companyNameAr}
               </button>
             </div>
             {/* Search */}
-            <div className="px-5 py-3 border-b border-border shrink-0">
+            <div className="px-4 py-3 border-b border-border shrink-0">
               <input
                 value={catalogSearch}
                 onChange={e => setCatalogSearch(e.target.value)}
@@ -552,40 +560,61 @@ ${details.companyNameAr}
                   <p className="text-sm">لا توجد منتجات{catalogSearch ? " مطابقة" : " في الكتالوج"}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   {filteredCatalog.map(p => (
                     <button
                       key={p.id}
                       onClick={() => addFromCatalog(p)}
-                      className="group text-right rounded-xl border border-border hover:border-primary hover:shadow-md transition-all duration-200 overflow-hidden bg-background flex flex-col"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        textAlign: 'right',
+                        borderRadius: '14px',
+                        border: '1.5px solid var(--border)',
+                        overflow: 'hidden',
+                        background: 'var(--background)',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.15s, box-shadow 0.15s',
+                      }}
+                      onMouseEnter={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
+                        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                      }}
+                      onMouseLeave={e => {
+                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+                      }}
                     >
-                      {/* Image */}
-                      <div className="w-full aspect-[4/3] overflow-hidden bg-secondary shrink-0">
+                      {/* Image — fixed 140px height, guaranteed to show */}
+                      <div style={{ width: '100%', height: '140px', overflow: 'hidden', background: 'var(--secondary)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {p.imageUrl ? (
                           <img
                             src={p.imageUrl}
                             alt={p.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            onError={e => {
-                              (e.target as HTMLImageElement).parentElement!.innerHTML =
-                                `<div class="w-full h-full flex items-center justify-center"><svg xmlns='http://www.w3.org/2000/svg' class='w-8 h-8 opacity-30' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM9 12a3 3 0 116 0 3 3 0 01-6 0z'/></svg></div>`;
-                            }}
+                            style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }}
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-8 h-8 text-muted-foreground opacity-30" />
-                          </div>
+                          <Package className="w-10 h-10 text-muted-foreground opacity-25" />
                         )}
                       </div>
                       {/* Info */}
-                      <div className="p-3 flex flex-col flex-1">
-                        <div className="font-bold text-sm text-foreground leading-tight line-clamp-1">{p.name}</div>
+                      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                        <div style={{ fontWeight: 800, fontSize: '14px', lineHeight: 1.3, color: 'var(--foreground)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
+                          {p.name}
+                        </div>
                         {p.description && (
-                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-snug flex-1">{p.description}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted-foreground)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', flex: 1 }}>
+                            {p.description}
+                          </div>
                         )}
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{p.unit}</span>
-                          <span className="font-black text-sm text-primary">{Number(p.price).toLocaleString()} ر.س</span>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
+                          <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '999px', background: 'var(--secondary)', color: 'var(--muted-foreground)' }}>
+                            {p.unit}
+                          </span>
+                          <span style={{ fontWeight: 900, fontSize: '15px', color: 'var(--primary)' }}>
+                            {Number(p.price).toLocaleString()} ر.س
+                          </span>
                         </div>
                       </div>
                     </button>
