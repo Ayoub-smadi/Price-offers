@@ -156,6 +156,23 @@ export default function EditQuotation() {
     });
   };
 
+  const saveAllToCatalog = () => {
+    const validItems = items.filter(i => i.name.trim());
+    if (validItems.length === 0) {
+      toast({ title: "لا توجد منتجات للحفظ", variant: "destructive" });
+      return;
+    }
+    validItems.forEach(item => {
+      createProductMutation.mutate({
+        name: item.name.trim(),
+        description: item.description.trim() || undefined,
+        price: String(item.price),
+        unit: item.unit || "وحدة",
+      });
+    });
+    toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ ${validItems.length} منتجات في الكتالوج.` });
+  };
+
   const handleParseText = () => {
     if (!pasteText.trim()) return;
     parseMutation.mutate({ text: pasteText }, {
@@ -269,6 +286,15 @@ ${details.companyNameAr}
         <div className="flex items-center gap-1">
           <button onClick={handleWhatsApp} className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all dark:bg-green-900/20 dark:text-green-400" title="مشاركة واتساب">
             <MessageCircle className="w-4 h-4" />
+          </button>
+          <button
+            onClick={saveAllToCatalog}
+            disabled={createProductMutation.isPending}
+            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all dark:bg-indigo-900/20 dark:text-indigo-400 disabled:opacity-50"
+            title="حفظ جميع المنتجات في الكتالوج"
+            data-testid="btn-save-all-catalog"
+          >
+            <BookmarkPlus className="w-4 h-4" />
           </button>
           <button onClick={() => exportToPDF("quotation-document", `Quote-${details.quotationNumber}`, items, details, logoBase64 || logoImage)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all dark:bg-red-900/20 dark:text-red-400" title="تصدير PDF">
             <FileText className="w-4 h-4" />
