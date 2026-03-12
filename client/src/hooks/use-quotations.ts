@@ -87,6 +87,7 @@ export function useDeleteQuotation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/trash'] });
     },
   });
 }
