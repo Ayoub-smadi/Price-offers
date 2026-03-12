@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
-import { storage } from "./storage";
+import { storage, verifyPassword, createPasswordHash } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertProductSchema } from "@shared/schema";
@@ -114,6 +114,41 @@ export async function registerRoutes(
       await storage.deleteProduct(Number(req.params.id));
       res.status(204).end();
     } catch {
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  // ── Auth ──────────────────────────────────────────────────────
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      const { username, password } = z.object({ username: z.string(), password: z.string() }).parse(req.body);
+      const user = await storage.getUserByUsername(username);
+      if (!user || !verifyPassword(password, user.passwordHash)) {
+        return res.status(401).json({ message: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+      }
+      res.json({ username: user.username });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
+  app.post('/api/auth/change-password', async (req, res) => {
+    try {
+      const { username, oldPassword, newPassword } = z.object({
+        username: z.string(),
+        oldPassword: z.string(),
+        newPassword: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+      }).parse(req.body);
+      const user = await storage.getUserByUsername(username);
+      if (!user || !verifyPassword(oldPassword, user.passwordHash)) {
+        return res.status(401).json({ message: "كلمة المرور القديمة غير صحيحة" });
+      }
+      const newHash = createPasswordHash(newPassword);
+      await storage.changeUserPassword(username, newHash);
+      res.json({ message: "تم تغيير كلمة المرور بنجاح" });
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
       res.status(500).json({ message: "Internal Error" });
     }
   });

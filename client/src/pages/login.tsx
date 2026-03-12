@@ -2,14 +2,6 @@ import { useState } from "react";
 import { Lock, User, Eye, EyeOff, KeyRound, ArrowRight } from "lucide-react";
 import logoImage from "@assets/لقطة_شاشة_2026-03-08_080127_1773036971718.png";
 
-const DEFAULT_USERNAME = "Ayoub";
-const DEFAULT_PASSWORD = "Ayoub123";
-const PASS_KEY = "aq_password";
-
-function getStoredPassword(): string {
-  return localStorage.getItem(PASS_KEY) || DEFAULT_PASSWORD;
-}
-
 interface LoginProps {
   onLogin: () => void;
 }
@@ -31,31 +23,38 @@ export default function Login({ onLogin }: LoginProps) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [changeError, setChangeError] = useState("");
   const [changeSuccess, setChangeSuccess] = useState(false);
+  const [changeLoading, setChangeLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      if (username === DEFAULT_USERNAME && password === getStoredPassword()) {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      if (res.ok) {
         localStorage.setItem("aq_auth", "true");
+        localStorage.setItem("aq_username", username);
         onLogin();
       } else {
-        setError("اسم المستخدم أو كلمة المرور غير صحيحة");
+        const data = await res.json();
+        setError(data.message || "اسم المستخدم أو كلمة المرور غير صحيحة");
       }
+    } catch {
+      setError("حدث خطأ في الاتصال بالسيرفر");
+    } finally {
       setLoading(false);
-    }, 600);
+    }
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangeError("");
     setChangeSuccess(false);
 
-    if (oldPass !== getStoredPassword()) {
-      setChangeError("كلمة المرور القديمة غير صحيحة");
-      return;
-    }
     if (newPass.length < 6) {
       setChangeError("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
       return;
@@ -64,15 +63,33 @@ export default function Login({ onLogin }: LoginProps) {
       setChangeError("كلمة المرور الجديدة وتأكيدها غير متطابقتين");
       return;
     }
-    localStorage.setItem(PASS_KEY, newPass);
-    setChangeSuccess(true);
-    setOldPass("");
-    setNewPass("");
-    setConfirmPass("");
-    setTimeout(() => {
-      setMode("login");
-      setChangeSuccess(false);
-    }, 1800);
+
+    setChangeLoading(true);
+    try {
+      const storedUsername = localStorage.getItem("aq_username") || "Ayoub";
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: storedUsername, oldPassword: oldPass, newPassword: newPass }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChangeSuccess(true);
+        setOldPass("");
+        setNewPass("");
+        setConfirmPass("");
+        setTimeout(() => {
+          setMode("login");
+          setChangeSuccess(false);
+        }, 1800);
+      } else {
+        setChangeError(data.message || "حدث خطأ أثناء تغيير كلمة المرور");
+      }
+    } catch {
+      setChangeError("حدث خطأ في الاتصال بالسيرفر");
+    } finally {
+      setChangeLoading(false);
+    }
   };
 
   const switchMode = (next: "login" | "change") => {
@@ -262,11 +279,18 @@ export default function Login({ onLogin }: LoginProps) {
 
               <button
                 type="submit"
-                disabled={!oldPass || !newPass || !confirmPass}
+                disabled={changeLoading || !oldPass || !newPass || !confirmPass}
                 className="w-full bg-primary text-primary-foreground font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-base"
                 data-testid="button-submit-change"
               >
-                تغيير كلمة المرور
+                {changeLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"></span>
+                    جاري الحفظ...
+                  </span>
+                ) : (
+                  "تغيير كلمة المرور"
+                )}
               </button>
             </form>
           )}

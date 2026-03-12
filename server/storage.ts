@@ -1,6 +1,28 @@
 import { db } from "./db";
-import { quotations, quotationItems, products, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { quotations, quotationItems, products, users, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import { createHash, randomBytes, timingSafeEqual } from "crypto";
+
+function hashPassword(password: string, salt: string): string {
+  return createHash("sha256").update(salt + password).digest("hex");
+}
+
+export function verifyPassword(password: string, passwordHash: string): boolean {
+  const [salt, hash] = passwordHash.split(":");
+  if (!salt || !hash) return false;
+  const expected = hashPassword(password, salt);
+  try {
+    return timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(expected, "hex"));
+  } catch {
+    return false;
+  }
+}
+
+export function createPasswordHash(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = hashPassword(password, salt);
+  return `${salt}:${hash}`;
+}
 
 export interface IStorage {
   getQuotations(): Promise<QuotationWithItems[]>;
@@ -13,6 +35,9 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product>;
   deleteProduct(id: number): Promise<void>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  changeUserPassword(username: string, newPasswordHash: string): Promise<void>;
+  seedAdminUser(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -39,7 +64,6 @@ export class DatabaseStorage implements IStorage {
     let newItems: any[] = [];
     if (itemsToInsert.length > 0) {
       newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
-      // Save new products to catalog automatically (if not already there by name)
       const allProducts = await db.select().from(products);
       for (const item of items) {
         const name = String(item.name).trim();
@@ -97,6 +121,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProduct(id: number): Promise<void> {
     await db.delete(products).where(eq(products.id, id));
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async changeUserPassword(username: string, newPasswordHash: string): Promise<void> {
+    await db.update(users).set({ passwordHash: newPasswordHash }).where(eq(users.username, username));
+  }
+
+  async seedAdminUser(): Promise<void> {
+    const existing = await this.getUserByUsername("Ayoub");
+    if (!existing) {
+      const passwordHash = createPasswordHash("Ayoub123");
+      await db.insert(users).values({ username: "Ayoub", passwordHash });
+      console.log("[seed] تم إنشاء حساب الأدمن: Ayoub / Ayoub123");
+    }
   }
 }
 
