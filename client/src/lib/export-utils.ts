@@ -519,33 +519,34 @@ function assignToPages(items: PageItem[]): PageItem[][] {
 async function buildCard(product: Product): Promise<HTMLElement> {
   const s = CATEGORY_STYLES[product.category || ''] || CATEGORY_STYLES['متنوعة'];
 
-  const card = mkEl('div', `
+  // Outer card wrapper — no overflow:hidden so text is never clipped
+  const card = document.createElement('div');
+  card.style.cssText = `
     width:${C_COL}px;
     background:#ffffff;
     border-radius:16px;
-    overflow:hidden;
-    border:1.5px solid #e2efe6;
-    box-shadow:0 4px 14px rgba(0,0,0,0.09);
-    display:flex;
-    flex-direction:column;
+    border:1.5px solid #d4e9da;
+    box-shadow:0 4px 14px rgba(0,0,0,0.10);
+    display:block;
     flex-shrink:0;
-  `);
+    overflow:hidden;
+  `;
 
-  // coloured top accent bar
-  card.appendChild(mkEl('div', `height:${CARD_BAR_H}px;background:linear-gradient(90deg,${s.bar});flex-shrink:0;`));
+  // ── 1. Top accent bar ──────────────────────────────────────────────────
+  const bar = document.createElement('div');
+  bar.style.cssText = `height:${CARD_BAR_H}px;background:linear-gradient(90deg,${s.bar});display:block;`;
+  card.appendChild(bar);
 
-  // ── image (tall portrait) ──────────────────────────────────────────────
-  const imgBox = mkEl('div', `
+  // ── 2. Image ───────────────────────────────────────────────────────────
+  const imgBox = document.createElement('div');
+  imgBox.style.cssText = `
     width:${C_COL}px;
     height:${CARD_IMG_H}px;
     overflow:hidden;
     background:linear-gradient(160deg,#e8f5e9 0%,#c8e6c9 100%);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
+    display:block;
     position:relative;
-  `);
+  `;
 
   if (product.imageUrl) {
     const data = await loadImageAsDataUrl(product.imageUrl);
@@ -555,31 +556,40 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       img.style.cssText = `width:${C_COL}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
       imgBox.appendChild(img);
     } else {
-      imgBox.appendChild(mkEl('div', 'font-size:52px;line-height:1;', '🌿'));
+      const ph = document.createElement('div');
+      ph.style.cssText = 'font-size:52px;line-height:1;padding:60px 0;text-align:center;';
+      ph.textContent = '🌿';
+      imgBox.appendChild(ph);
     }
   } else {
-    imgBox.appendChild(mkEl('div', 'font-size:52px;line-height:1;', '🌿'));
+    const ph = document.createElement('div');
+    ph.style.cssText = 'font-size:52px;line-height:1;padding:60px 0;text-align:center;';
+    ph.textContent = '🌿';
+    imgBox.appendChild(ph);
   }
 
-  // category label badge overlaid on image bottom
-  const catBadge = mkEl('div', `
-    position:absolute;
-    bottom:8px;
-    right:8px;
-    background:${s.header};
-    color:#ffffff;
-    font-size:9px;
-    font-weight:700;
-    padding:3px 10px;
-    border-radius:20px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.25);
-  `);
-  catBadge.textContent = product.category || '';
-  if (product.category) imgBox.appendChild(catBadge);
-
+  // Category badge overlaid bottom-right of image
+  if (product.category) {
+    const catBadge = document.createElement('div');
+    catBadge.style.cssText = `
+      position:absolute;
+      bottom:7px;
+      right:7px;
+      background:${s.header};
+      color:#ffffff;
+      font-size:8.5px;
+      font-weight:700;
+      padding:3px 9px;
+      border-radius:20px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.28);
+      direction:rtl;
+    `;
+    catBadge.textContent = product.category;
+    imgBox.appendChild(catBadge);
+  }
   card.appendChild(imgBox);
 
-  // ── Parse description into scientific name + height info ─────────────────
+  // ── 3. Parse description ───────────────────────────────────────────────
   let scientificName = '';
   let heightInfo = '';
   if (product.description) {
@@ -587,108 +597,137 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     const dashIdx = cleaned.search(/\s[–—-]\s/);
     if (dashIdx > 0) {
       scientificName = cleaned.slice(0, dashIdx).trim();
-      const rest = cleaned.slice(dashIdx + 3).trim();
+      const rest = cleaned.slice(dashIdx).replace(/^[\s–—-]+/, '').trim();
       const hMatch = rest.match(/ارتفاع[\s\d.,]+م/);
-      if (hMatch) heightInfo = hMatch[0];
+      heightInfo = hMatch ? hMatch[0] : '';
     } else {
       const hMatch = cleaned.match(/ارتفاع[\s\d.,]+م/);
-      if (hMatch) heightInfo = hMatch[0];
-      else scientificName = cleaned.slice(0, 35);
+      heightInfo = hMatch ? hMatch[0] : '';
+      if (!heightInfo) scientificName = cleaned.slice(0, 35);
     }
   }
 
-  // ── info section ───────────────────────────────────────────────────────
-  const info = mkEl('div', `
-    padding:10px 12px 0;
-    display:flex;
-    flex-direction:column;
-    height:${CARD_INFO_H}px;
-    box-sizing:border-box;
-    overflow:hidden;
-    direction:rtl;
-    background:#ffffff;
-  `);
+  // ── 4. Text area (name + sci + height) ────────────────────────────────
+  // Fixed height = CARD_INFO_H minus the price bar height (42px)
+  const PRICE_BAR_H = 42;
+  const TEXT_AREA_H = CARD_INFO_H - PRICE_BAR_H;
 
-  // Product name — allow wrapping up to 2 lines
-  const nameEl = mkEl('div', `
+  const textArea = document.createElement('div');
+  textArea.style.cssText = `
+    width:${C_COL}px;
+    height:${TEXT_AREA_H}px;
+    box-sizing:border-box;
+    padding:9px 12px 6px 12px;
+    background:#ffffff;
+    direction:rtl;
+    text-align:right;
+    display:block;
+    overflow:hidden;
+  `;
+
+  // Product name
+  const nameEl = document.createElement('div');
+  nameEl.style.cssText = `
     font-size:14px;
     font-weight:900;
-    color:#0a1628;
-    line-height:1.3;
-    word-break:keep-all;
-    overflow:hidden;
-    flex-shrink:0;
-    max-height:36px;
-  `);
+    color:#0d1f0a;
+    line-height:1.25;
+    text-align:right;
+    direction:rtl;
+    display:block;
+  `;
   nameEl.textContent = product.name;
-  info.appendChild(nameEl);
+  textArea.appendChild(nameEl);
 
-  // Scientific name (Latin) — direction ltr, italic
+  // Scientific name (Latin, LTR)
   if (scientificName) {
-    const sciEl = mkEl('div', `
+    const sciEl = document.createElement('div');
+    sciEl.style.cssText = `
       font-size:8px;
-      color:#94a3b8;
+      color:#8fa68a;
       font-style:italic;
       font-weight:500;
-      margin-top:2px;
+      margin-top:3px;
       direction:ltr;
       text-align:left;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      flex-shrink:0;
-    `);
+      display:block;
+    `;
     sciEl.textContent = scientificName;
-    info.appendChild(sciEl);
+    textArea.appendChild(sciEl);
   }
 
   // Height info (Arabic)
   if (heightInfo) {
-    const htEl = mkEl('div', `
-      font-size:8.5px;
-      color:#64748b;
-      font-weight:600;
-      margin-top:2px;
+    const htEl = document.createElement('div');
+    htEl.style.cssText = `
+      font-size:9px;
+      color:#4a7c59;
+      font-weight:700;
+      margin-top:3px;
       direction:rtl;
-      flex-shrink:0;
-    `);
+      text-align:right;
+      display:block;
+    `;
     htEl.textContent = heightInfo;
-    info.appendChild(htEl);
+    textArea.appendChild(htEl);
   }
 
-  // Spacer
-  info.appendChild(mkEl('div', 'flex:1;'));
+  card.appendChild(textArea);
 
-  // ── Price band — full-width coloured bar at the very bottom ────────────
-  const priceBar = mkEl('div', `
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+  // ── 5. Price bar — solid block at bottom ──────────────────────────────
+  const priceBar = document.createElement('div');
+  priceBar.style.cssText = `
+    width:${C_COL}px;
+    height:${PRICE_BAR_H}px;
+    box-sizing:border-box;
     background:${s.header};
-    margin:0 -12px;
-    padding:8px 12px;
-    flex-shrink:0;
-  `);
+    display:block;
+    padding:0 12px;
+    line-height:${PRICE_BAR_H}px;
+    direction:rtl;
+  `;
 
-  // Price + currency
-  const priceLeft = mkEl('div', 'display:flex;align-items:baseline;gap:4px;');
-  priceLeft.appendChild(mkEl('span', `font-size:20px;font-weight:900;color:#ffffff;line-height:1;`, Number(product.price).toLocaleString('ar-JO')));
-  priceLeft.appendChild(mkEl('span', `font-size:11px;font-weight:700;color:${s.text};`, 'د.أ'));
-  priceBar.appendChild(priceLeft);
+  // Use a table to put price on right and unit on left (RTL: price=right)
+  const tbl = document.createElement('table');
+  tbl.style.cssText = 'width:100%;border-collapse:collapse;direction:rtl;';
+  const tr = document.createElement('tr');
 
-  // Unit pill
-  priceBar.appendChild(mkEl('div', `
-    background:rgba(255,255,255,0.22);
+  // Price cell (right side in RTL)
+  const tdPrice = document.createElement('td');
+  tdPrice.style.cssText = 'text-align:right;vertical-align:middle;line-height:1;padding:0;';
+  const priceNum = document.createElement('span');
+  priceNum.style.cssText = 'font-size:20px;font-weight:900;color:#ffffff;vertical-align:baseline;';
+  priceNum.textContent = Number(product.price).toLocaleString('ar-JO');
+  const priceCur = document.createElement('span');
+  priceCur.style.cssText = `font-size:10px;font-weight:700;color:${s.text};vertical-align:baseline;margin-right:3px;`;
+  priceCur.textContent = 'د.أ';
+  tdPrice.appendChild(priceNum);
+  tdPrice.appendChild(priceCur);
+
+  // Unit cell (left side in RTL)
+  const tdUnit = document.createElement('td');
+  tdUnit.style.cssText = 'text-align:left;vertical-align:middle;padding:0;';
+  const unitPill = document.createElement('span');
+  unitPill.style.cssText = `
+    display:inline-block;
+    background:rgba(255,255,255,0.2);
     color:#ffffff;
     font-size:9.5px;
     font-weight:800;
     padding:3px 10px;
     border-radius:20px;
-    border:1px solid rgba(255,255,255,0.35);
-  `, product.unit || 'وحدة'));
+    border:1px solid rgba(255,255,255,0.4);
+    line-height:1.4;
+  `;
+  unitPill.textContent = product.unit || 'وحدة';
+  tdUnit.appendChild(unitPill);
 
-  info.appendChild(priceBar);
-  card.appendChild(info);
+  tr.appendChild(tdPrice);
+  tr.appendChild(tdUnit);
+  tbl.appendChild(tr);
+  priceBar.appendChild(tbl);
+  card.appendChild(priceBar);
+
   return card;
 }
 
