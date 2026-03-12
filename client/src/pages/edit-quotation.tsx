@@ -56,7 +56,6 @@ export default function EditQuotation() {
   const [pasteText, setPasteText] = useState("");
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
-  const [discountType, setDiscountType] = useState<"amount" | "percent">("amount");
   const [discountValue, setDiscountValue] = useState(0);
   const [taxRate, setTaxRate] = useState(0);
   const [initialized, setInitialized] = useState(false);
@@ -91,7 +90,7 @@ export default function EditQuotation() {
   }, [quotation, initialized]);
 
   const subtotal = items.reduce((acc, item) => acc + (item.total || 0), 0);
-  const discountAmount = discountType === "percent" ? (subtotal * discountValue) / 100 : discountValue;
+  const discountAmount = (subtotal * discountValue) / 100;
   const taxAmount = ((subtotal - discountAmount) * taxRate) / 100;
   const grandTotal = subtotal - discountAmount + taxAmount;
 
@@ -365,7 +364,7 @@ ${details.companyNameAr}
                   </tr>
                   {discountAmount > 0 && (
                     <tr className="bg-green-50 dark:bg-green-900/10">
-                      <td colSpan={5} className="p-2 text-right text-xs pr-4 text-green-700">خصم {discountType === "percent" ? `(${discountValue}%)` : ""}</td>
+                      <td colSpan={5} className="p-2 text-right text-xs pr-4 text-green-700">خصم ({discountValue}%)</td>
                       <td className="p-1.5 text-center text-xs text-green-700 font-semibold">- {discountAmount.toLocaleString()}</td>
                       <td className="no-print"></td>
                     </tr>
@@ -401,17 +400,10 @@ ${details.companyNameAr}
         {/* Discount & Tax */}
         <div className="no-print bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-3">
           <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">الخصم والضريبة</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-medium">نوع الخصم</label>
-              <select value={discountType} onChange={e => setDiscountType(e.target.value as "amount" | "percent")} className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary">
-                <option value="amount">مبلغ ثابت</option>
-                <option value="percent">نسبة مئوية %</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-medium">قيمة الخصم {discountType === "percent" ? "(%)" : "(د)"}</label>
-              <input type="number" min="0" step="0.01" value={discountValue || ""} onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)} className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" placeholder="0" />
+              <label className="text-xs text-muted-foreground font-medium">نسبة الخصم (%)</label>
+              <input type="number" min="0" max="100" step="0.1" value={discountValue || ""} onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)} className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" placeholder="0" />
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-medium">نسبة الضريبة (%)</label>
