@@ -426,11 +426,11 @@ const C_PAD  = 20;   // horizontal + vertical page padding
 const C_GAP  = 14;   // gap between cards/rows
 const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP) / 2); // ~377px
 
-const CARD_IMG_H  = 190;
-const CARD_INFO_H = 108; // name + desc + price row
+const CARD_IMG_H  = 150;  // shorter/wider look (landscape ratio)
+const CARD_INFO_H = 96;   // name+desc on one line + price row
 const CARD_BAR_H  = 5;
-const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 303px
-const ROW_H       = CARD_H + C_GAP;                        // 317px
+const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 251px
+const ROW_H       = CARD_H + C_GAP;                        // 265px
 const CAT_H       = 48;   // category section header
 const MAIN_HDR_H  = 180;  // page 1 header + info bar
 const FOOTER_H    = 46;
@@ -551,7 +551,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
 
   // info section — fixed height to guarantee no overflow
   const info = mkEl('div', `
-    padding:12px 16px 12px;
+    padding:11px 15px 11px;
     display:flex;
     flex-direction:column;
     justify-content:space-between;
@@ -560,20 +560,55 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     overflow:hidden;
   `);
 
-  // name + description
-  const nameDesc = mkEl('div', 'overflow:hidden;flex:1;');
-  nameDesc.appendChild(mkEl('div',
-    'font-size:17px;font-weight:900;color:#0a1628;line-height:1.2;margin-bottom:5px;',
+  // ── name + description on same line ──────────────────────────────────────
+  // Extract the short scientific name (part before " – " or " — ")
+  let shortDesc = '';
+  if (product.description) {
+    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
+    const dashIdx = cleaned.search(/\s[–—-]\s/);
+    shortDesc = dashIdx > 0 ? cleaned.slice(0, dashIdx).trim() : cleaned;
+    if (shortDesc.length > 30) shortDesc = shortDesc.slice(0, 28) + '…';
+  }
+
+  // Height info (after the dash, e.g. "ارتفاع 1.5 م")
+  let heightInfo = '';
+  if (product.description) {
+    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
+    const match = cleaned.match(/ارتفاع\s[\d.,\s]+م/);
+    if (match) heightInfo = match[0];
+  }
+
+  // Row: [shortDesc  ·  Product Name]  (RTL: name on right, desc on left)
+  const nameRow = mkEl('div', `
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    overflow:hidden;
+    white-space:nowrap;
+    flex-shrink:0;
+  `);
+  nameRow.appendChild(mkEl('span',
+    'font-size:16px;font-weight:900;color:#0a1628;flex-shrink:0;',
     product.name
   ));
-  if (product.description) {
-    const truncated = product.description.length > 70 ? product.description.slice(0, 67) + '...' : product.description;
-    nameDesc.appendChild(mkEl('div',
-      'font-size:11px;color:#374151;line-height:1.4;font-weight:600;',
-      truncated
+  if (shortDesc) {
+    nameRow.appendChild(mkEl('span',
+      'font-size:9px;color:#6b7280;font-weight:500;direction:ltr;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
+      shortDesc
     ));
   }
-  info.appendChild(nameDesc);
+  info.appendChild(nameRow);
+
+  // Height info line (small, below name row)
+  if (heightInfo) {
+    info.appendChild(mkEl('div',
+      'font-size:9.5px;color:#64748b;font-weight:600;margin-top:3px;flex-shrink:0;',
+      heightInfo
+    ));
+  }
+  // spacer
+  info.appendChild(mkEl('div', 'flex:1;'));
 
   // price row (always at bottom)
   const priceRow = mkEl('div',
@@ -603,26 +638,59 @@ async function buildRow(cards: Product[]): Promise<HTMLElement> {
 // ── Build category header bar ─────────────────────────────────────────────
 function buildCatHeader(label: string, count: number): HTMLElement {
   const s = CATEGORY_STYLES[label] || CATEGORY_STYLES['متنوعة'];
-  const bar = mkEl('div', `
-    background:linear-gradient(135deg,${s.header},${s.bar.split(',')[0]});
-    padding:0 22px;
+
+  // Outer wrapper: full-width rounded banner
+  const wrap = mkEl('div', `
     height:${CAT_H}px;
+    background:${s.header};
+    border-radius:12px;
+    overflow:hidden;
+    display:flex;
+    align-items:stretch;
+    flex-shrink:0;
+  `);
+
+  // Left accent stripe
+  wrap.appendChild(mkEl('div', `width:8px;background:${s.badge};flex-shrink:0;`));
+
+  // Gradient overlay + text
+  const inner = mkEl('div', `
+    flex:1;
+    background:linear-gradient(90deg,${s.bar.split(',')[0]}aa 0%,${s.header} 100%);
     display:flex;
     align-items:center;
-    gap:14px;
-    border-radius:12px;
-    flex-shrink:0;
-    border-right:6px solid ${s.badge};
+    justify-content:space-between;
+    padding:0 18px 0 12px;
+    direction:rtl;
   `);
-  bar.appendChild(mkEl('div', `font-size:21px;font-weight:900;color:#ffffff;letter-spacing:0.5px;`, label));
-  bar.appendChild(mkEl('div', `
-    background:rgba(255,255,255,0.22);
+
+  const labelEl = mkEl('div', `
+    font-size:22px;
+    font-weight:900;
     color:#ffffff;
-    font-size:12px;font-weight:700;
-    padding:4px 14px;border-radius:20px;
-    border:1.5px solid rgba(255,255,255,0.4);
-  `, `${count} صنف`));
-  return bar;
+    font-family:'Cairo',Arial,sans-serif;
+    letter-spacing:0.4px;
+    text-shadow:0 1px 3px rgba(0,0,0,0.4);
+  `);
+  labelEl.textContent = label;
+  inner.appendChild(labelEl);
+
+  const countBadge = mkEl('div', `
+    background:rgba(255,255,255,0.25);
+    color:#ffffff;
+    font-size:12px;
+    font-weight:700;
+    padding:4px 14px;
+    border-radius:20px;
+    border:1.5px solid rgba(255,255,255,0.5);
+    white-space:nowrap;
+    text-shadow:none;
+  `);
+  countBadge.textContent = `${count} صنف`;
+  inner.appendChild(countBadge);
+
+  wrap.appendChild(inner);
+  return wrap;
 }
 
 // ── Build main page header (page 1 only) ──────────────────────────────────
