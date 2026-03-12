@@ -422,20 +422,21 @@ const ensureCairoFont = async () => {
 // ── Page-aware catalog layout constants ────────────────────────────────────
 const A4_W   = Math.round(210 * 96 / 25.4); // 794px
 const A4_H   = Math.round(297 * 96 / 25.4); // 1122px
-const C_PAD  = 20;   // horizontal + vertical page padding
-const C_GAP  = 14;   // gap between cards/rows
-const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP) / 2); // ~377px
+const C_PAD  = 18;   // horizontal + vertical page padding
+const C_GAP  = 12;   // gap between cards/rows
+const COLS   = 3;    // 3 cards per row
+const C_COL  = Math.floor((A4_W - C_PAD * 2 - C_GAP * (COLS - 1)) / COLS); // ~244px
 
-const CARD_IMG_H  = 150;  // shorter/wider look (landscape ratio)
-const CARD_INFO_H = 96;   // name+desc on one line + price row
+const CARD_IMG_H  = 178;  // tall portrait-style image
+const CARD_INFO_H = 100;  // name + description + price
 const CARD_BAR_H  = 5;
-const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 251px
-const ROW_H       = CARD_H + C_GAP;                        // 265px
-const CAT_H       = 48;   // category section header
-const MAIN_HDR_H  = 180;  // page 1 header + info bar
-const FOOTER_H    = 46;
-const PAGE1_AVAIL = A4_H - MAIN_HDR_H - FOOTER_H - C_PAD * 2; // ≈842px
-const PAGEN_AVAIL = A4_H - FOOTER_H - C_PAD * 2;              // ≈1022px
+const CARD_H      = CARD_BAR_H + CARD_IMG_H + CARD_INFO_H; // 283px
+const ROW_H       = CARD_H + C_GAP;                        // 295px
+const CAT_H       = 46;   // category section header
+const MAIN_HDR_H  = 178;  // page 1 header + info bar
+const FOOTER_H    = 44;
+const PAGE1_AVAIL = A4_H - MAIN_HDR_H - FOOTER_H - C_PAD * 2;
+const PAGEN_AVAIL = A4_H - FOOTER_H - C_PAD * 2;
 
 const CATEGORY_STYLES: Record<string, { bar: string; header: string; text: string; badge: string }> = {
   "أشجار":       { bar: '#2d6a4f,#52b788', header: '#0d4a2e', text: '#d1fae5', badge: '#bbf7d0' },
@@ -470,11 +471,11 @@ function buildItemList(products: Product[]): PageItem[] {
   for (const cat of PRODUCT_CATEGORIES) {
     if (!grouped[cat]) continue;
     items.push({ type: 'cat', label: cat, count: grouped[cat].length });
-    for (const row of chunk(grouped[cat], 2)) items.push({ type: 'row', cards: row });
+    for (const row of chunk(grouped[cat], COLS)) items.push({ type: 'row', cards: row });
   }
   if (misc.length) {
     items.push({ type: 'cat', label: 'متنوعة', count: misc.length });
-    for (const row of chunk(misc, 2)) items.push({ type: 'row', cards: row });
+    for (const row of chunk(misc, COLS)) items.push({ type: 'row', cards: row });
   }
   return items;
 }
@@ -521,19 +522,31 @@ async function buildCard(product: Product): Promise<HTMLElement> {
   const card = mkEl('div', `
     width:${C_COL}px;
     background:#ffffff;
-    border-radius:14px;
+    border-radius:16px;
     overflow:hidden;
-    border:1px solid #e2efe6;
-    box-shadow:0 3px 10px rgba(0,0,0,0.07);
+    border:1.5px solid #e2efe6;
+    box-shadow:0 4px 14px rgba(0,0,0,0.09);
     display:flex;
     flex-direction:column;
+    flex-shrink:0;
   `);
 
-  // coloured accent bar
+  // coloured top accent bar
   card.appendChild(mkEl('div', `height:${CARD_BAR_H}px;background:linear-gradient(90deg,${s.bar});flex-shrink:0;`));
 
-  // image
-  const imgBox = mkEl('div', `width:${C_COL}px;height:${CARD_IMG_H}px;overflow:hidden;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;`);
+  // ── image (tall portrait) ──────────────────────────────────────────────
+  const imgBox = mkEl('div', `
+    width:${C_COL}px;
+    height:${CARD_IMG_H}px;
+    overflow:hidden;
+    background:linear-gradient(160deg,#e8f5e9 0%,#c8e6c9 100%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+    position:relative;
+  `);
+
   if (product.imageUrl) {
     const data = await loadImageAsDataUrl(product.imageUrl);
     if (data) {
@@ -542,96 +555,124 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       img.style.cssText = `width:${C_COL}px;height:${CARD_IMG_H}px;object-fit:cover;display:block;`;
       imgBox.appendChild(img);
     } else {
-      imgBox.appendChild(mkEl('div', 'font-size:48px;line-height:1;', '🌿'));
+      imgBox.appendChild(mkEl('div', 'font-size:52px;line-height:1;', '🌿'));
     }
   } else {
-    imgBox.appendChild(mkEl('div', 'font-size:48px;line-height:1;', '🌿'));
+    imgBox.appendChild(mkEl('div', 'font-size:52px;line-height:1;', '🌿'));
   }
+
+  // category label badge overlaid on image bottom
+  const catBadge = mkEl('div', `
+    position:absolute;
+    bottom:8px;
+    right:8px;
+    background:${s.header};
+    color:#ffffff;
+    font-size:9px;
+    font-weight:700;
+    padding:3px 10px;
+    border-radius:20px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  `);
+  catBadge.textContent = product.category || '';
+  if (product.category) imgBox.appendChild(catBadge);
+
   card.appendChild(imgBox);
 
-  // info section — fixed height to guarantee no overflow
+  // ── info section ───────────────────────────────────────────────────────
   const info = mkEl('div', `
-    padding:11px 15px 11px;
+    padding:9px 11px 10px;
     display:flex;
     flex-direction:column;
-    justify-content:space-between;
     height:${CARD_INFO_H}px;
     box-sizing:border-box;
     overflow:hidden;
+    direction:rtl;
+    background:#ffffff;
   `);
 
-  // ── name + description on same line ──────────────────────────────────────
-  // Extract the short scientific name (part before " – " or " — ")
-  let shortDesc = '';
-  if (product.description) {
-    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
-    const dashIdx = cleaned.search(/\s[–—-]\s/);
-    shortDesc = dashIdx > 0 ? cleaned.slice(0, dashIdx).trim() : cleaned;
-    if (shortDesc.length > 30) shortDesc = shortDesc.slice(0, 28) + '…';
-  }
-
-  // Height info (after the dash, e.g. "ارتفاع 1.5 م")
-  let heightInfo = '';
-  if (product.description) {
-    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
-    const match = cleaned.match(/ارتفاع\s[\d.,\s]+م/);
-    if (match) heightInfo = match[0];
-  }
-
-  // Row: [shortDesc  ·  Product Name]  (RTL: name on right, desc on left)
-  const nameRow = mkEl('div', `
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:6px;
-    overflow:hidden;
+  // Product name — large and bold
+  const nameEl = mkEl('div', `
+    font-size:14px;
+    font-weight:900;
+    color:#0a1628;
+    line-height:1.2;
     white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
     flex-shrink:0;
   `);
-  nameRow.appendChild(mkEl('span',
-    'font-size:16px;font-weight:900;color:#0a1628;flex-shrink:0;',
-    product.name
-  ));
-  if (shortDesc) {
-    nameRow.appendChild(mkEl('span',
-      'font-size:9px;color:#6b7280;font-weight:500;direction:ltr;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;',
-      shortDesc
-    ));
-  }
-  info.appendChild(nameRow);
+  nameEl.textContent = product.name;
+  info.appendChild(nameEl);
 
-  // Height info line (small, below name row)
-  if (heightInfo) {
-    info.appendChild(mkEl('div',
-      'font-size:9.5px;color:#64748b;font-weight:600;margin-top:3px;flex-shrink:0;',
-      heightInfo
-    ));
+  // Description — full text below name, smaller
+  if (product.description) {
+    const cleaned = product.description.replace(/^\(|\)$/g, '').trim();
+    const descEl = mkEl('div', `
+      font-size:8.5px;
+      color:#64748b;
+      font-weight:500;
+      margin-top:3px;
+      line-height:1.45;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      flex-shrink:0;
+    `);
+    descEl.textContent = cleaned;
+    info.appendChild(descEl);
   }
-  // spacer
+
+  // Spacer
   info.appendChild(mkEl('div', 'flex:1;'));
 
-  // price row (always at bottom)
-  const priceRow = mkEl('div',
-    'display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:2px solid #d1fae5;flex-shrink:0;'
-  );
-  const badge = mkEl('div', 'display:flex;align-items:baseline;gap:5px;background:#f0fdf4;border:2px solid #86efac;border-radius:10px;padding:5px 12px;');
-  badge.appendChild(mkEl('span', 'font-size:22px;font-weight:900;color:#14532d;line-height:1;', Number(product.price).toLocaleString('ar-JO')));
-  badge.appendChild(mkEl('span', 'font-size:13px;font-weight:700;color:#166534;', 'د.أ'));
-  priceRow.appendChild(badge);
-  priceRow.appendChild(mkEl('div',
-    'background:#dcfce7;color:#166534;font-size:10px;font-weight:700;padding:5px 12px;border-radius:20px;',
-    product.unit || 'وحدة'
-  ));
+  // ── Price row at bottom ─────────────────────────────────────────────────
+  const priceRow = mkEl('div', `
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-top:7px;
+    border-top:1.5px solid ${s.badge};
+    flex-shrink:0;
+  `);
+
+  // Price badge
+  const priceBadge = mkEl('div', `
+    display:flex;
+    align-items:baseline;
+    gap:3px;
+    background:${s.header};
+    border-radius:9px;
+    padding:4px 9px;
+  `);
+  priceBadge.appendChild(mkEl('span', `font-size:17px;font-weight:900;color:#ffffff;line-height:1;`, Number(product.price).toLocaleString('ar-JO')));
+  priceBadge.appendChild(mkEl('span', `font-size:9.5px;font-weight:700;color:${s.text};`, 'د.أ'));
+  priceRow.appendChild(priceBadge);
+
+  // Unit badge
+  priceRow.appendChild(mkEl('div', `
+    background:${s.badge};
+    color:${s.header};
+    font-size:9px;
+    font-weight:800;
+    padding:4px 9px;
+    border-radius:20px;
+  `, product.unit || 'وحدة'));
+
   info.appendChild(priceRow);
   card.appendChild(info);
   return card;
 }
 
-// ── Build one row (2 cards) ───────────────────────────────────────────────
+// ── Build one row (3 cards) ───────────────────────────────────────────────
 async function buildRow(cards: Product[]): Promise<HTMLElement> {
-  const row = mkEl('div', `display:flex;gap:${C_GAP}px;height:${CARD_H}px;`);
+  const row = mkEl('div', `display:flex;gap:${C_GAP}px;height:${CARD_H}px;align-items:stretch;`);
   for (const p of cards) row.appendChild(await buildCard(p));
-  if (cards.length === 1) row.appendChild(mkEl('div', `width:${C_COL}px;flex-shrink:0;`)); // placeholder
+  // fill remaining slots with invisible placeholders
+  for (let i = cards.length; i < COLS; i++) {
+    row.appendChild(mkEl('div', `width:${C_COL}px;flex-shrink:0;`));
+  }
   return row;
 }
 
@@ -639,52 +680,55 @@ async function buildRow(cards: Product[]): Promise<HTMLElement> {
 function buildCatHeader(label: string, count: number): HTMLElement {
   const s = CATEGORY_STYLES[label] || CATEGORY_STYLES['متنوعة'];
 
-  // Outer wrapper: full-width rounded banner
   const wrap = mkEl('div', `
     height:${CAT_H}px;
-    background:${s.header};
-    border-radius:12px;
+    background:linear-gradient(135deg,${s.header} 0%,${s.bar.split(',')[0]} 100%);
+    border-radius:14px;
     overflow:hidden;
     display:flex;
     align-items:stretch;
     flex-shrink:0;
+    box-shadow:0 3px 10px rgba(0,0,0,0.18);
   `);
 
-  // Left accent stripe
-  wrap.appendChild(mkEl('div', `width:8px;background:${s.badge};flex-shrink:0;`));
+  // Thick left accent stripe
+  wrap.appendChild(mkEl('div', `width:10px;background:linear-gradient(180deg,${s.badge},${s.bar.split(',')[1] || s.badge});flex-shrink:0;`));
 
-  // Gradient overlay + text
+  // Inner content
   const inner = mkEl('div', `
     flex:1;
-    background:linear-gradient(90deg,${s.bar.split(',')[0]}aa 0%,${s.header} 100%);
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:0 18px 0 12px;
+    padding:0 20px 0 14px;
     direction:rtl;
   `);
 
+  // Left side: icon + label
+  const leftSide = mkEl('div', 'display:flex;align-items:center;gap:10px;');
+  leftSide.appendChild(mkEl('span', 'font-size:20px;line-height:1;', '🌱'));
   const labelEl = mkEl('div', `
-    font-size:22px;
+    font-size:21px;
     font-weight:900;
     color:#ffffff;
     font-family:'Cairo',Arial,sans-serif;
-    letter-spacing:0.4px;
-    text-shadow:0 1px 3px rgba(0,0,0,0.4);
+    letter-spacing:0.5px;
+    text-shadow:0 1px 4px rgba(0,0,0,0.35);
   `);
   labelEl.textContent = label;
-  inner.appendChild(labelEl);
+  leftSide.appendChild(labelEl);
+  inner.appendChild(leftSide);
 
+  // Right side: count badge
   const countBadge = mkEl('div', `
-    background:rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.22);
     color:#ffffff;
-    font-size:12px;
-    font-weight:700;
-    padding:4px 14px;
+    font-size:11.5px;
+    font-weight:800;
+    padding:5px 16px;
     border-radius:20px;
-    border:1.5px solid rgba(255,255,255,0.5);
+    border:1.5px solid rgba(255,255,255,0.45);
     white-space:nowrap;
-    text-shadow:none;
   `);
   countBadge.textContent = `${count} صنف`;
   inner.appendChild(countBadge);
