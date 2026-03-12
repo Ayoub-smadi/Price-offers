@@ -430,11 +430,6 @@ export default function CreateQuotation() {
 
         {/* Footer Section */}
         <div className="space-y-2">
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-700 text-white rounded-lg p-3 text-center shadow-lg">
-            <div className="text-xs font-semibold mb-0.5 opacity-90">المجموع الكلي</div>
-            <div className="text-2xl font-black">{grandTotal.toLocaleString()} د.ا</div>
-          </div>
-
           {details.notes.trim() && (
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">ملاحظات:</label>
