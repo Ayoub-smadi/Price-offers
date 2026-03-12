@@ -102,6 +102,30 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     element.style.boxShadow = 'none';
   });
 
+  // Fix SVG icon alignment - html2canvas struggles with SVG vertical alignment
+  const svgElements = clone.querySelectorAll('svg');
+  svgElements.forEach(svg => {
+    const el = svg as SVGElement & { style: CSSStyleDeclaration };
+    el.style.display = 'inline-block';
+    el.style.verticalAlign = 'middle';
+    el.style.position = 'relative';
+    el.style.top = '0';
+    el.style.flexShrink = '0';
+  });
+
+  // Fix flex containers that hold icons + text so items stay centered
+  // Iterate all elements and check class list for Tailwind flex classes
+  const allCloned = clone.querySelectorAll('*');
+  allCloned.forEach(container => {
+    const el = container as HTMLElement;
+    if (!el.classList) return;
+    const hasFlex = el.classList.contains('flex') || el.classList.contains('inline-flex');
+    if (hasFlex) {
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+    }
+  });
+
   printDiv.appendChild(clone);
   return printDiv;
 };
