@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { quotations, quotationItems, products, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   getQuotations(): Promise<QuotationWithItems[]>;
@@ -38,6 +38,20 @@ export class DatabaseStorage implements IStorage {
     let newItems: any[] = [];
     if (itemsToInsert.length > 0) {
       newItems = await db.insert(quotationItems).values(itemsToInsert).returning();
+      // Deduct stock for matching products (case-insensitive name match)
+      const allProducts = await db.select().from(products);
+      for (const item of items) {
+        const match = allProducts.find(
+          p => p.name.trim().toLowerCase() === String(item.name).trim().toLowerCase()
+        );
+        if (match) {
+          const currentStock = match.stock ?? 0;
+          const newStock = currentStock - Number(item.quantity);
+          await db.update(products)
+            .set({ stock: newStock })
+            .where(eq(products.id, match.id));
+        }
+      }
     }
     return { ...newQ, items: newItems };
   }

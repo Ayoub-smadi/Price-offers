@@ -1,11 +1,18 @@
 import { useState } from "react";
-import { Package, Plus, Pencil, Trash2, Check, X, Search } from "lucide-react";
+import { Package, Plus, Pencil, Trash2, Check, X, Search, AlertTriangle } from "lucide-react";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
 
-type ProductForm = { name: string; description: string; unit: string; price: string };
-const emptyForm: ProductForm = { name: "", description: "", unit: "وحدة", price: "" };
+type ProductForm = { name: string; description: string; unit: string; price: string; stock: string };
+const emptyForm: ProductForm = { name: "", description: "", unit: "وحدة", price: "", stock: "" };
+
+function StockBadge({ stock }: { stock: number | null }) {
+  const qty = stock ?? 0;
+  if (qty <= 0) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">نفد المخزون</span>;
+  if (qty <= 5) return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">متبقي {qty}</span>;
+  return <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">رصيد: {qty}</span>;
+}
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -25,13 +32,21 @@ export default function Products() {
     (p.description || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  const lowStock = (products || []).filter(p => (p.stock ?? 0) <= 5 && (p.stock ?? 0) >= 0).length;
+
   const handleCreate = () => {
     if (!form.name.trim()) {
       toast({ title: "مطلوب اسم المنتج", variant: "destructive" });
       return;
     }
     createMutation.mutate(
-      { name: form.name.trim(), description: form.description.trim() || null, unit: form.unit || "وحدة", price: form.price || "0" },
+      {
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        unit: form.unit || "وحدة",
+        price: form.price || "0",
+        stock: form.stock !== "" ? Number(form.stock) : 0,
+      },
       {
         onSuccess: () => {
           toast({ title: "تم إضافة المنتج" });
@@ -45,13 +60,26 @@ export default function Products() {
 
   const startEdit = (p: Product) => {
     setEditingId(p.id);
-    setEditForm({ name: p.name, description: p.description || "", unit: p.unit || "وحدة", price: String(p.price) });
+    setEditForm({
+      name: p.name,
+      description: p.description || "",
+      unit: p.unit || "وحدة",
+      price: String(p.price),
+      stock: String(p.stock ?? 0),
+    });
   };
 
   const handleUpdate = () => {
     if (!editForm.name.trim() || editingId === null) return;
     updateMutation.mutate(
-      { id: editingId, name: editForm.name.trim(), description: editForm.description.trim() || null, unit: editForm.unit || "وحدة", price: editForm.price || "0" },
+      {
+        id: editingId,
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        unit: editForm.unit || "وحدة",
+        price: editForm.price || "0",
+        stock: editForm.stock !== "" ? Number(editForm.stock) : 0,
+      },
       {
         onSuccess: () => { toast({ title: "تم التحديث" }); setEditingId(null); },
         onError: () => toast({ title: "خطأ في التحديث", variant: "destructive" }),
@@ -75,7 +103,7 @@ export default function Products() {
             <Package className="w-7 h-7 text-primary" />
             كتالوج المنتجات
           </h1>
-          <p className="text-muted-foreground mt-1">أضف منتجاتك هنا لتختار منها بسرعة عند إنشاء عروض الأسعار</p>
+          <p className="text-muted-foreground mt-1">أضف منتجاتك وحدد رصيد كل منتج — يُخصم تلقائياً عند حفظ أي عرض سعر</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -85,6 +113,14 @@ export default function Products() {
           منتج جديد
         </button>
       </div>
+
+      {/* Low stock alert */}
+      {lowStock > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl text-orange-700 dark:text-orange-400 text-sm font-semibold">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          {lowStock} منتج بمخزون منخفض أو نافد — تذكر تحديث الرصيد
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">
@@ -133,6 +169,18 @@ export default function Products() {
               />
             </div>
             <div>
+              <label className="text-sm font-semibold text-muted-foreground block mb-1">الرصيد المتاح (كمية)</label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.stock}
+                onChange={e => setForm({ ...form, stock: e.target.value })}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
+                placeholder="0"
+              />
+            </div>
+            <div className="sm:col-span-2">
               <label className="text-sm font-semibold text-muted-foreground block mb-1">الوصف</label>
               <input
                 value={form.description}
@@ -162,10 +210,10 @@ export default function Products() {
         </div>
       )}
 
-      {/* Products List */}
+      {/* Products Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1,2,3,4,5,6].map(i => <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />)}
+          {[1,2,3,4,5,6].map(i => <div key={i} className="h-36 bg-muted rounded-2xl animate-pulse" />)}
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border">
@@ -180,9 +228,18 @@ export default function Products() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(product => (
-            <div key={product.id} className="bg-card rounded-2xl border border-border/50 p-4 hover:border-primary/30 hover:shadow-md transition-all group">
+            <div
+              key={product.id}
+              className={`bg-card rounded-2xl border p-4 hover:shadow-md transition-all group ${
+                (product.stock ?? 0) <= 0
+                  ? 'border-red-200 dark:border-red-900/50'
+                  : (product.stock ?? 0) <= 5
+                  ? 'border-orange-200 dark:border-orange-900/50'
+                  : 'border-border/50 hover:border-primary/30'
+              }`}
+            >
               {editingId === product.id ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <input
                     value={editForm.name}
                     onChange={e => setEditForm({ ...editForm, name: e.target.value })}
@@ -204,13 +261,24 @@ export default function Products() {
                       placeholder="السعر"
                     />
                   </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-0.5 block">الرصيد المتاح</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={editForm.stock}
+                      onChange={e => setEditForm({ ...editForm, stock: e.target.value })}
+                      className="w-full bg-background border border-primary/50 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary font-bold"
+                      placeholder="0"
+                    />
+                  </div>
                   <input
                     value={editForm.description}
                     onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                     className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary"
                     placeholder="الوصف"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-1">
                     <button onClick={handleUpdate} disabled={updateMutation.isPending} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold hover:bg-primary/90 disabled:opacity-50">
                       <Check className="w-3 h-3" /> حفظ
                     </button>
@@ -222,8 +290,11 @@ export default function Products() {
               ) : (
                 <>
                   <div className="flex justify-between items-start mb-2">
-                    <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-lg">
-                      {product.unit || "وحدة"}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-lg">
+                        {product.unit || "وحدة"}
+                      </div>
+                      <StockBadge stock={product.stock ?? 0} />
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => startEdit(product)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors">
