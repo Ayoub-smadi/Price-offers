@@ -292,9 +292,9 @@ function SortableProductCard({
               </div>
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-4" dir="rtl">
             <h3 className="font-bold text-foreground text-sm leading-tight mb-1">{product.name}</h3>
-            {product.description && <p className="text-muted-foreground text-xs line-clamp-2 mb-2">{product.description}</p>}
+            {product.description && <p dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }} className="text-muted-foreground text-xs line-clamp-2 mb-2">{product.description}</p>}
             <div className="text-lg font-black text-primary">
               {Number(product.price).toLocaleString()}
               <span className="text-xs font-normal text-muted-foreground"> / {product.unit || "وحدة"}</span>
