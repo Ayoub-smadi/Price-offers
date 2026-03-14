@@ -49,6 +49,7 @@ export default function CreateQuotation() {
   });
 
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [quotationImageBase64, setQuotationImageBase64] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -70,6 +71,15 @@ export default function CreateQuotation() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => setLogoBase64(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleQuotationImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setQuotationImageBase64(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -326,7 +336,8 @@ ${details.companyNameAr}
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table + Image side by side */}
+        <div className="flex items-stretch gap-2">
         <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 flex-1">
           <table className="w-full text-right text-xs border-collapse">
             <thead>
@@ -419,6 +430,45 @@ ${details.companyNameAr}
             </tfoot>
           </table>
         </div>
+
+        {/* Quotation Image Box */}
+        <div className="flex flex-col items-center justify-center w-36 shrink-0 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative group">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleQuotationImageUpload}
+            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+            data-testid="input-quotation-image"
+          />
+          {quotationImageBase64 ? (
+            <>
+              <img
+                src={quotationImageBase64}
+                alt="صورة العرض"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center no-print">
+                <span className="text-white text-xs font-bold">تغيير الصورة</span>
+              </div>
+              <button
+                onClick={(e) => { e.stopPropagation(); setQuotationImageBase64(null); }}
+                className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 no-print"
+                data-testid="button-remove-quotation-image"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 p-3 text-center no-print">
+              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <Plus className="w-4 h-4 text-slate-400" />
+              </div>
+              <span className="text-[10px] text-slate-400 font-medium leading-tight">أضف صورة</span>
+            </div>
+          )}
+        </div>
+
+        </div>{/* end flex wrapper */}
 
         {/* Action Buttons Row */}
         <div className="flex items-center gap-3 no-print">
