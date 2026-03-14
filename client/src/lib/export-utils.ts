@@ -150,8 +150,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       const emptyDiv = document.createElement('div');
       emptyDiv.style.cssText = `
         display: block;
-        width: 80px;
-        height: 80px;
+        width: 120px;
+        height: 120px;
         border-radius: 6px;
         border: 1px dashed #cbd5e1;
         margin: 0 auto;
@@ -165,8 +165,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     const div = document.createElement('div');
     div.style.cssText = `
       display: block;
-      width: 80px;
-      height: 80px;
+      width: 120px;
+      height: 120px;
       overflow: hidden;
       border-radius: 6px;
       border: 1px solid #e2e8f0;
@@ -177,8 +177,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     // Clone the img and set explicit inline dimensions
     const imgClone = img.cloneNode(true) as HTMLImageElement;
     imgClone.style.cssText = `
-      width: 80px;
-      height: 80px;
+      width: 120px;
+      height: 120px;
       object-fit: cover;
       display: block;
     `;

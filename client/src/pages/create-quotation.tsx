@@ -354,7 +354,7 @@ ${details.companyNameAr}
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.quantity}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.price}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.total}</th>
-                <th className="p-2 font-bold text-center w-12 text-xs">صورة</th>
+                <th className="p-2 font-bold text-center w-28 text-xs">صورة</th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
             </thead>
@@ -379,7 +379,7 @@ ${details.companyNameAr}
                   </td>
                   <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
                   <td className="p-1 text-center">
-                    <label className="relative cursor-pointer block w-16 h-16 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
+                    <label className="relative cursor-pointer block w-24 h-24 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
                       <input
                         type="file"
                         accept="image/*"
