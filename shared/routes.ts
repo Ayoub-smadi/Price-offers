@@ -61,6 +61,7 @@ export const api = {
           items: z.array(z.object({
             name: z.string(),
             description: z.string(),
+            category: z.string(),
             quantity: z.number(),
             price: z.number(),
             total: z.number()

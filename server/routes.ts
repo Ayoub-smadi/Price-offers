@@ -293,12 +293,67 @@ export async function registerRoutes(
   app.post(api.parser.parseText.path, async (req, res) => {
     try {
       const input = api.parser.parseText.input.parse(req.body);
+      const numberPattern = /(\d+(?:[.,]\d+)?)/g;
+
       const lines = input.text.split('\n').filter(l => l.trim() !== '');
       const items = lines.map(line => {
         const trimmedLine = line.trim();
         if (!trimmedLine) return null;
+
+        // ── Tab-separated format: #  الاسم  الوصف  القسم  الكمية  السعر ──
+        if (trimmedLine.includes('\t')) {
+          const cols = trimmedLine.split('\t').map(c => c.trim());
+          // Skip header rows (first col is "#" or "م" or non-numeric label with no price)
+          if (cols[0] === '#' || cols[0] === 'م' || cols[0] === 'الرقم') return null;
+          // cols: [index, name, description, category, quantity, price]  (6 cols)
+          // or:   [index, name, description, quantity, price]             (5 cols)
+          // or:   [name, description, category, quantity, price]          (5 cols, no index)
+          let name = '', description = '', category = '', qty = 1, price = 0;
+          if (cols.length >= 6) {
+            name        = cols[1] || '';
+            description = cols[2] || '';
+            category    = cols[3] || '';
+            const qm = cols[4].match(numberPattern);
+            if (qm) qty = parseFloat(qm[0].replace(',', '.'));
+            const pm = cols[5].match(numberPattern);
+            if (pm) price = parseFloat(pm[0].replace(',', '.'));
+          } else if (cols.length === 5) {
+            // Could be [index, name, description, qty, price] or [name, desc, cat, qty, price]
+            const firstIsNum = /^\d+$/.test(cols[0]);
+            if (firstIsNum) {
+              name        = cols[1] || '';
+              description = cols[2] || '';
+              const qm = cols[3].match(numberPattern);
+              if (qm) qty = parseFloat(qm[0].replace(',', '.'));
+              const pm = cols[4].match(numberPattern);
+              if (pm) price = parseFloat(pm[0].replace(',', '.'));
+            } else {
+              name        = cols[0] || '';
+              description = cols[1] || '';
+              category    = cols[2] || '';
+              const qm = cols[3].match(numberPattern);
+              if (qm) qty = parseFloat(qm[0].replace(',', '.'));
+              const pm = cols[4].match(numberPattern);
+              if (pm) price = parseFloat(pm[0].replace(',', '.'));
+            }
+          } else if (cols.length === 4) {
+            name        = cols[0] || '';
+            description = cols[1] || '';
+            const qm = cols[2].match(numberPattern);
+            if (qm) qty = parseFloat(qm[0].replace(',', '.'));
+            const pm = cols[3].match(numberPattern);
+            if (pm) price = parseFloat(pm[0].replace(',', '.'));
+          } else if (cols.length >= 2) {
+            name = cols[0] || '';
+            const pm = cols[cols.length - 1].match(numberPattern);
+            if (pm) price = parseFloat(pm[0].replace(',', '.'));
+          }
+          if (!name) return null;
+          return { name: name.trim(), description: description.trim(), category: category.trim(), quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
+        }
+
+        // ── Slash-separated format: الكمية / الاسم / الوصف / السعر ──
         const slashParts = trimmedLine.split('/').map(p => p.trim()).filter(p => p);
-        const numberPattern = /(\d+(?:[.,]\d+)?)/g;
         if (slashParts.length >= 3) {
           let qty = 1;
           const qtyMatch = slashParts[0].match(numberPattern);
@@ -306,11 +361,7 @@ export async function registerRoutes(
           const name = slashParts[1] || "عنصر غير معروف";
           let description = "";
           let price = 0;
-          if (slashParts.length >= 5) {
-            description = slashParts[2] || "";
-            const pm = slashParts[3].match(numberPattern);
-            if (pm) price = parseFloat(pm[0].replace(',', '.'));
-          } else if (slashParts.length === 4) {
+          if (slashParts.length >= 4) {
             description = slashParts[2] || "";
             const pm = slashParts[3].match(numberPattern);
             if (pm) price = parseFloat(pm[0].replace(',', '.'));
@@ -318,8 +369,10 @@ export async function registerRoutes(
             const pm = slashParts[2].match(numberPattern);
             if (pm) price = parseFloat(pm[0].replace(',', '.'));
           }
-          return { name: name.trim() || "عنصر غير معروف", description: description.trim(), quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
+          return { name: name.trim() || "عنصر غير معروف", description: description.trim(), category: "", quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
         }
+
+        // ── Free text format: اسم المنتج الكمية السعر ──
         const numbers = trimmedLine.match(numberPattern) || [];
         const normalizedNumbers = numbers.map(n => parseFloat(n.replace(',', '.')));
         let nameText = trimmedLine.replace(numberPattern, '').trim();
@@ -333,7 +386,7 @@ export async function registerRoutes(
           qty = 1;
         }
         const name = nameText || `منتج #${normalizedNumbers.join('-') || 'unknown'}`;
-        return { name: name.trim() || "عنصر غير معروف", description: "", quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
+        return { name: name.trim() || "عنصر غير معروف", description: "", category: "", quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
       }).filter(item => item !== null);
       res.json({ items });
     } catch (err) {
