@@ -27,6 +27,37 @@ import { CSS } from "@dnd-kit/utilities";
 type ProductForm = { name: string; description: string; unit: string; price: string; imageUrl?: string; category: string };
 const emptyForm: ProductForm = { name: "", description: "", unit: "وحدة", price: "", imageUrl: "", category: "" };
 
+function compressImage(file: File, maxWidth = 1200, quality = 0.82): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const canvas = document.createElement("canvas");
+      let { width, height } = img;
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return resolve(file);
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) return resolve(file);
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src = objectUrl;
+  });
+}
+
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   "أشجار": <Trees className="w-4 h-4" />,
   "شجيرات": <Leaf className="w-4 h-4" />,
@@ -88,8 +119,9 @@ function ImageUploadButton({ productId, onUploaded }: { productId?: number; onUp
     if (!file) return;
     setUploading(true);
     try {
+      const compressed = await compressImage(file);
       const fd = new FormData();
-      fd.append("image", file);
+      fd.append("image", compressed);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (!res.ok) throw new Error();
       const { url } = await res.json();

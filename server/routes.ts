@@ -169,7 +169,16 @@ export async function registerRoutes(
     try {
       const id = Number(req.params.id);
       const input = insertProductSchema.partial().parse(req.body);
+      const existing = await storage.getProduct(id);
       const product = await storage.updateProduct(id, input.price !== undefined ? { ...input, price: String(input.price) } as any : input);
+      if (
+        existing?.imageUrl?.startsWith('/uploads/') &&
+        input.imageUrl !== undefined &&
+        input.imageUrl !== existing.imageUrl
+      ) {
+        const filePath = path.join(uploadsDir, path.basename(existing.imageUrl));
+        fs.unlink(filePath, () => {});
+      }
       res.json(product);
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
@@ -179,7 +188,13 @@ export async function registerRoutes(
 
   app.delete('/api/products/:id', async (req, res) => {
     try {
-      await storage.deleteProduct(Number(req.params.id));
+      const id = Number(req.params.id);
+      const product = await storage.getProduct(id);
+      await storage.deleteProduct(id);
+      if (product?.imageUrl?.startsWith('/uploads/')) {
+        const filePath = path.join(uploadsDir, path.basename(product.imageUrl));
+        fs.unlink(filePath, () => {});
+      }
       res.status(204).end();
     } catch {
       res.status(500).json({ message: "Internal Error" });

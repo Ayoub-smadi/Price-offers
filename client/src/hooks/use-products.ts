@@ -55,6 +55,15 @@ export function useDeleteProduct() {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE', credentials: 'include' });
       if (!res.ok) throw new Error('Failed to delete product');
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: PRODUCTS_KEY });
+      const prev = queryClient.getQueryData<Product[]>(PRODUCTS_KEY);
+      queryClient.setQueryData<Product[]>(PRODUCTS_KEY, (old) => old?.filter(p => p.id !== id) ?? []);
+      return { prev };
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(PRODUCTS_KEY, ctx.prev);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: PRODUCTS_KEY }),
   });
 }
