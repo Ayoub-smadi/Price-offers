@@ -50,6 +50,27 @@ const getCairoFontCSS = async (): Promise<string> => {
   }
 };
 
+/**
+ * Wraps digit sequences in an LTR <span> so html2canvas renders
+ * mixed Arabic+number text correctly without double-BiDi reversal.
+ */
+const escHtml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const wrapNumbers = (text: string): string =>
+  escHtml(text).replace(/(\d[\d.,]*)/g,
+    '<span dir="ltr" style="direction:ltr;unicode-bidi:embed;display:inline;">$1</span>');
+
+const setRtlHtml = (el: HTMLElement, text: string) => {
+  const hasArabic = /[\u0600-\u06FF]/.test(text);
+  const hasDigit  = /\d/.test(text);
+  if (hasArabic && hasDigit) {
+    el.innerHTML = wrapNumbers(text);
+  } else {
+    el.textContent = text;
+  }
+};
+
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
   printDiv.style.width = '210mm';
@@ -88,7 +109,11 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     div.style.margin = computedStyle.margin;
     div.style.padding = computedStyle.padding;
 
-    div.textContent = value || ' ';
+    if (isRtl && value) {
+      setRtlHtml(div, value);
+    } else {
+      div.textContent = value || ' ';
+    }
     htmlInput.parentNode?.replaceChild(div, htmlInput);
   });
 
@@ -852,7 +877,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       text-overflow:ellipsis;
     `;
     descEl.setAttribute('dir', 'rtl');
-    descEl.textContent = arabicDesc;
+    setRtlHtml(descEl, arabicDesc);
     textArea.appendChild(descEl);
   }
 
@@ -869,7 +894,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
       display:block;
     `;
     htEl.setAttribute('dir', 'rtl');
-    htEl.textContent = heightInfo;
+    setRtlHtml(htEl, heightInfo);
     textArea.appendChild(htEl);
   }
 
