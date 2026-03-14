@@ -474,6 +474,30 @@ export const exportToPDF = async (
     document.body.appendChild(printDoc);
     await new Promise(resolve => setTimeout(resolve, 300));
 
+    // --- Measure table row boundaries BEFORE rendering ---
+    // html2canvas uses scale:3, so multiply DOM pixels by 3 to get canvas pixels
+    const HTML2CANVAS_SCALE = 3;
+    const printDocRect = printDoc.getBoundingClientRect();
+    const rowBreaksCx = new Set<number>();
+    rowBreaksCx.add(0);
+    printDoc.querySelectorAll('tr').forEach(row => {
+      const r = row.getBoundingClientRect();
+      const topCx  = Math.round((r.top  - printDocRect.top)  * HTML2CANVAS_SCALE);
+      const botCx  = Math.round((r.bottom - printDocRect.top) * HTML2CANVAS_SCALE);
+      rowBreaksCx.add(topCx);
+      rowBreaksCx.add(botCx);
+    });
+    const sortedRowBreaks = Array.from(rowBreaksCx).sort((a, b) => a - b);
+
+    // Returns the largest safe cut point (row boundary) that fits within [startY, maxY]
+    const findRowCutPoint = (startY: number, maxY: number): number => {
+      let best = -1;
+      for (const bp of sortedRowBreaks) {
+        if (bp > startY && bp <= maxY) best = bp;
+      }
+      return best > 0 ? best : maxY;
+    };
+
     const mainCanvas = await renderToCanvas(printDoc);
     document.body.removeChild(printDoc);
 
@@ -506,7 +530,7 @@ export const exportToPDF = async (
     const contentHeightPage1Px = fullPageHeightPx;
     const contentHeightSubsequentPx = fullPageHeightPx - miniHeaderHeightPx;
 
-    // --- Slice and add pages ---
+    // --- Slice and add pages, snapping cuts to row boundaries ---
     let sourceY = 0;
     let pageIndex = 0;
 
@@ -525,7 +549,15 @@ export const exportToPDF = async (
       }
 
       const availableContentPx = pageIndex === 0 ? contentHeightPage1Px : contentHeightSubsequentPx;
-      const sliceHeightPx = Math.min(availableContentPx, mainCanvas.height - sourceY);
+      const remainingPx = mainCanvas.height - sourceY;
+
+      if (remainingPx <= 0) break;
+
+      // If remaining content fits on this page, take it all
+      // Otherwise snap the cut to the nearest row boundary that fits
+      const sliceHeightPx = remainingPx <= availableContentPx
+        ? remainingPx
+        : findRowCutPoint(sourceY, sourceY + availableContentPx) - sourceY;
 
       if (sliceHeightPx <= 0) break;
 
@@ -549,7 +581,7 @@ export const exportToPDF = async (
 
       pdf.addImage(pageImgData, 'JPEG', marginX, contentStartY, imgWidth, pageHeightMM);
 
-      sourceY += availableContentPx;
+      sourceY += sliceHeightPx;
       pageIndex++;
     }
 
