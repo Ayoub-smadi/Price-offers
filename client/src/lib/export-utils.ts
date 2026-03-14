@@ -123,6 +123,53 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     }
   });
 
+  // Fix item images in table rows - convert label wrappers to divs and apply inline styles
+  // so html2canvas can correctly render uploaded product images
+  const itemImageLabels = clone.querySelectorAll('label');
+  itemImageLabels.forEach(label => {
+    const img = label.querySelector('img');
+
+    if (!img) {
+      // No image - replace label with empty placeholder cell
+      const emptyDiv = document.createElement('div');
+      emptyDiv.style.cssText = `
+        display: block;
+        width: 40px;
+        height: 40px;
+        border-radius: 4px;
+        border: 1px dashed #cbd5e1;
+        margin: 0 auto;
+        background: #f8fafc;
+      `;
+      label.parentNode?.replaceChild(emptyDiv, label);
+      return;
+    }
+
+    // Replace label with a div so form-element styling doesn't interfere
+    const div = document.createElement('div');
+    div.style.cssText = `
+      display: block;
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      margin: 0 auto;
+      flex-shrink: 0;
+    `;
+
+    // Clone the img and set explicit inline dimensions
+    const imgClone = img.cloneNode(true) as HTMLImageElement;
+    imgClone.style.cssText = `
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      display: block;
+    `;
+    div.appendChild(imgClone);
+    label.parentNode?.replaceChild(div, label);
+  });
+
   // Remove all SVG elements - html2canvas cannot reliably align SVGs with inline text
   // We rebuild the contact footer section manually below using plain text + Unicode
   const svgElements = clone.querySelectorAll('svg');
