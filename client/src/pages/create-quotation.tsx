@@ -379,7 +379,7 @@ ${details.companyNameAr}
                   </td>
                   <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
                   <td className="p-1 text-center">
-                    <label className="relative cursor-pointer block w-10 h-10 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
+                    <label className="relative cursor-pointer block w-16 h-16 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
                       <input
                         type="file"
                         accept="image/*"
