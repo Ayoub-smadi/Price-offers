@@ -16,6 +16,7 @@ type Item = {
   id: string;
   name: string;
   description: string;
+  category: string;
   quantity: number;
   unit: string;
   price: number;
@@ -31,7 +32,7 @@ export default function CreateQuotation() {
   const { data: catalogProducts } = useProducts();
 
   const [items, setItems] = useState<Item[]>([
-    { id: "1", name: "", description: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
+    { id: "1", name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
   ]);
 
   const [details, setDetails] = useState({
@@ -84,7 +85,7 @@ export default function CreateQuotation() {
   };
 
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), name: "", description: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }]);
+    setItems([...items, { id: Date.now().toString(), name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }]);
   };
 
   const removeItem = (id: string) => {
@@ -110,6 +111,7 @@ export default function CreateQuotation() {
       id: Date.now().toString() + Math.random(),
       name: product.name,
       description: product.description || "",
+      category: product.category || "",
       quantity: 1,
       unit: product.unit || "وحدة",
       price: Number(product.price),
@@ -130,6 +132,8 @@ export default function CreateQuotation() {
       description: item.description.trim() || undefined,
       price: String(item.price),
       unit: item.unit || "وحدة",
+      category: item.category?.trim() || undefined,
+      imageUrl: item.imageUrl || undefined,
     }, {
       onSuccess: () => toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ "${item.name}" في الكتالوج بنجاح.` }),
       onError: () => toast({ title: "خطأ في الحفظ", variant: "destructive" }),
@@ -148,6 +152,8 @@ export default function CreateQuotation() {
         description: item.description.trim() || undefined,
         price: String(item.price),
         unit: item.unit || "وحدة",
+        category: item.category?.trim() || undefined,
+        imageUrl: item.imageUrl || undefined,
       });
     });
     toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ ${validItems.length} منتجات في الكتالوج.` });
@@ -161,6 +167,7 @@ export default function CreateQuotation() {
           id: Date.now().toString() + Math.random(),
           name: i.name || "عنصر غير معروف",
           description: i.description || "",
+          category: "",
           quantity: i.quantity || 1,
           unit: "وحدة",
           price: i.price || 0,
@@ -341,12 +348,13 @@ ${details.companyNameAr}
             <thead>
               <tr className="bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-700">
                 <th className="p-2 font-bold text-center w-6 text-xs">{headers.index}</th>
-                <th className="p-2 font-bold text-center w-12 text-xs">صورة</th>
                 <th className="p-2 font-bold text-right text-xs">{headers.name}</th>
                 <th className="p-2 font-bold text-right text-xs">{headers.description}</th>
+                <th className="p-2 font-bold text-right text-xs">القسم</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.quantity}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.price}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.total}</th>
+                <th className="p-2 font-bold text-center w-12 text-xs">صورة</th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
             </thead>
@@ -354,6 +362,22 @@ ${details.companyNameAr}
               {items.map((item, index) => (
                 <tr key={item.id} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group">
                   <td className="p-1.5 text-center text-slate-600 dark:text-slate-400 font-semibold text-xs">{index + 1}</td>
+                  <td className="p-1.5">
+                    <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
+                  </td>
+                  <td className="p-1.5">
+                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
+                  </td>
+                  <td className="p-1.5">
+                    <input value={item.category} onChange={(e) => updateItem(item.id, 'category', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="القسم" />
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <input type="number" min="1" value={item.quantity || ''} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium" />
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <input type="number" min="0" step="0.01" value={item.price || ''} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-semibold" />
+                  </td>
+                  <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
                   <td className="p-1 text-center">
                     <label className="relative cursor-pointer block w-10 h-10 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
                       <input
@@ -382,19 +406,6 @@ ${details.companyNameAr}
                       )}
                     </label>
                   </td>
-                  <td className="p-1.5">
-                    <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
-                  </td>
-                  <td className="p-1.5">
-                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
-                  </td>
-                  <td className="p-1.5 text-center">
-                    <input type="number" min="1" value={item.quantity || ''} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium" />
-                  </td>
-                  <td className="p-1.5 text-center">
-                    <input type="number" min="0" step="0.01" value={item.price || ''} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} className="w-full text-center bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-semibold" />
-                  </td>
-                  <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
                   <td className="p-1.5 text-center no-print">
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
                       <button
@@ -419,6 +430,7 @@ ${details.companyNameAr}
                   <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
                     <td colSpan={6} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
                     <td className="p-1.5 text-center text-xs text-slate-700 dark:text-slate-300 font-semibold">{subtotal.toLocaleString()}</td>
+                    <td></td>
                     <td className="no-print"></td>
                   </tr>
                   {discountAmount > 0 && (
@@ -427,6 +439,7 @@ ${details.companyNameAr}
                         خصم ({discountValue}%)
                       </td>
                       <td className="p-1.5 text-center text-xs text-green-700 dark:text-green-400 font-semibold">- {discountAmount.toLocaleString()}</td>
+                      <td></td>
                       <td className="no-print"></td>
                     </tr>
                   )}
@@ -434,6 +447,7 @@ ${details.companyNameAr}
                     <tr className="bg-orange-50 dark:bg-orange-900/10">
                       <td colSpan={6} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
                       <td className="p-1.5 text-center text-xs text-orange-700 dark:text-orange-400 font-semibold">+ {taxAmount.toLocaleString()}</td>
+                      <td></td>
                       <td className="no-print"></td>
                     </tr>
                   )}
@@ -442,6 +456,7 @@ ${details.companyNameAr}
               <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
                 <td colSpan={6} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
                 <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{grandTotal.toLocaleString()}</td>
+                <td></td>
                 <td className="no-print"></td>
               </tr>
             </tfoot>
