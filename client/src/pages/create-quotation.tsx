@@ -275,12 +275,12 @@ ${details.companyNameAr}
           <Wand2 className="w-5 h-5" />
           <h2 className="text-sm font-bold">التحليل الذكي للنصوص</h2>
         </div>
-        <p className="text-muted-foreground text-xs">الصق جدول (تاب) بصيغة: <span className="font-mono text-primary/80"># اسم وصف قسم كمية سعر</span> — أو قائمة نصية عادية أو بالشرطة <span className="font-mono text-primary/80">كمية/اسم/سعر</span></p>
+        <p className="text-muted-foreground text-xs">الصق محادثة واتساب أو قائمة عشوائية وسيقوم النظام بترتيبها في الجدول أدناه.</p>
         <div className="relative">
           <textarea
             value={pasteText}
             onChange={(e) => setPasteText(e.target.value)}
-            placeholder={"نمط الجدول (تاب):\n1\tشجرة زيتون\tروميه\tأشجار\t5\t25\n2\توردة جورية\t\tورود\t10\t15\n\nأو بالشرطة: 5/شجرة زيتون/روميه/25"}
+            placeholder="مثال: 5 شاشات سامسونج سعر الواحدة 1500، و 2 كيبورد سعر 300..."
             className="w-full h-16 p-2 rounded-lg input-soft resize-none text-xs"
           />
           <button
