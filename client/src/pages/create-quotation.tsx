@@ -227,13 +227,6 @@ ${details.companyNameAr}
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={handleWhatsApp}
-            className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all dark:bg-green-900/20 dark:text-green-400"
-            title="مشاركة عبر واتساب"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </button>
-          <button
             onClick={saveAllToCatalog}
             disabled={createProductMutation.isPending}
             className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all dark:bg-indigo-900/20 dark:text-indigo-400 disabled:opacity-50"
