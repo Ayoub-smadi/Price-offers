@@ -26,6 +26,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordWrap = 'break-word';
     div.style.color = '#000000';
+    div.style.direction = 'rtl';
+    div.style.unicodeBidi = 'embed';
 
     const computedStyle = window.getComputedStyle(htmlInput);
     div.style.fontSize = computedStyle.fontSize;
@@ -148,9 +150,9 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       const emptyDiv = document.createElement('div');
       emptyDiv.style.cssText = `
         display: block;
-        width: 40px;
-        height: 40px;
-        border-radius: 4px;
+        width: 80px;
+        height: 80px;
+        border-radius: 6px;
         border: 1px dashed #cbd5e1;
         margin: 0 auto;
         background: #f8fafc;
@@ -163,10 +165,10 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     const div = document.createElement('div');
     div.style.cssText = `
       display: block;
-      width: 40px;
-      height: 40px;
+      width: 80px;
+      height: 80px;
       overflow: hidden;
-      border-radius: 4px;
+      border-radius: 6px;
       border: 1px solid #e2e8f0;
       margin: 0 auto;
       flex-shrink: 0;
@@ -175,8 +177,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     // Clone the img and set explicit inline dimensions
     const imgClone = img.cloneNode(true) as HTMLImageElement;
     imgClone.style.cssText = `
-      width: 40px;
-      height: 40px;
+      width: 80px;
+      height: 80px;
       object-fit: cover;
       display: block;
     `;
