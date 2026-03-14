@@ -679,7 +679,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
     if (dashIdx > 0) {
       const leftPart = cleaned.slice(0, dashIdx).trim();
       const rest     = cleaned.slice(dashIdx).replace(/^[\s–—-]+/, '').trim();
-      const hMatch   = rest.match(/ارتفاع[\s\d.,]+م/);
+      const hMatch   = rest.match(/ارتفاع[\s\d.,\-–—]+(?:سم|م)/);
       heightInfo     = hMatch ? hMatch[0] : '';
       if (!hasArabic(leftPart)) {
         scientificName = leftPart;
@@ -687,7 +687,7 @@ async function buildCard(product: Product): Promise<HTMLElement> {
         arabicDesc = leftPart;
       }
     } else {
-      const hMatch = cleaned.match(/ارتفاع[\s\d.,]+م/);
+      const hMatch = cleaned.match(/ارتفاع[\s\d.,\-–—]+(?:سم|م)/);
       heightInfo   = hMatch ? hMatch[0] : '';
       if (!heightInfo) {
         if (hasArabic(cleaned)) {
