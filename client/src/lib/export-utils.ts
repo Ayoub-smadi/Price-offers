@@ -124,8 +124,9 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   });
 
   // Fix item images in table rows - convert label wrappers to divs and apply inline styles
-  // so html2canvas can correctly render uploaded product images
-  const itemImageLabels = clone.querySelectorAll('label');
+  // so html2canvas can correctly render uploaded product images.
+  // Only target labels inside table cells (not text labels like "التاريخ" in the header).
+  const itemImageLabels = clone.querySelectorAll('td label');
   itemImageLabels.forEach(label => {
     const img = label.querySelector('img');
 
