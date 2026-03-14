@@ -2,6 +2,54 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { Product } from '@shared/schema';
 
+let _fontCssCache: string | null = null;
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+  }
+  return btoa(binary);
+};
+
+const getCairoFontCSS = async (): Promise<string> => {
+  if (_fontCssCache) return _fontCssCache;
+
+  try {
+    const cssRes = await fetch(
+      'https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap',
+      {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      }
+    );
+    let cssText = await cssRes.text();
+
+    const urlMatches = [...cssText.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+)\)/g)];
+
+    await Promise.all(
+      urlMatches.map(async (match) => {
+        const url = match[1];
+        try {
+          const fontRes = await fetch(url);
+          const buffer = await fontRes.arrayBuffer();
+          const base64 = arrayBufferToBase64(buffer);
+          cssText = cssText.replace(url, `data:font/woff2;base64,${base64}`);
+        } catch {}
+      })
+    );
+
+    _fontCssCache = cssText;
+    return cssText;
+  } catch {
+    return `@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');`;
+  }
+};
+
 const createPrintDocument = (element: HTMLElement, items: any[], details: any): HTMLElement => {
   const printDiv = document.createElement('div');
   printDiv.style.width = '210mm';
@@ -307,6 +355,7 @@ const createPageMiniHeader = (details: any, logoSrc: string): HTMLElement => {
 };
 
 const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
+  const fontCss = await getCairoFontCSS();
   return html2canvas(el, {
     scale: 3,
     useCORS: true,
@@ -315,6 +364,12 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     allowTaint: true,
     imageTimeout: 15000,
     windowWidth: Math.round(210 * 96 / 25.4),
+    onclone: async (doc: Document) => {
+      const style = doc.createElement('style');
+      style.textContent = fontCss;
+      doc.head.appendChild(style);
+      try { await doc.fonts.ready; } catch {}
+    },
   });
 };
 
@@ -329,6 +384,9 @@ export const exportToPDF = async (
   if (!element) return;
 
   try {
+    // Pre-warm Cairo font cache before any html2canvas rendering
+    await getCairoFontCSS();
+
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -479,6 +537,8 @@ const ensureCairoFont = async () => {
   } catch {
     await new Promise(r => setTimeout(r, 1000));
   }
+  // Pre-warm the base64 font cache so it's ready for html2canvas cloned documents
+  await getCairoFontCSS();
 };
 
 // ── Page-aware catalog layout constants ────────────────────────────────────
@@ -1063,6 +1123,7 @@ async function renderPage(
   document.body.appendChild(page);
   await new Promise(r => setTimeout(r, 300));
 
+  const fontCss = await getCairoFontCSS();
   const canvas = await html2canvas(page, {
     scale: 3,
     useCORS: true,
@@ -1073,11 +1134,11 @@ async function renderPage(
     windowWidth: A4_W,
     width: A4_W,
     height: A4_H,
-    onclone: (doc: Document) => {
-      const lnk = doc.createElement('link');
-      lnk.rel = 'stylesheet';
-      lnk.href = FONT_URL;
-      doc.head.appendChild(lnk);
+    onclone: async (doc: Document) => {
+      const style = doc.createElement('style');
+      style.textContent = fontCss;
+      doc.head.appendChild(style);
+      try { await doc.fonts.ready; } catch {}
     },
   });
 
