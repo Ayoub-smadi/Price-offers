@@ -3,33 +3,43 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { useState, lazy, Suspense } from "react";
+import { LogOut, Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-import CreateQuotation from "./pages/create-quotation";
-import History from "./pages/history";
-import EditQuotation from "./pages/edit-quotation";
-import Login from "./pages/login";
-import Products from "./pages/products";
-import Stats from "./pages/stats";
-import TrashPage from "./pages/trash";
+const NotFound = lazy(() => import("@/pages/not-found"));
+const CreateQuotation = lazy(() => import("./pages/create-quotation"));
+const History = lazy(() => import("./pages/history"));
+const EditQuotation = lazy(() => import("./pages/edit-quotation"));
+const Login = lazy(() => import("./pages/login"));
+const Products = lazy(() => import("./pages/products"));
+const Stats = lazy(() => import("./pages/stats"));
+const TrashPage = lazy(() => import("./pages/trash"));
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={CreateQuotation} />
-      <Route path="/history" component={History} />
-      <Route path="/quotation/:id" component={EditQuotation} />
-      <Route path="/products" component={Products} />
-      <Route path="/stats" component={Stats} />
-      <Route path="/trash" component={TrashPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/" component={CreateQuotation} />
+        <Route path="/history" component={History} />
+        <Route path="/quotation/:id" component={EditQuotation} />
+        <Route path="/products" component={Products} />
+        <Route path="/stats" component={Stats} />
+        <Route path="/trash" component={TrashPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
@@ -48,7 +58,9 @@ function App() {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Login onLogin={handleLogin} />
+          <Suspense fallback={<PageLoader />}>
+            <Login onLogin={handleLogin} />
+          </Suspense>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
