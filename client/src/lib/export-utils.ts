@@ -105,7 +105,12 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     const computedStyle = window.getComputedStyle(htmlInput);
     div.style.fontSize = computedStyle.fontSize;
     div.style.fontWeight = computedStyle.fontWeight;
-    div.style.textAlign = computedStyle.textAlign || (isRtl ? 'right' : 'left');
+    // For number inputs always center; for RTL inputs use right; fallback from inline style
+    if (!isRtl) {
+      div.style.textAlign = 'center';
+    } else {
+      div.style.textAlign = (htmlInput as HTMLElement).style.textAlign || computedStyle.textAlign || 'right';
+    }
     div.style.margin = computedStyle.margin;
     div.style.padding = computedStyle.padding;
 
@@ -169,19 +174,33 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       });
     });
 
-    // Center-align name, description, and category columns (indices 1, 2, 3)
+    // Process each tbody row: center specific columns, preserve number-input direction
     const tbodyRows = table.querySelectorAll('tbody tr');
     tbodyRows.forEach(row => {
       const cells = row.querySelectorAll('td');
-      [1, 2, 3].forEach(colIdx => {
-        const cell = cells[colIdx] as HTMLElement | undefined;
-        if (!cell) return;
-        cell.style.textAlign = 'center';
-        const inner = cell.querySelector('div, span, input') as HTMLElement | null;
-        if (inner) {
-          inner.style.textAlign = 'center';
-          inner.style.direction = 'rtl';
-          inner.setAttribute('dir', 'rtl');
+      cells.forEach((cell, colIdx) => {
+        const cellEl = cell as HTMLElement;
+        const inner = cellEl.querySelector('div, span, input') as HTMLElement | null;
+        const innerDir = inner?.style.direction;
+
+        // Columns 4 & 5 are quantity & price (number inputs) — always center, ltr
+        if (colIdx === 4 || colIdx === 5) {
+          cellEl.style.textAlign = 'center';
+          if (inner) {
+            inner.style.textAlign = 'center';
+            inner.style.direction = 'ltr';
+            inner.setAttribute('dir', 'ltr');
+          }
+        } else if ([1, 2, 3].includes(colIdx)) {
+          // Name, description, category — center but keep RTL
+          cellEl.style.textAlign = 'center';
+          if (inner) {
+            inner.style.textAlign = 'center';
+            if (!innerDir || innerDir === 'ltr') {
+              inner.style.direction = 'rtl';
+              inner.setAttribute('dir', 'rtl');
+            }
+          }
         }
       });
     });
