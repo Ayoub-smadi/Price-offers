@@ -27,7 +27,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     div.style.wordWrap = 'break-word';
     div.style.color = '#000000';
     div.style.direction = 'rtl';
-    div.style.unicodeBidi = 'embed';
+    div.style.unicodeBidi = 'isolate';
 
     const computedStyle = window.getComputedStyle(htmlInput);
     div.style.fontSize = computedStyle.fontSize;
