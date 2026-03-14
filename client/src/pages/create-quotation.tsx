@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Plus, FileText, Save,
   Wand2, Trash2, CheckCircle2,
@@ -26,6 +27,7 @@ type Item = {
 
 export default function CreateQuotation() {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const createMutation = useCreateQuote();
   const parseMutation = useParseTextAPI();
   const createProductMutation = useCreateProduct();
@@ -226,7 +228,10 @@ ${details.companyNameAr}
         imageUrl: i.imageUrl || null,
       }))
     }, {
-      onSuccess: () => toast({ title: "تم الحفظ", description: "تم حفظ عرض السعر بنجاح." }),
+      onSuccess: () => {
+        toast({ title: "تم الحفظ", description: "تم حفظ عرض السعر بنجاح." });
+        navigate("/history");
+      },
       onError: (error) => toast({ title: "خطأ في الحفظ", description: error.message, variant: "destructive" })
     });
   };
@@ -368,7 +373,7 @@ ${details.companyNameAr}
                     <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
                   </td>
                   <td className="p-1.5">
-                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} dir="rtl" className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
+                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
                   </td>
                   <td className="p-1.5">
                     <input value={item.category} onChange={(e) => updateItem(item.id, 'category', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="القسم" />
