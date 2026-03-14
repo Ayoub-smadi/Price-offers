@@ -75,6 +75,19 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.color = '#000000';
     });
 
+    // Center-align name, description, and category columns (indices 1, 2, 3)
+    const tbodyRows = table.querySelectorAll('tbody tr');
+    tbodyRows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      [1, 2, 3].forEach(colIdx => {
+        const cell = cells[colIdx] as HTMLElement | undefined;
+        if (!cell) return;
+        cell.style.textAlign = 'center';
+        const inner = cell.querySelector('div, span, input') as HTMLElement | null;
+        if (inner) inner.style.textAlign = 'center';
+      });
+    });
+
     // Style tfoot (grand total row) to match on-screen appearance
     const tfootCells = Array.from(table.querySelectorAll('tfoot td'));
     const lastTfootIdx = tfootCells.length - 1;
