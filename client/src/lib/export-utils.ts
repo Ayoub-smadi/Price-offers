@@ -218,7 +218,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.backgroundColor = '#0f172a';
       element.style.color = '#ffffff';
       element.style.fontWeight = 'bold';
-      if (idx === lastTfootIdx) {
+      if (idx === lastTfootIdx - 1) {
         element.style.backgroundColor = '#1e3a8a';
         element.style.fontSize = '14px';
         element.style.fontWeight = '900';
