@@ -221,7 +221,9 @@ ${details.companyNameAr}
       grandTotal: grandTotal.toString(),
       items: validItems.map(i => ({
         name: i.name.trim(), description: i.description.trim(),
+        category: i.category?.trim() || null,
         quantity: Math.max(1, i.quantity), price: String(Math.max(0, i.price)), total: String(Math.max(0, i.total)),
+        imageUrl: i.imageUrl || null,
       }))
     }, {
       onSuccess: () => toast({ title: "تم الحفظ", description: "تم حفظ عرض السعر بنجاح." }),

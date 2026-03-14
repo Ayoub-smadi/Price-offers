@@ -82,12 +82,12 @@ export default function EditQuotation() {
           id: String(item.id),
           name: item.name,
           description: item.description || "",
-          category: "",
+          category: (item as any).category || "",
           quantity: item.quantity,
           unit: "وحدة",
           price: Number(item.price),
           total: Number(item.total),
-          imageUrl: "",
+          imageUrl: (item as any).imageUrl || "",
         })));
       }
       setInitialized(true);
@@ -233,7 +233,9 @@ export default function EditQuotation() {
       grandTotal: grandTotal.toString(),
       items: validItems.map(i => ({
         name: i.name.trim(), description: i.description.trim(),
+        category: i.category?.trim() || null,
         quantity: Math.max(1, i.quantity), price: String(Math.max(0, i.price)), total: String(Math.max(0, i.total)),
+        imageUrl: i.imageUrl || null,
       }))
     }, {
       onSuccess: () => toast({ title: "تم التحديث", description: "تم حفظ التعديلات بنجاح." }),

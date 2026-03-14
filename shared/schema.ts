@@ -19,9 +19,11 @@ export const quotationItems = pgTable("quotation_items", {
   quotationId: integer("quotation_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
+  category: text("category"),
   quantity: integer("quantity").notNull(),
   price: numeric("price").notNull(),
   total: numeric("total").notNull(),
+  imageUrl: text("image_url"),
 });
 
 export const DEFAULT_PRODUCT_CATEGORIES = ["أشجار", "شجيرات", "ورود", "نباتات زينة"] as const;
