@@ -461,8 +461,8 @@ export default function EditQuotation() {
               <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
                 <td colSpan={6} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
                 <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{grandTotal.toLocaleString()}</td>
-                <td></td>
-                <td className="no-print"></td>
+                <td className="bg-slate-900 dark:bg-slate-950"></td>
+                <td className="no-print bg-slate-900 dark:bg-slate-950"></td>
               </tr>
             </tfoot>
           </table>
