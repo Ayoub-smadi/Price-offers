@@ -363,7 +363,7 @@ ${details.companyNameAr}
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.quantity}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.price}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.total}</th>
-                <th className="p-2 font-bold text-center w-28 text-xs">صورة</th>
+                <th className="p-2 font-bold text-center w-28 text-xs">الصورة</th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
             </thead>
