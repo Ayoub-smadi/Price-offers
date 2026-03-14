@@ -68,6 +68,8 @@ export default function CreateQuotation() {
   const taxAmount = ((subtotal - discountAmount) * taxRate) / 100;
   const grandTotal = subtotal - discountAmount + taxAmount;
 
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -384,7 +386,7 @@ ${details.companyNameAr}
                   <td className="p-1.5 text-center">
                     <input type="number" min="0" step="0.01" dir="ltr" value={item.price || ''} onChange={(e) => updateItem(item.id, 'price', parseFloat(e.target.value) || 0)} style={{ textAlign: 'center' }} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-semibold" />
                   </td>
-                  <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{item.total.toLocaleString()}</td>
+                  <td className="p-1.5 text-center font-bold text-slate-900 dark:text-slate-50 bg-slate-100 dark:bg-slate-800/50 rounded text-xs">{fmt(item.total)}</td>
                   <td className="p-1 text-center">
                     <label className="relative cursor-pointer block w-24 h-24 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
                       <input
@@ -436,7 +438,7 @@ ${details.companyNameAr}
                 <>
                   <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
                     <td colSpan={6} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
-                    <td className="p-1.5 text-center text-xs text-slate-700 dark:text-slate-300 font-semibold">{subtotal.toLocaleString()}</td>
+                    <td className="p-1.5 text-center text-xs text-slate-700 dark:text-slate-300 font-semibold">{fmt(subtotal)}</td>
                     <td></td>
                     <td className="no-print"></td>
                   </tr>
@@ -445,7 +447,7 @@ ${details.companyNameAr}
                       <td colSpan={6} className="p-2 text-right text-xs pr-4 text-green-700 dark:text-green-400">
                         خصم ({discountValue}%)
                       </td>
-                      <td className="p-1.5 text-center text-xs text-green-700 dark:text-green-400 font-semibold">- {discountAmount.toLocaleString()}</td>
+                      <td className="p-1.5 text-center text-xs text-green-700 dark:text-green-400 font-semibold">- {fmt(discountAmount)}</td>
                       <td></td>
                       <td className="no-print"></td>
                     </tr>
@@ -453,7 +455,7 @@ ${details.companyNameAr}
                   {taxAmount > 0 && (
                     <tr className="bg-orange-50 dark:bg-orange-900/10">
                       <td colSpan={6} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
-                      <td className="p-1.5 text-center text-xs text-orange-700 dark:text-orange-400 font-semibold">+ {taxAmount.toLocaleString()}</td>
+                      <td className="p-1.5 text-center text-xs text-orange-700 dark:text-orange-400 font-semibold">+ {fmt(taxAmount)}</td>
                       <td></td>
                       <td className="no-print"></td>
                     </tr>
@@ -462,7 +464,7 @@ ${details.companyNameAr}
               )}
               <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
                 <td colSpan={6} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
-                <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{grandTotal.toLocaleString()}</td>
+                <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{fmt(grandTotal)} <span className="text-xs font-bold opacity-80">د.أ</span></td>
                 <td className="bg-slate-900 dark:bg-slate-950"></td>
                 <td className="no-print bg-slate-900 dark:bg-slate-950"></td>
               </tr>
@@ -515,10 +517,10 @@ ${details.companyNameAr}
           </div>
           {(discountAmount > 0 || taxAmount > 0) && (
             <div className="text-xs text-muted-foreground flex flex-wrap gap-4">
-              <span>المجموع الفرعي: <strong>{subtotal.toLocaleString()}</strong></span>
-              {discountAmount > 0 && <span className="text-green-600 dark:text-green-400">خصم: <strong>-{discountAmount.toLocaleString()}</strong></span>}
-              {taxAmount > 0 && <span className="text-orange-600 dark:text-orange-400">ضريبة: <strong>+{taxAmount.toLocaleString()}</strong></span>}
-              <span className="font-black text-foreground">الإجمالي النهائي: <strong>{grandTotal.toLocaleString()}</strong></span>
+              <span>المجموع الفرعي: <strong>{fmt(subtotal)} د.أ</strong></span>
+              {discountAmount > 0 && <span className="text-green-600 dark:text-green-400">خصم: <strong>-{fmt(discountAmount)} د.أ</strong></span>}
+              {taxAmount > 0 && <span className="text-orange-600 dark:text-orange-400">ضريبة: <strong>+{fmt(taxAmount)} د.أ</strong></span>}
+              <span className="font-black text-foreground">الإجمالي النهائي: <strong>{fmt(grandTotal)} د.أ</strong></span>
             </div>
           )}
         </div>
