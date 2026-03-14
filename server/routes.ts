@@ -352,7 +352,7 @@ export async function registerRoutes(
           return { name: name.trim(), description: description.trim(), category: category.trim(), quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
         }
 
-        // ── Slash-separated format: الكمية / الاسم / الوصف / السعر ──
+        // ── Slash-separated format: الكمية / الاسم / الوصف / القسم / السعر ──
         const slashParts = trimmedLine.split('/').map(p => p.trim()).filter(p => p);
         if (slashParts.length >= 3) {
           let qty = 1;
@@ -360,16 +360,25 @@ export async function registerRoutes(
           if (qtyMatch) qty = parseFloat(qtyMatch[0].replace(',', '.'));
           const name = slashParts[1] || "عنصر غير معروف";
           let description = "";
+          let category = "";
           let price = 0;
-          if (slashParts.length >= 4) {
+          if (slashParts.length >= 5) {
+            // الكمية / الاسم / الوصف / القسم / السعر
+            description = slashParts[2] || "";
+            category    = slashParts[3] || "";
+            const pm = slashParts[4].match(numberPattern);
+            if (pm) price = parseFloat(pm[0].replace(',', '.'));
+          } else if (slashParts.length === 4) {
+            // الكمية / الاسم / الوصف / السعر
             description = slashParts[2] || "";
             const pm = slashParts[3].match(numberPattern);
             if (pm) price = parseFloat(pm[0].replace(',', '.'));
           } else {
+            // الكمية / الاسم / السعر
             const pm = slashParts[2].match(numberPattern);
             if (pm) price = parseFloat(pm[0].replace(',', '.'));
           }
-          return { name: name.trim() || "عنصر غير معروف", description: description.trim(), category: "", quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
+          return { name: name.trim() || "عنصر غير معروف", description: description.trim(), category: category.trim(), quantity: Math.max(qty, 1), price: Math.max(price, 0), total: Math.max(qty, 1) * Math.max(price, 0) };
         }
 
         // ── Free text format: اسم المنتج الكمية السعر ──
