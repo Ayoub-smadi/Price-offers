@@ -245,6 +245,7 @@ function SortableProductCard({
               className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary" placeholder="السعر" />
           </div>
           <input value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+            dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }}
             className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs outline-none focus:border-primary" placeholder="الوصف" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1">القسم</label>
@@ -294,7 +295,15 @@ function SortableProductCard({
           </div>
           <div className="p-4" dir="rtl">
             <h3 className="font-bold text-foreground text-sm leading-tight mb-1">{product.name}</h3>
-            {product.description && <p dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }} className="text-muted-foreground text-xs line-clamp-2 mb-2">{product.description}</p>}
+            {product.description && (
+              <div
+                dir="rtl"
+                style={{ direction: 'rtl', overflow: 'hidden', maxHeight: '2.5rem', lineHeight: '1.25rem', textAlign: 'right' }}
+                className="text-muted-foreground text-xs mb-2"
+              >
+                {'\u200F'}{product.description}
+              </div>
+            )}
             <div className="text-lg font-black text-primary">
               {Number(product.price).toLocaleString()}
               <span className="text-xs font-normal text-muted-foreground"> / {product.unit || "وحدة"}</span>
@@ -792,6 +801,7 @@ export default function Products() {
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="السعر" data-testid="input-product-price" />
           </div>
           <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+            dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary" placeholder="الوصف (اختياري)" data-testid="input-product-description" />
           <div>
             <label className="text-xs font-semibold text-muted-foreground block mb-1">القسم</label>
