@@ -69,18 +69,22 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   inputs.forEach(input => {
     const htmlInput = input as HTMLInputElement | HTMLTextAreaElement;
     const value = htmlInput.value;
+    // Default to RTL for this Arabic app; only LTR for number inputs
+    const inputType = (htmlInput as HTMLInputElement).type;
+    const isRtl = inputType !== 'number' && (htmlInput.getAttribute('dir') !== 'ltr');
 
     const div = document.createElement('div');
     div.style.whiteSpace = 'pre-wrap';
     div.style.wordWrap = 'break-word';
     div.style.color = '#000000';
-    div.style.direction = 'rtl';
-    div.style.unicodeBidi = 'isolate';
+    div.style.direction = isRtl ? 'rtl' : 'ltr';
+    div.style.unicodeBidi = 'embed';
+    if (isRtl) div.setAttribute('dir', 'rtl');
 
     const computedStyle = window.getComputedStyle(htmlInput);
     div.style.fontSize = computedStyle.fontSize;
     div.style.fontWeight = computedStyle.fontWeight;
-    div.style.textAlign = computedStyle.textAlign;
+    div.style.textAlign = computedStyle.textAlign || (isRtl ? 'right' : 'left');
     div.style.margin = computedStyle.margin;
     div.style.padding = computedStyle.padding;
 
@@ -95,6 +99,8 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
   tables.forEach(table => {
     table.style.borderCollapse = 'collapse';
     table.style.width = '100%';
+    table.style.direction = 'rtl';
+    table.setAttribute('dir', 'rtl');
 
     const headerCells = table.querySelectorAll('th');
     headerCells.forEach(cell => {
@@ -109,6 +115,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.color = '#ffffff';
       element.style.fontWeight = 'bold';
       element.style.fontSize = '12px';
+      element.style.direction = 'rtl';
     });
 
     const dataCells = table.querySelectorAll('tbody td');
@@ -123,6 +130,18 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.whiteSpace = 'normal';
       element.style.backgroundColor = '#ffffff';
       element.style.color = '#000000';
+      element.style.direction = 'rtl';
+      element.setAttribute('dir', 'rtl');
+
+      // Fix any inner content that may have mismatched direction
+      const innerDivs = element.querySelectorAll('div, span');
+      innerDivs.forEach(inner => {
+        const el = inner as HTMLElement;
+        if (!el.style.direction) {
+          el.style.direction = 'rtl';
+          el.style.unicodeBidi = 'embed';
+        }
+      });
     });
 
     // Center-align name, description, and category columns (indices 1, 2, 3)
@@ -134,7 +153,11 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
         if (!cell) return;
         cell.style.textAlign = 'center';
         const inner = cell.querySelector('div, span, input') as HTMLElement | null;
-        if (inner) inner.style.textAlign = 'center';
+        if (inner) {
+          inner.style.textAlign = 'center';
+          inner.style.direction = 'rtl';
+          inner.setAttribute('dir', 'rtl');
+        }
       });
     });
 
@@ -365,8 +388,10 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     imageTimeout: 15000,
     windowWidth: Math.round(210 * 96 / 25.4),
     onclone: async (doc: Document) => {
+      doc.documentElement.setAttribute('dir', 'rtl');
+      doc.documentElement.style.direction = 'rtl';
       const style = doc.createElement('style');
-      style.textContent = fontCss;
+      style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
       doc.head.appendChild(style);
       try { await doc.fonts.ready; } catch {}
     },
@@ -397,11 +422,13 @@ export const exportToPDF = async (
 
     // --- Render main document ---
     const printDoc = createPrintDocument(element, items || [], details || {});
-    printDoc.style.position = 'fixed';
-    printDoc.style.top = '-9999px';
-    printDoc.style.left = '-9999px';
+    printDoc.style.position = 'absolute';
+    printDoc.style.top = '-99999px';
+    printDoc.style.left = '0';
+    printDoc.style.direction = 'rtl';
+    printDoc.setAttribute('dir', 'rtl');
     document.body.appendChild(printDoc);
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     const mainCanvas = await renderToCanvas(printDoc);
     document.body.removeChild(printDoc);
@@ -412,9 +439,9 @@ export const exportToPDF = async (
 
     if (logoSrc || details) {
       const miniHeader = createPageMiniHeader(details || {}, logoSrc || '');
-      miniHeader.style.position = 'fixed';
-      miniHeader.style.top = '-9999px';
-      miniHeader.style.left = '-9999px';
+      miniHeader.style.position = 'absolute';
+      miniHeader.style.top = '-99999px';
+      miniHeader.style.left = '0';
       document.body.appendChild(miniHeader);
       await new Promise(resolve => setTimeout(resolve, 150));
 
@@ -1135,8 +1162,10 @@ async function renderPage(
     width: A4_W,
     height: A4_H,
     onclone: async (doc: Document) => {
+      doc.documentElement.setAttribute('dir', 'rtl');
+      doc.documentElement.style.direction = 'rtl';
       const style = doc.createElement('style');
-      style.textContent = fontCss;
+      style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
       doc.head.appendChild(style);
       try { await doc.fonts.ready; } catch {}
     },
