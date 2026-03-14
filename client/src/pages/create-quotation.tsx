@@ -49,7 +49,6 @@ export default function CreateQuotation() {
   });
 
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
-  const [quotationImageBase64, setQuotationImageBase64] = useState<string | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -75,11 +74,11 @@ export default function CreateQuotation() {
     }
   };
 
-  const handleQuotationImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleItemImageUpload = (itemId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setQuotationImageBase64(reader.result as string);
+      reader.onloadend = () => updateItem(itemId, 'imageUrl', reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -336,13 +335,13 @@ ${details.companyNameAr}
           </div>
         </div>
 
-        {/* Table + Image side by side */}
-        <div className="flex items-stretch gap-2">
-        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 flex-1">
+        {/* Table */}
+        <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
           <table className="w-full text-right text-xs border-collapse">
             <thead>
               <tr className="bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-700">
                 <th className="p-2 font-bold text-center w-6 text-xs">{headers.index}</th>
+                <th className="p-2 font-bold text-center w-12 text-xs">صورة</th>
                 <th className="p-2 font-bold text-right text-xs">{headers.name}</th>
                 <th className="p-2 font-bold text-right text-xs">{headers.description}</th>
                 <th className="p-2 font-bold text-center w-16 text-xs">{headers.quantity}</th>
@@ -355,18 +354,36 @@ ${details.companyNameAr}
               {items.map((item, index) => (
                 <tr key={item.id} className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors group">
                   <td className="p-1.5 text-center text-slate-600 dark:text-slate-400 font-semibold text-xs">{index + 1}</td>
-                  <td className="p-1.5">
-                    <div className="flex items-center gap-1.5">
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-8 h-8 rounded object-cover shrink-0 border border-slate-200 dark:border-slate-700"
-                          onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
+                  <td className="p-1 text-center">
+                    <label className="relative cursor-pointer block w-10 h-10 mx-auto rounded overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary transition-colors group/img" title="انقر لرفع صورة">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10 no-print"
+                        onChange={(e) => handleItemImageUpload(item.id, e)}
+                        data-testid={`input-item-image-${item.id}`}
+                      />
+                      {item.imageUrl ? (
+                        <>
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center no-print">
+                            <Plus className="w-3 h-3 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900 no-print">
+                          <Plus className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                        </div>
                       )}
-                      <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
-                    </div>
+                    </label>
+                  </td>
+                  <td className="p-1.5">
+                    <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
                   </td>
                   <td className="p-1.5">
                     <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
@@ -400,13 +417,13 @@ ${details.companyNameAr}
               {(discountAmount > 0 || taxAmount > 0) && (
                 <>
                   <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                    <td colSpan={5} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
+                    <td colSpan={6} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
                     <td className="p-1.5 text-center text-xs text-slate-700 dark:text-slate-300 font-semibold">{subtotal.toLocaleString()}</td>
                     <td className="no-print"></td>
                   </tr>
                   {discountAmount > 0 && (
                     <tr className="bg-green-50 dark:bg-green-900/10">
-                      <td colSpan={5} className="p-2 text-right text-xs pr-4 text-green-700 dark:text-green-400">
+                      <td colSpan={6} className="p-2 text-right text-xs pr-4 text-green-700 dark:text-green-400">
                         خصم ({discountValue}%)
                       </td>
                       <td className="p-1.5 text-center text-xs text-green-700 dark:text-green-400 font-semibold">- {discountAmount.toLocaleString()}</td>
@@ -415,7 +432,7 @@ ${details.companyNameAr}
                   )}
                   {taxAmount > 0 && (
                     <tr className="bg-orange-50 dark:bg-orange-900/10">
-                      <td colSpan={5} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
+                      <td colSpan={6} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
                       <td className="p-1.5 text-center text-xs text-orange-700 dark:text-orange-400 font-semibold">+ {taxAmount.toLocaleString()}</td>
                       <td className="no-print"></td>
                     </tr>
@@ -423,52 +440,13 @@ ${details.companyNameAr}
                 </>
               )}
               <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
-                <td colSpan={5} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
+                <td colSpan={6} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
                 <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{grandTotal.toLocaleString()}</td>
                 <td className="no-print"></td>
               </tr>
             </tfoot>
           </table>
         </div>
-
-        {/* Quotation Image Box */}
-        <div className="flex flex-col items-center justify-center w-36 shrink-0 rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden relative group">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleQuotationImageUpload}
-            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
-            data-testid="input-quotation-image"
-          />
-          {quotationImageBase64 ? (
-            <>
-              <img
-                src={quotationImageBase64}
-                alt="صورة العرض"
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center no-print">
-                <span className="text-white text-xs font-bold">تغيير الصورة</span>
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); setQuotationImageBase64(null); }}
-                className="absolute top-1 left-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 no-print"
-                data-testid="button-remove-quotation-image"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center gap-2 p-3 text-center no-print">
-              <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <Plus className="w-4 h-4 text-slate-400" />
-              </div>
-              <span className="text-[10px] text-slate-400 font-medium leading-tight">أضف صورة</span>
-            </div>
-          )}
-        </div>
-
-        </div>{/* end flex wrapper */}
 
         {/* Action Buttons Row */}
         <div className="flex items-center gap-3 no-print">
