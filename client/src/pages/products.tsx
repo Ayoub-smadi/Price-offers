@@ -479,7 +479,8 @@ export default function Products() {
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showExportDialog, setShowExportDialog] = useState(false);
-  const [selectedExportCats, setSelectedExportCats] = useState<Set<string>>(new Set());
+  const [selectedExportProducts, setSelectedExportProducts] = useState<Set<number>>(new Set());
+  const [expandedExportCats, setExpandedExportCats] = useState<Set<string>>(new Set());
 
   const isLoading = productsLoading || categoriesLoading;
   const categoryList = categories || [];
@@ -604,17 +605,15 @@ export default function Products() {
   const openExportDialog = () => {
     const allProducts = products || [];
     if (allProducts.length === 0) { toast({ title: "لا توجد منتجات للتصدير", variant: "destructive" }); return; }
-    setSelectedExportCats(new Set(categoryNames));
+    setSelectedExportProducts(new Set(allProducts.map(p => p.id)));
+    setExpandedExportCats(new Set([...categoryNames, "__unclassified__"]));
     setShowExportDialog(true);
   };
 
   const handleExportPDF = async () => {
     const allProducts = products || [];
-    const filtered = allProducts.filter(p => {
-      if (!p.category || !categoryNames.includes(p.category)) return selectedExportCats.has("__unclassified__");
-      return selectedExportCats.has(p.category);
-    });
-    if (filtered.length === 0) { toast({ title: "لا توجد منتجات في الأقسام المختارة", variant: "destructive" }); return; }
+    const filtered = allProducts.filter(p => selectedExportProducts.has(p.id));
+    if (filtered.length === 0) { toast({ title: "لا توجد منتجات محددة للتصدير", variant: "destructive" }); return; }
     setShowExportDialog(false);
     setExporting(true);
     try {
@@ -627,10 +626,30 @@ export default function Products() {
     }
   };
 
-  const toggleExportCat = (name: string) => {
-    setSelectedExportCats(prev => {
+  const toggleExportProduct = (id: number) => {
+    setSelectedExportProducts(prev => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleExportCategory = (catKey: string) => {
+    const catProducts = catKey === "__unclassified__" ? unclassifiedProducts : getProductsForCategory(catKey);
+    const catIds = catProducts.map(p => p.id);
+    const allSelected = catIds.length > 0 && catIds.every(id => selectedExportProducts.has(id));
+    setSelectedExportProducts(prev => {
+      const next = new Set(prev);
+      if (allSelected) { catIds.forEach(id => next.delete(id)); }
+      else { catIds.forEach(id => next.add(id)); }
+      return next;
+    });
+  };
+
+  const toggleExpandExportCat = (catKey: string) => {
+    setExpandedExportCats(prev => {
+      const next = new Set(prev);
+      if (next.has(catKey)) next.delete(catKey); else next.add(catKey);
       return next;
     });
   };
@@ -717,46 +736,69 @@ export default function Products() {
         <div className="bg-card rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 p-5 space-y-4">
           <h2 className="font-bold text-base text-foreground flex items-center gap-2">
             <FileDown className="w-5 h-5 text-emerald-600" />
-            اختر الأقسام للتصدير
+            اختر النباتات للتصدير
+            <span className="text-xs font-normal text-muted-foreground mr-auto">({selectedExportProducts.size} محدد)</span>
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => setSelectedExportCats(new Set([...categoryNames, "__unclassified__"]))}
+              onClick={() => setSelectedExportProducts(new Set((products || []).map(p => p.id)))}
               className="text-xs text-primary hover:underline font-semibold">
               تحديد الكل
             </button>
             <span className="text-muted-foreground text-xs">•</span>
             <button
-              onClick={() => setSelectedExportCats(new Set())}
+              onClick={() => setSelectedExportProducts(new Set())}
               className="text-xs text-muted-foreground hover:underline">
               إلغاء الكل
             </button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {categoryList.map(cat => (
-              <label key={cat.id}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${selectedExportCats.has(cat.name) ? `${getCategoryColor(cat.name)} font-semibold` : "border-border bg-background opacity-60"}`}
-                data-testid={`label-export-cat-${cat.id}`}>
-                <input type="checkbox" checked={selectedExportCats.has(cat.name)}
-                  onChange={() => toggleExportCat(cat.name)} className="accent-primary w-4 h-4 shrink-0" />
-                <span className="shrink-0">{getCategoryIcon(cat.name)}</span>
-                <span className="text-sm truncate">{cat.name}</span>
-                <span className="text-xs text-muted-foreground shrink-0">({getProductsForCategory(cat.name).length})</span>
-              </label>
-            ))}
-            {unclassifiedProducts.length > 0 && (
-              <label className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer transition-all ${selectedExportCats.has("__unclassified__") ? "border-amber-300 bg-amber-50 dark:bg-amber-950/20 font-semibold" : "border-border bg-background opacity-60"}`}
-                data-testid="label-export-cat-unclassified">
-                <input type="checkbox" checked={selectedExportCats.has("__unclassified__")}
-                  onChange={() => toggleExportCat("__unclassified__")} className="accent-primary w-4 h-4 shrink-0" />
-                <Inbox className="w-4 h-4 shrink-0 text-amber-600" />
-                <span className="text-sm truncate">غير مصنف</span>
-                <span className="text-xs text-muted-foreground shrink-0">({unclassifiedProducts.length})</span>
-              </label>
-            )}
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {[...categoryList.map(cat => ({ key: cat.name, label: cat.name, icon: <span>{getCategoryIcon(cat.name)}</span>, products: getProductsForCategory(cat.name), color: getCategoryColor(cat.name) })),
+              ...(unclassifiedProducts.length > 0 ? [{ key: "__unclassified__", label: "غير مصنف", icon: <Inbox className="w-4 h-4 text-amber-600" />, products: unclassifiedProducts, color: "border-amber-300 bg-amber-50 dark:bg-amber-950/20" }] : [])
+            ].map(({ key, label, icon, products: catProds, color }) => {
+              const catIds = catProds.map(p => p.id);
+              const selectedCount = catIds.filter(id => selectedExportProducts.has(id)).length;
+              const allSelected = catIds.length > 0 && selectedCount === catIds.length;
+              const someSelected = selectedCount > 0 && selectedCount < catIds.length;
+              const isExpanded = expandedExportCats.has(key);
+              return (
+                <div key={key} className={`rounded-xl border-2 overflow-hidden ${allSelected ? color : someSelected ? "border-border bg-muted/30" : "border-border bg-background opacity-70"}`}>
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <input type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if (el) el.indeterminate = someSelected; }}
+                      onChange={() => toggleExportCategory(key)}
+                      className="accent-primary w-4 h-4 shrink-0 cursor-pointer"
+                      data-testid={`checkbox-export-cat-${key}`} />
+                    <span className="shrink-0">{icon}</span>
+                    <span className="text-sm font-semibold flex-1">{label}</span>
+                    <span className="text-xs text-muted-foreground">{selectedCount}/{catIds.length}</span>
+                    <button onClick={() => toggleExpandExportCat(key)} className="text-muted-foreground hover:text-foreground transition-colors p-0.5">
+                      <svg className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                  </div>
+                  {isExpanded && catProds.length > 0 && (
+                    <div className="border-t border-border/50 divide-y divide-border/30">
+                      {catProds.map(prod => (
+                        <label key={prod.id} className={`flex items-center gap-2 px-4 py-1.5 cursor-pointer hover:bg-muted/40 transition-colors ${selectedExportProducts.has(prod.id) ? "bg-muted/20" : ""}`}
+                          data-testid={`label-export-product-${prod.id}`}>
+                          <input type="checkbox"
+                            checked={selectedExportProducts.has(prod.id)}
+                            onChange={() => toggleExportProduct(prod.id)}
+                            className="accent-primary w-3.5 h-3.5 shrink-0 cursor-pointer" />
+                          <span className="text-sm flex-1 truncate">{prod.name}</span>
+                          {prod.description && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{prod.description}</span>}
+                          {prod.price && Number(prod.price) > 0 && <span className="text-xs font-medium text-emerald-600 shrink-0">{Number(prod.price).toLocaleString()} د.أ</span>}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={handleExportPDF} disabled={selectedExportCats.size === 0}
+            <button onClick={handleExportPDF} disabled={selectedExportProducts.size === 0}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50"
               data-testid="button-confirm-export">
               <FileDown className="w-4 h-4" /> تصدير PDF
