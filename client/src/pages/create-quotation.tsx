@@ -530,7 +530,7 @@ ${details.companyNameAr}
           {details.notes.trim() && (
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">ملاحظات:</label>
-              <div className="p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-slate-700 dark:text-slate-300 text-xs whitespace-pre-wrap break-words line-clamp-2">{details.notes}</div>
+              <div className="p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded text-slate-700 dark:text-slate-300 text-xs whitespace-pre-wrap break-words">{details.notes}</div>
             </div>
           )}
           <div className="space-y-1 no-print">
