@@ -335,17 +335,17 @@ ${details.companyNameAr}
               </div>
             </div>
           </div>
-          <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex-1 text-center space-y-1">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">التاريخ</label>
+          <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800" style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
+            <div className="flex-1 text-center space-y-1" style={{ flex: 1, textAlign: 'center' }}>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400" style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }}>التاريخ</label>
               <input type="date" value={details.date} onChange={(e) => setDetails({...details, date: e.target.value})} className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 px-0 w-full text-center truncate" />
             </div>
-            <div className="flex-1 text-center space-y-1">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400">عرض سعر رقم</label>
+            <div className="flex-1 text-center space-y-1" style={{ flex: 1, textAlign: 'center' }}>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400" style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }}>عرض سعر رقم</label>
               <input value={details.quotationNumber} onChange={(e) => setDetails({...details, quotationNumber: e.target.value})} className="text-lg font-black text-slate-900 dark:text-slate-50 bg-transparent border-none p-0 focus:ring-2 focus:ring-primary/30 w-full text-center focus:outline-none rounded" />
             </div>
-            <div className="flex-1 text-center space-y-1">
-              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 no-print">العميل</label>
+            <div className="flex-1 text-center space-y-1" style={{ flex: 1, textAlign: 'center' }}>
+              <label className="text-xs font-bold text-slate-500 dark:text-slate-400 no-print" style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }}>العميل</label>
               <input value={details.customerName} onChange={(e) => setDetails({...details, customerName: e.target.value})} className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 dark:border-slate-600 focus:border-primary outline-none py-1 px-0 w-full text-center no-print truncate" placeholder="اسم العميل" />
             </div>
           </div>
