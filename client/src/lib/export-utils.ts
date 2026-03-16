@@ -271,9 +271,15 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       if (el.classList.contains('grid-cols-2')) cols = 2;
       if (el.classList.contains('grid-cols-3')) cols = 3;
       if (el.classList.contains('grid-cols-4')) cols = 4;
+      const gap = el.classList.contains('gap-1') ? 4
+                : el.classList.contains('gap-2') ? 8
+                : el.classList.contains('gap-3') ? 12
+                : el.classList.contains('gap-4') ? 16
+                : el.classList.contains('gap-6') ? 24 : 0;
       Array.from(el.children).forEach(child => {
-        (child as HTMLElement).style.flex = `0 0 calc(${100 / cols}% - 12px)`;
-        (child as HTMLElement).style.width = `calc(${100 / cols}% - 12px)`;
+        const w = `calc((100% - ${gap * (cols - 1)}px) / ${cols})`;
+        (child as HTMLElement).style.flex = `0 0 ${w}`;
+        (child as HTMLElement).style.width = w;
         (child as HTMLElement).style.boxSizing = 'border-box';
       });
     }
