@@ -233,7 +233,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     element.style.boxShadow = 'none';
   });
 
-  // Fix flex containers - apply styles inline since html2canvas ignores Tailwind classes
+  // Fix flex and grid containers - apply styles inline since html2canvas ignores Tailwind classes
   const allCloned = clone.querySelectorAll('*');
   allCloned.forEach(container => {
     const el = container as HTMLElement;
@@ -248,8 +248,36 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       if (el.classList.contains('justify-end')) el.style.justifyContent = 'flex-end';
       if (el.classList.contains('gap-1')) el.style.gap = '4px';
       if (el.classList.contains('gap-2')) el.style.gap = '8px';
+      if (el.classList.contains('gap-3')) el.style.gap = '12px';
       if (el.classList.contains('gap-4')) el.style.gap = '16px';
+      if (el.classList.contains('gap-6')) el.style.gap = '24px';
+      if (el.classList.contains('gap-8')) el.style.gap = '32px';
       if (el.classList.contains('flex-wrap')) el.style.flexWrap = 'wrap';
+      if (el.classList.contains('flex-1')) el.style.flex = '1';
+      if (el.classList.contains('flex-shrink-0')) el.style.flexShrink = '0';
+    }
+    // Fix grid containers
+    if (el.classList.contains('grid')) {
+      el.style.display = 'grid';
+      if (el.classList.contains('grid-cols-2')) el.style.gridTemplateColumns = 'repeat(2, 1fr)';
+      if (el.classList.contains('grid-cols-3')) el.style.gridTemplateColumns = 'repeat(3, 1fr)';
+      if (el.classList.contains('grid-cols-4')) el.style.gridTemplateColumns = 'repeat(4, 1fr)';
+      if (el.classList.contains('gap-1')) el.style.gap = '4px';
+      if (el.classList.contains('gap-2')) el.style.gap = '8px';
+      if (el.classList.contains('gap-3')) el.style.gap = '12px';
+      if (el.classList.contains('gap-4')) el.style.gap = '16px';
+      if (el.classList.contains('gap-6')) el.style.gap = '24px';
+    }
+    // Fix space-y utilities (vertical spacing between children)
+    if (el.classList.contains('space-y-1')) {
+      Array.from(el.children).forEach((child, i) => {
+        if (i > 0) (child as HTMLElement).style.marginTop = '4px';
+      });
+    }
+    if (el.classList.contains('space-y-4')) {
+      Array.from(el.children).forEach((child, i) => {
+        if (i > 0) (child as HTMLElement).style.marginTop = '16px';
+      });
     }
   });
 
