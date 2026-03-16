@@ -376,9 +376,9 @@ export default function EditQuotation() {
                 <th className="p-2 font-bold text-right text-xs">{headers.name}</th>
                 <th className="p-2 font-bold text-right text-xs">{headers.description}</th>
                 <th className="p-2 font-bold text-right text-xs">القسم</th>
-                <th className="p-2 font-bold text-center w-16 text-xs">{headers.quantity}</th>
-                <th className="p-2 font-bold text-center w-16 text-xs">{headers.price}</th>
-                <th className="p-2 font-bold text-center w-16 text-xs">{headers.total}</th>
+                <th className="p-2 font-bold text-center w-24 text-xs">{headers.quantity}</th>
+                <th className="p-2 font-bold text-center w-24 text-xs">{headers.price}</th>
+                <th className="p-2 font-bold text-center w-24 text-xs">{headers.total}</th>
                 <th className="p-2 font-bold text-center w-28 text-xs">الصورة</th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
