@@ -133,7 +133,7 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       lbl.style.cssText = `display:block;font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px;font-family:Cairo,sans-serif;`;
       lbl.textContent = label;
       const val = document.createElement('div');
-      val.style.cssText = `display:block;font-size:13px;font-weight:900;color:#0f172a;font-family:Cairo,sans-serif;${borderBottom ? 'border-bottom:2px solid #cbd5e1;padding-bottom:2px;' : ''}`;
+      val.style.cssText = `display:block;font-size:13px;font-weight:900;color:#0f172a;font-family:Cairo,sans-serif;${borderBottom ? 'border-bottom:2px solid #cbd5e1;padding-bottom:10px;' : ''}`;
       val.textContent = value || '—';
       c.appendChild(lbl);
       c.appendChild(val);
