@@ -256,22 +256,40 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       if (el.classList.contains('flex-1')) el.style.flex = '1';
       if (el.classList.contains('flex-shrink-0')) el.style.flexShrink = '0';
     }
-    // Fix grid containers
+    // Fix grid containers — html2canvas does NOT support CSS Grid,
+    // so we convert grids to flexbox with equal-width children.
     if (el.classList.contains('grid')) {
-      el.style.display = 'grid';
-      if (el.classList.contains('grid-cols-2')) el.style.gridTemplateColumns = 'repeat(2, 1fr)';
-      if (el.classList.contains('grid-cols-3')) el.style.gridTemplateColumns = 'repeat(3, 1fr)';
-      if (el.classList.contains('grid-cols-4')) el.style.gridTemplateColumns = 'repeat(4, 1fr)';
+      el.style.display = 'flex';
+      el.style.flexDirection = 'row';
       if (el.classList.contains('gap-1')) el.style.gap = '4px';
       if (el.classList.contains('gap-2')) el.style.gap = '8px';
       if (el.classList.contains('gap-3')) el.style.gap = '12px';
       if (el.classList.contains('gap-4')) el.style.gap = '16px';
       if (el.classList.contains('gap-6')) el.style.gap = '24px';
+      // Give every direct child an equal flex share
+      let cols = 1;
+      if (el.classList.contains('grid-cols-2')) cols = 2;
+      if (el.classList.contains('grid-cols-3')) cols = 3;
+      if (el.classList.contains('grid-cols-4')) cols = 4;
+      Array.from(el.children).forEach(child => {
+        (child as HTMLElement).style.flex = `0 0 calc(${100 / cols}% - 12px)`;
+        (child as HTMLElement).style.width = `calc(${100 / cols}% - 12px)`;
+        (child as HTMLElement).style.boxSizing = 'border-box';
+      });
     }
+    // Fix text-align utilities
+    if (el.classList.contains('text-center')) el.style.textAlign = 'center';
+    if (el.classList.contains('text-right'))  el.style.textAlign = 'right';
+    if (el.classList.contains('text-left'))   el.style.textAlign = 'left';
     // Fix space-y utilities (vertical spacing between children)
     if (el.classList.contains('space-y-1')) {
       Array.from(el.children).forEach((child, i) => {
         if (i > 0) (child as HTMLElement).style.marginTop = '4px';
+      });
+    }
+    if (el.classList.contains('space-y-2')) {
+      Array.from(el.children).forEach((child, i) => {
+        if (i > 0) (child as HTMLElement).style.marginTop = '8px';
       });
     }
     if (el.classList.contains('space-y-4')) {
