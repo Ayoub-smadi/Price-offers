@@ -351,7 +351,7 @@ export default function EditQuotation() {
               </div>
             </div>
           </div>
-          <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800" style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
+          <div data-pdf-info-row="true" className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800" style={{ display: 'flex', gap: '12px', paddingTop: '8px' }}>
             <div className="flex-1 text-center space-y-1" style={{ flex: 1, textAlign: 'center' }}>
               <label className="text-xs font-bold text-slate-500" style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '2px' }}>التاريخ</label>
               <input type="date" value={details.date} onChange={(e) => setDetails({...details, date: e.target.value})} className="text-xs font-semibold text-slate-700 dark:text-slate-300 bg-transparent border-b-2 border-slate-300 focus:border-primary outline-none py-1 w-full text-center" />

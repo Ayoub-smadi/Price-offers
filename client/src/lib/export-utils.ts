@@ -122,6 +122,32 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     htmlInput.parentNode?.replaceChild(div, htmlInput);
   });
 
+  // Rebuild the info row (date / quotation-number / customer) with pure inline styles
+  // so html2canvas renders label directly above its value with no layout surprises.
+  const infoRow = clone.querySelector('[data-pdf-info-row]') as HTMLElement | null;
+  if (infoRow && details) {
+    const cell = (label: string, value: string, borderBottom = true) => {
+      const c = document.createElement('div');
+      c.style.cssText = `flex:1;text-align:center;padding:0 4px;`;
+      const lbl = document.createElement('div');
+      lbl.style.cssText = `display:block;font-size:10px;font-weight:700;color:#64748b;margin-bottom:3px;font-family:Cairo,sans-serif;`;
+      lbl.textContent = label;
+      const val = document.createElement('div');
+      val.style.cssText = `display:block;font-size:13px;font-weight:900;color:#0f172a;font-family:Cairo,sans-serif;${borderBottom ? 'border-bottom:2px solid #cbd5e1;padding-bottom:2px;' : ''}`;
+      val.textContent = value || '—';
+      c.appendChild(lbl);
+      c.appendChild(val);
+      return c;
+    };
+
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;flex-direction:row;gap:12px;padding-top:8px;border-top:1px solid #f1f5f9;width:100%;box-sizing:border-box;`;
+    row.appendChild(cell('التاريخ', details.date || '', true));
+    row.appendChild(cell('عرض سعر رقم', details.quotationNumber || '', false));
+    row.appendChild(cell('العميل', details.customerName || '', true));
+    infoRow.parentNode?.replaceChild(row, infoRow);
+  }
+
   const noPrint = clone.querySelectorAll('.no-print');
   noPrint.forEach(el => el.remove());
 
