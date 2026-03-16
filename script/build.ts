@@ -6,6 +6,7 @@ import { rm, readFile } from "fs/promises";
 // which helps cold start times
 const allowlist = [
   "@google/generative-ai",
+  "@vercel/blob",
   "axios",
   "compression",
   "connect-pg-simple",

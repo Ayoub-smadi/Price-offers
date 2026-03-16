@@ -5,26 +5,57 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertProductSchema, insertProductCategorySchema } from "@shared/schema";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { randomUUID } from "crypto";
+import { objectStorageClient } from "./replit_integrations/object_storage/objectStorage";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
-const uploadsDir = path.resolve(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
+const PRIVATE_DIR_SUFFIX = ".private";
+const USE_VERCEL_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
     else cb(new Error("ملفات الصور فقط مسموح بها"));
   },
 });
+
+async function uploadToStorage(buffer: Buffer, mimetype: string): Promise<string> {
+  if (USE_VERCEL_BLOB) {
+    const { put } = await import("@vercel/blob");
+    const uuid = randomUUID();
+    const ext = mimetype.split("/")[1] || "jpg";
+    const blob = await put(`uploads/${uuid}.${ext}`, buffer, {
+      access: "public",
+      contentType: mimetype,
+    });
+    return blob.url;
+  } else {
+    const uuid = randomUUID();
+    const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${uuid}`;
+    const bucket = objectStorageClient.bucket(BUCKET_ID);
+    await bucket.file(objectName).save(buffer, { contentType: mimetype });
+    return `/objects/uploads/${uuid}`;
+  }
+}
+
+async function deleteObjectIfExists(imageUrl: string) {
+  if (imageUrl.startsWith("https://") && USE_VERCEL_BLOB) {
+    try {
+      const { del } = await import("@vercel/blob");
+      await del(imageUrl);
+    } catch {}
+  } else if (imageUrl.startsWith("/objects/")) {
+    const parts = imageUrl.replace("/objects/", "");
+    const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${parts.split("/uploads/")[1]}`;
+    try {
+      const bucket = objectStorageClient.bucket(BUCKET_ID);
+      await bucket.file(objectName).delete({ ignoreNotFound: true });
+    } catch {}
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -128,10 +159,19 @@ export async function registerRoutes(
   });
 
   // ── Upload ───────────────────────────────────────────────────
-  app.post('/api/upload', upload.single('image'), (req, res) => {
+  app.post('/api/upload', upload.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "لم يتم رفع أي ملف" });
-    res.json({ url: `/uploads/${req.file.filename}` });
+    try {
+      const url = await uploadToStorage(req.file.buffer, req.file.mimetype);
+      res.json({ url });
+    } catch (err) {
+      console.error("Upload error:", err);
+      res.status(500).json({ message: "فشل في رفع الملف" });
+    }
   });
+
+  // ── Object storage serving ───────────────────────────────────
+  registerObjectStorageRoutes(app);
 
   // ── Products ─────────────────────────────────────────────────
   app.get('/api/products', async (_req, res) => {
@@ -172,12 +212,11 @@ export async function registerRoutes(
       const existing = await storage.getProduct(id);
       const product = await storage.updateProduct(id, input.price !== undefined ? { ...input, price: String(input.price) } as any : input);
       if (
-        existing?.imageUrl?.startsWith('/uploads/') &&
+        existing?.imageUrl &&
         input.imageUrl !== undefined &&
         input.imageUrl !== existing.imageUrl
       ) {
-        const filePath = path.join(uploadsDir, path.basename(existing.imageUrl));
-        fs.unlink(filePath, () => {});
+        deleteObjectIfExists(existing.imageUrl);
       }
       res.json(product);
     } catch (err) {
@@ -191,9 +230,8 @@ export async function registerRoutes(
       const id = Number(req.params.id);
       const product = await storage.getProduct(id);
       await storage.deleteProduct(id);
-      if (product?.imageUrl?.startsWith('/uploads/')) {
-        const filePath = path.join(uploadsDir, path.basename(product.imageUrl));
-        fs.unlink(filePath, () => {});
+      if (product?.imageUrl) {
+        deleteObjectIfExists(product.imageUrl);
       }
       res.status(204).end();
     } catch {
