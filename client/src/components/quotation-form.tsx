@@ -270,13 +270,9 @@ export function QuotationForm({ draftKey = "aq_draft_quotation", embedMode = fal
           <Wand2 className="w-5 h-5" />
           <h2 className="text-sm font-bold">التحليل الذكي للنصوص</h2>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-muted-foreground text-xs">يستخرج تلقائياً:</span>
-          {["الاسم", "الكمية", "الوصف", "القسم", "السعر"].map(f => (
-            <span key={f} className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold border border-primary/20">{f}</span>
-          ))}
-          <span className="text-muted-foreground text-xs">— من أي نص أو محادثة واتساب</span>
-        </div>
+        <p className="text-muted-foreground text-xs">
+          الصق النص على هذا النمط: <span className="font-bold text-foreground">الكمية / الاسم / الوصف / القسم / السعر</span> — نص عادي أو محادثة واتساب وسيقوم النظام بترتيبها في الجدول أدناه.
+        </p>
         <div className="relative">
           <textarea
             value={pasteText}
