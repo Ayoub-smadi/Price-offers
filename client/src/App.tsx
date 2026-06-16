@@ -16,6 +16,7 @@ const History = lazy(() => import("./pages/history"));
 const EditQuotation = lazy(() => import("./pages/edit-quotation"));
 const Login = lazy(() => import("./pages/login"));
 const TrashPage = lazy(() => import("./pages/trash"));
+const EmbedQuotation = lazy(() => import("./pages/embed-quotation"));
 
 function PageLoader() {
   return (
@@ -25,7 +26,7 @@ function PageLoader() {
   );
 }
 
-function Router() {
+function MainRouter() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Switch>
@@ -50,19 +51,6 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  if (!isAuthenticated) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Login onLogin={handleLogin} />
-          </Suspense>
-          <Toaster />
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
-
   const sidebarStyle = {
     "--sidebar-width": "18rem",
     "--sidebar-width-icon": "4rem",
@@ -71,34 +59,48 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div dir="rtl" className="text-right">
-          <SidebarProvider style={sidebarStyle}>
-            <div className="flex min-h-screen w-full bg-background overflow-hidden rtl-reverse">
-              <AppSidebar />
-              <div className="flex flex-col flex-1 w-full relative">
-                <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-40 no-print">
-                  <div className="flex items-center gap-4">
-                    <SidebarTrigger className="hover:bg-secondary p-2 rounded-xl transition-colors" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <ThemeToggle />
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                      title="تسجيل الخروج"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span className="hidden sm:block">خروج</span>
-                    </button>
-                  </div>
-                </header>
-                <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
-                  <Router />
-                </main>
-              </div>
-            </div>
-          </SidebarProvider>
-        </div>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            {/* Public embed route — no auth, no sidebar, no dark mode toggle */}
+            <Route path="/embed" component={EmbedQuotation} />
+
+            {/* All other routes require authentication */}
+            <Route>
+              {!isAuthenticated ? (
+                <Login onLogin={handleLogin} />
+              ) : (
+                <div dir="rtl" className="text-right">
+                  <SidebarProvider style={sidebarStyle}>
+                    <div className="flex min-h-screen w-full bg-background overflow-hidden rtl-reverse">
+                      <AppSidebar />
+                      <div className="flex flex-col flex-1 w-full relative">
+                        <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-40 no-print">
+                          <div className="flex items-center gap-4">
+                            <SidebarTrigger className="hover:bg-secondary p-2 rounded-xl transition-colors" />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <ThemeToggle />
+                            <button
+                              onClick={handleLogout}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                              title="تسجيل الخروج"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              <span className="hidden sm:block">خروج</span>
+                            </button>
+                          </div>
+                        </header>
+                        <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
+                          <MainRouter />
+                        </main>
+                      </div>
+                    </div>
+                  </SidebarProvider>
+                </div>
+              )}
+            </Route>
+          </Switch>
+        </Suspense>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
