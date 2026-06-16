@@ -18,7 +18,7 @@ type Item = {
 
 type Headers = {
   index: string; image: string; name: string; description: string;
-  category: string; unit: string; quantity: string; price: string; total: string;
+  category: string; quantity: string; price: string; total: string;
 };
 
 type Details = {
@@ -50,7 +50,7 @@ const defaultItems = (): Item[] => [
 
 const defaultHeaders = (): Headers => ({
   index: "#", image: "الصورة", name: "الاسم", description: "الوصف",
-  category: "القسم", unit: "الوحدة", quantity: "الكمية", price: "السعر", total: "الإجمالي",
+  category: "القسم", quantity: "الكمية", price: "السعر", total: "الإجمالي",
 });
 
 interface QuotationFormProps {
@@ -344,7 +344,6 @@ export function QuotationForm({ draftKey = "aq_draft_quotation", embedMode = fal
                 <th className="p-2 text-right"><input value={headers.name} onChange={e => setHeaders({...headers, name: e.target.value})} className={hdrCls} /></th>
                 <th className="p-2 text-right"><input value={headers.description} onChange={e => setHeaders({...headers, description: e.target.value})} className={hdrCls} /></th>
                 <th className="p-2 text-right"><input value={headers.category} onChange={e => setHeaders({...headers, category: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-center w-20"><input value={headers.unit} onChange={e => setHeaders({...headers, unit: e.target.value})} className={hdrCls} /></th>
                 <th className="p-2 text-center w-24"><input value={headers.quantity} onChange={e => setHeaders({...headers, quantity: e.target.value})} className={hdrCls} /></th>
                 <th className="p-2 text-center w-24"><input value={headers.price} onChange={e => setHeaders({...headers, price: e.target.value})} className={hdrCls} /></th>
                 <th className="p-2 text-center w-24"><input value={headers.total} onChange={e => setHeaders({...headers, total: e.target.value})} className={hdrCls} /></th>
@@ -364,9 +363,6 @@ export function QuotationForm({ draftKey = "aq_draft_quotation", embedMode = fal
                   </td>
                   <td className="p-1.5">
                     <input value={item.category} onChange={(e) => updateItem(item.id, 'category', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors" placeholder="القسم" />
-                  </td>
-                  <td className="p-1.5 text-center">
-                    <input value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors text-center" placeholder="وحدة" />
                   </td>
                   <td className="p-1.5 text-center">
                     <input type="number" min="1" dir="ltr" value={item.quantity === 0 ? '' : item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} placeholder="0" style={{ textAlign: 'center' }} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-bold text-slate-800 dark:text-slate-100" />
