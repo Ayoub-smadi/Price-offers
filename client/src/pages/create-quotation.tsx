@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   Plus, FileText, Save,
   Wand2, Trash2, CheckCircle2,
-  Phone, Mail, Globe, Package, X, MessageCircle, BookmarkPlus
+  Phone, Mail, Globe, RotateCcw, MessageCircle
 } from "lucide-react";
 import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
-import { useProducts, useCreateProduct } from "@/hooks/use-products";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPDF } from "@/lib/export-utils";
 import { format } from "date-fns";
@@ -25,43 +24,117 @@ type Item = {
   imageUrl?: string;
 };
 
+type Headers = {
+  index: string;
+  image: string;
+  name: string;
+  description: string;
+  category: string;
+  unit: string;
+  quantity: string;
+  price: string;
+  total: string;
+};
+
+type Details = {
+  quotationNumber: string;
+  customerName: string;
+  companyNameAr: string;
+  companyLocationAr: string;
+  companyNameEn: string;
+  companyLocationEn: string;
+  date: string;
+  notes: string;
+  phone: string;
+  email: string;
+  website: string;
+  closingText: string;
+  signerTitle: string;
+  footerCompany: string;
+};
+
+const DRAFT_KEY = "aq_draft_quotation";
+
+const defaultDetails = (): Details => ({
+  quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
+  customerName: "",
+  companyNameAr: "مؤسسة ومشاتل القادري الزراعية",
+  companyLocationAr: "جرش – الرشايدة",
+  companyNameEn: "Al-Qadri Agricultural Establishment",
+  companyLocationEn: "Jerash - Al-Rashaidah",
+  date: format(new Date(), "yyyy-MM-dd"),
+  notes: "",
+  phone: "00962777772211",
+  email: "tamerqadri@gmail.com",
+  website: "www.alkadri-plants.com",
+  closingText: "واقبلوا فائق الاحترام....",
+  signerTitle: "المدير العام/ ثامر احمد القادري",
+  footerCompany: "مؤسسة ومشاتل القادري الزراعية",
+});
+
+const defaultItems = (): Item[] => [
+  { id: "1", name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
+];
+
+const defaultHeaders = (): Headers => ({
+  index: "#",
+  image: "الصورة",
+  name: "الاسم",
+  description: "الوصف",
+  category: "القسم",
+  unit: "الوحدة",
+  quantity: "الكمية",
+  price: "السعر",
+  total: "الإجمالي",
+});
+
+function loadDraft() {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function CreateQuotation() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const createMutation = useCreateQuote();
   const parseMutation = useParseTextAPI();
-  const createProductMutation = useCreateProduct();
-  const { data: catalogProducts } = useProducts();
 
-  const [items, setItems] = useState<Item[]>([
-    { id: "1", name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }
-  ]);
+  const draft = loadDraft();
 
-  const [details, setDetails] = useState({
-    quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
-    customerName: "",
-    companyNameAr: "مؤسسة ومشاتل القادري الزراعية",
-    companyLocationAr: "جرش – الرشايدة",
-    companyNameEn: "Al-Qadri Agricultural Establishment",
-    companyLocationEn: "Jerash - Al-Rashaidah",
-    date: format(new Date(), "yyyy-MM-dd"),
-    notes: "",
-    phone: "00962777772211",
-    email: "tamerqadri@gmail.com",
-    website: "www.alkadri-plants.com",
-  });
-
-  const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [items, setItems] = useState<Item[]>(draft?.items ?? defaultItems());
+  const [details, setDetails] = useState<Details>(draft?.details ?? defaultDetails());
+  const [headers, setHeaders] = useState<Headers>(draft?.headers ?? defaultHeaders());
+  const [logoBase64, setLogoBase64] = useState<string | null>(draft?.logoBase64 ?? null);
   const [pasteText, setPasteText] = useState("");
-  const [showCatalog, setShowCatalog] = useState(false);
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [discountValue, setDiscountValue] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  const [discountValue, setDiscountValue] = useState<number>(draft?.discountValue ?? 0);
+  const [taxRate, setTaxRate] = useState<number>(draft?.taxRate ?? 0);
 
-  const [headers] = useState({
-    index: "#", name: "الاسم", description: "الوصف",
-    quantity: "الكمية", price: "السعر", total: "الإجمالي"
-  });
+  const saveDraft = useCallback(() => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        items, details, headers, logoBase64, discountValue, taxRate,
+      }));
+    } catch {}
+  }, [items, details, headers, logoBase64, discountValue, taxRate]);
+
+  useEffect(() => {
+    saveDraft();
+  }, [saveDraft]);
+
+  const clearDraft = () => {
+    sessionStorage.removeItem(DRAFT_KEY);
+    setItems(defaultItems());
+    setDetails(defaultDetails());
+    setHeaders(defaultHeaders());
+    setLogoBase64(null);
+    setDiscountValue(0);
+    setTaxRate(0);
+  };
 
   const subtotal = items.reduce((acc, item) => acc + (item.total || 0), 0);
   const discountAmount = (subtotal * discountValue) / 100;
@@ -89,16 +162,16 @@ export default function CreateQuotation() {
   };
 
   const addItem = () => {
-    setItems([...items, { id: Date.now().toString(), name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }]);
+    setItems(prev => [...prev, { id: Date.now().toString(), name: "", description: "", category: "", quantity: 1, unit: "وحدة", price: 0, total: 0 }]);
   };
 
   const removeItem = (id: string) => {
     if (items.length === 1) return;
-    setItems(items.filter(item => item.id !== id));
+    setItems(prev => prev.filter(item => item.id !== id));
   };
 
   const updateItem = (id: string, field: keyof Item, value: string | number) => {
-    setItems(items.map(item => {
+    setItems(prev => prev.map(item => {
       if (item.id === id) {
         const updated = { ...item, [field]: value };
         if (field === 'quantity' || field === 'price') {
@@ -108,59 +181,6 @@ export default function CreateQuotation() {
       }
       return item;
     }));
-  };
-
-  const addFromCatalog = (product: any) => {
-    setItems(prev => [...prev.filter(i => i.name.trim() !== "" || i.price > 0), {
-      id: Date.now().toString() + Math.random(),
-      name: product.name,
-      description: product.description || "",
-      category: product.category || "",
-      quantity: 1,
-      unit: product.unit || "وحدة",
-      price: Number(product.price),
-      total: Number(product.price),
-      imageUrl: product.imageUrl || "",
-    }]);
-    setShowCatalog(false);
-    setCatalogSearch("");
-  };
-
-  const saveItemToCatalog = (item: Item) => {
-    if (!item.name.trim()) {
-      toast({ title: "الاسم مطلوب", description: "أدخل اسم المنتج قبل الحفظ في الكتالوج.", variant: "destructive" });
-      return;
-    }
-    createProductMutation.mutate({
-      name: item.name.trim(),
-      description: item.description.trim() || undefined,
-      price: String(item.price),
-      unit: item.unit || "وحدة",
-      category: item.category?.trim() || undefined,
-      imageUrl: item.imageUrl || undefined,
-    }, {
-      onSuccess: () => toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ "${item.name}" في الكتالوج بنجاح.` }),
-      onError: () => toast({ title: "خطأ في الحفظ", variant: "destructive" }),
-    });
-  };
-
-  const saveAllToCatalog = () => {
-    const validItems = items.filter(i => i.name.trim());
-    if (validItems.length === 0) {
-      toast({ title: "لا توجد منتجات للحفظ", variant: "destructive" });
-      return;
-    }
-    validItems.forEach(item => {
-      createProductMutation.mutate({
-        name: item.name.trim(),
-        description: item.description.trim() || undefined,
-        price: String(item.price),
-        unit: item.unit || "وحدة",
-        category: item.category?.trim() || undefined,
-        imageUrl: item.imageUrl || undefined,
-      });
-    });
-    toast({ title: "تم الحفظ في الكتالوج", description: `تم حفظ ${validItems.length} منتجات في الكتالوج.` });
   };
 
   const handleParseText = () => {
@@ -203,8 +223,7 @@ ${discLine}${taxLine}
 
 ${details.companyNameAr}
 ☎ ${details.phone}`;
-    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(url, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleSave = () => {
@@ -232,18 +251,18 @@ ${details.companyNameAr}
     }, {
       onSuccess: () => {
         toast({ title: "تم الحفظ", description: "تم حفظ عرض السعر بنجاح." });
+        clearDraft();
         navigate("/history");
       },
       onError: (error) => toast({ title: "خطأ في الحفظ", description: error.message, variant: "destructive" })
     });
   };
 
-  const filteredCatalog = (catalogProducts || []).filter(p =>
-    p.name.toLowerCase().includes(catalogSearch.toLowerCase())
-  );
+  const editableHeaderClass = "bg-transparent border-none focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-white/30 rounded px-1 text-center text-xs font-bold text-white w-full";
 
   return (
     <div className="max-w-7xl mx-auto p-2 sm:p-3 space-y-2 pb-20 min-h-screen flex flex-col">
+
       {/* Top Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 glass-panel p-2 rounded-xl sticky top-2 z-50 no-print">
         <div>
@@ -252,13 +271,18 @@ ${details.companyNameAr}
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={saveAllToCatalog}
-            disabled={createProductMutation.isPending}
-            className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-all dark:bg-indigo-900/20 dark:text-indigo-400 disabled:opacity-50"
-            title="حفظ جميع المنتجات في الكتالوج"
-            data-testid="btn-save-all-catalog"
+            onClick={clearDraft}
+            className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-red-500 transition-all dark:bg-slate-800 dark:text-slate-400"
+            title="مسح وبدء من جديد"
           >
-            <BookmarkPlus className="w-4 h-4" />
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={handleWhatsApp}
+            className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all dark:bg-green-900/20 dark:text-green-400"
+            title="إرسال واتساب"
+          >
+            <MessageCircle className="w-4 h-4" />
           </button>
           <button
             onClick={() => exportToPDF("quotation-document", `Quote-${details.quotationNumber}`, items, details, logoBase64 || logoImage)}
@@ -356,14 +380,33 @@ ${details.companyNameAr}
           <table className="w-full text-right text-xs border-collapse">
             <thead>
               <tr className="bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-700">
-                <th className="p-2 font-bold text-center w-6 text-xs">{headers.index}</th>
-                <th className="p-2 font-bold text-right text-xs">{headers.name}</th>
-                <th className="p-2 font-bold text-right text-xs">{headers.description}</th>
-                <th className="p-2 font-bold text-right text-xs">القسم</th>
-                <th className="p-2 font-bold text-center w-24 text-xs">{headers.quantity}</th>
-                <th className="p-2 font-bold text-center w-24 text-xs">{headers.price}</th>
-                <th className="p-2 font-bold text-center w-24 text-xs">{headers.total}</th>
-                <th className="p-2 font-bold text-center w-28 text-xs">الصورة</th>
+                <th className="p-2 text-center w-6">
+                  <input value={headers.index} onChange={e => setHeaders({...headers, index: e.target.value})} className={editableHeaderClass} style={{ width: '2rem' }} />
+                </th>
+                <th className="p-2 text-right">
+                  <input value={headers.name} onChange={e => setHeaders({...headers, name: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-right">
+                  <input value={headers.description} onChange={e => setHeaders({...headers, description: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-right">
+                  <input value={headers.category} onChange={e => setHeaders({...headers, category: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-center w-20">
+                  <input value={headers.unit} onChange={e => setHeaders({...headers, unit: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-center w-24">
+                  <input value={headers.quantity} onChange={e => setHeaders({...headers, quantity: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-center w-24">
+                  <input value={headers.price} onChange={e => setHeaders({...headers, price: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-center w-24">
+                  <input value={headers.total} onChange={e => setHeaders({...headers, total: e.target.value})} className={editableHeaderClass} />
+                </th>
+                <th className="p-2 text-center w-28">
+                  <input value={headers.image} onChange={e => setHeaders({...headers, image: e.target.value})} className={editableHeaderClass} />
+                </th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
             </thead>
@@ -375,10 +418,13 @@ ${details.companyNameAr}
                     <input value={item.name} onChange={(e) => updateItem(item.id, 'name', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-medium truncate" placeholder="الاسم" />
                   </td>
                   <td className="p-1.5">
-                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} dir="rtl" style={{ direction: 'rtl', unicodeBidi: 'isolate' }} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
+                    <input value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} dir="rtl" className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="الوصف" />
                   </td>
                   <td className="p-1.5">
                     <input value={item.category} onChange={(e) => updateItem(item.id, 'category', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors truncate" placeholder="القسم" />
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <input value={item.unit} onChange={(e) => updateItem(item.id, 'unit', e.target.value)} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs text-slate-600 dark:text-slate-400 focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors text-center" placeholder="وحدة" />
                   </td>
                   <td className="p-1.5 text-center">
                     <input type="number" min="1" dir="ltr" value={item.quantity === 0 ? '' : item.quantity} onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} placeholder="0" style={{ textAlign: 'center' }} className="w-full bg-transparent border border-transparent hover:border-slate-400 dark:hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:focus:ring-blue-900 px-1.5 py-1 rounded text-xs focus:bg-blue-50 dark:focus:bg-slate-900 transition-colors font-bold text-slate-800 dark:text-slate-100" />
@@ -394,7 +440,6 @@ ${details.companyNameAr}
                         accept="image/*"
                         className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10 no-print"
                         onChange={(e) => handleItemImageUpload(item.id, e)}
-                        data-testid={`input-item-image-${item.id}`}
                       />
                       {item.imageUrl ? (
                         <>
@@ -417,14 +462,6 @@ ${details.companyNameAr}
                   </td>
                   <td className="p-1.5 text-center no-print">
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
-                      <button
-                        onClick={() => saveItemToCatalog(item)}
-                        title="حفظ في الكتالوج"
-                        className="text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 p-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-                        data-testid={`btn-save-catalog-${item.id}`}
-                      >
-                        <BookmarkPlus className="w-3 h-3" />
-                      </button>
                       <button onClick={() => removeItem(item.id)} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-0.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -437,14 +474,14 @@ ${details.companyNameAr}
               {(discountAmount > 0 || taxAmount > 0) && (
                 <>
                   <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                    <td colSpan={6} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
+                    <td colSpan={7} className="p-2 text-right text-xs pr-4 text-slate-600 dark:text-slate-400">المجموع الفرعي</td>
                     <td className="p-1.5 text-center text-xs text-slate-700 dark:text-slate-300 font-semibold">{fmt(subtotal)}</td>
                     <td></td>
                     <td className="no-print"></td>
                   </tr>
                   {discountAmount > 0 && (
                     <tr className="bg-green-50 dark:bg-green-900/10">
-                      <td colSpan={6} className="p-2 text-right text-xs pr-4 text-green-700 dark:text-green-400">
+                      <td colSpan={7} className="p-2 text-right text-xs pr-4 text-green-700 dark:text-green-400">
                         خصم ({discountValue}%)
                       </td>
                       <td className="p-1.5 text-center text-xs text-green-700 dark:text-green-400 font-semibold">- {fmt(discountAmount)}</td>
@@ -454,7 +491,7 @@ ${details.companyNameAr}
                   )}
                   {taxAmount > 0 && (
                     <tr className="bg-orange-50 dark:bg-orange-900/10">
-                      <td colSpan={6} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
+                      <td colSpan={7} className="p-2 text-right text-xs pr-4 text-orange-700 dark:text-orange-400">ضريبة ({taxRate}%)</td>
                       <td className="p-1.5 text-center text-xs text-orange-700 dark:text-orange-400 font-semibold">+ {fmt(taxAmount)}</td>
                       <td></td>
                       <td className="no-print"></td>
@@ -463,7 +500,7 @@ ${details.companyNameAr}
                 </>
               )}
               <tr className="border-t-2 border-slate-300 dark:border-slate-600 bg-slate-900 dark:bg-slate-950 text-white">
-                <td colSpan={6} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
+                <td colSpan={7} className="p-2 text-right font-black text-xs pr-4">المجموع الكلي</td>
                 <td className="p-1.5 text-center font-black text-sm bg-primary/20 text-white">{fmt(grandTotal)} <span className="text-xs font-bold opacity-80">د.أ</span></td>
                 <td className="bg-slate-900 dark:bg-slate-950"></td>
                 <td className="no-print bg-slate-900 dark:bg-slate-950"></td>
@@ -478,23 +515,16 @@ ${details.companyNameAr}
             <Plus className="w-3 h-3" />
             إضافة صنف
           </button>
-          <button onClick={() => setShowCatalog(true)} className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-2 py-1 rounded text-xs transition-colors">
-            <Package className="w-3 h-3" />
-            اختر من الكتالوج
-          </button>
         </div>
 
-        {/* Discount & Tax - No Print */}
+        {/* Discount & Tax */}
         <div className="no-print bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-3">
           <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300">الخصم والضريبة</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-medium">نسبة الخصم (%)</label>
               <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
+                type="number" min="0" max="100" step="0.1"
                 value={discountValue || ""}
                 onChange={e => setDiscountValue(parseFloat(e.target.value) || 0)}
                 className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary"
@@ -504,10 +534,7 @@ ${details.companyNameAr}
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-medium">نسبة الضريبة (%)</label>
               <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
+                type="number" min="0" max="100" step="0.1"
                 value={taxRate || ""}
                 onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
                 className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs outline-none focus:border-primary"
@@ -542,10 +569,20 @@ ${details.companyNameAr}
         {/* Closing Section */}
         <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center">
           <div className="w-full flex flex-col items-center gap-4">
-            <div className="text-center text-base font-bold text-slate-900 dark:text-slate-50">واقبلوا فائق الاحترام....</div>
+            <input
+              value={details.closingText}
+              onChange={e => setDetails({...details, closingText: e.target.value})}
+              className="text-center text-base font-bold text-slate-900 dark:text-slate-50 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none w-full max-w-xs focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-1 rounded-sm"
+              placeholder="نص الختام"
+            />
             <div className="w-full flex justify-end">
               <div className="flex flex-col items-center">
-                <div className="text-sm font-bold text-slate-900 dark:text-slate-50">المدير العام/ ثامر احمد القادري</div>
+                <input
+                  value={details.signerTitle}
+                  onChange={e => setDetails({...details, signerTitle: e.target.value})}
+                  className="text-center text-sm font-bold text-slate-900 dark:text-slate-50 bg-transparent border-none border-b border-slate-300 dark:border-slate-600 focus:border-primary outline-none focus:ring-0 focus:bg-slate-50 dark:focus:bg-slate-900/30 px-2 py-1 rounded-sm"
+                  placeholder="المدير العام / الاسم"
+                />
                 <img src={stampImage} alt="Stamp" className="w-32 h-auto mt-4" />
               </div>
             </div>
@@ -554,7 +591,12 @@ ${details.companyNameAr}
 
         {/* Contact Footer */}
         <div className="border-t border-slate-200 dark:border-slate-800 pt-2 text-center opacity-70">
-          <div className="text-[10px] font-bold text-slate-900 dark:text-slate-50 mb-2">مؤسسة ومشاتل القادري الزراعية</div>
+          <input
+            value={details.footerCompany}
+            onChange={e => setDetails({...details, footerCompany: e.target.value})}
+            className="text-[10px] font-bold text-slate-900 dark:text-slate-50 bg-transparent border-none focus:outline-none focus:ring-0 text-center w-full mb-2"
+            placeholder="اسم الشركة في التذييل"
+          />
           <div className="flex items-center justify-center gap-4 text-slate-600 dark:text-slate-400" dir="ltr">
             <div className="flex items-center gap-1">
               <Phone className="w-3 h-3 flex-shrink-0" />
@@ -571,112 +613,6 @@ ${details.companyNameAr}
           </div>
         </div>
       </div>
-
-      {/* Catalog Modal */}
-      {showCatalog && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setShowCatalog(false)}
-        >
-          <div
-            className="bg-card rounded-2xl border border-border shadow-2xl flex flex-col"
-            style={{ width: '100%', maxWidth: '680px', maxHeight: '88vh' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
-              <h2 className="font-bold text-lg text-foreground flex items-center gap-2">
-                <Package className="w-5 h-5 text-primary" />
-                اختر من الكتالوج
-              </h2>
-              <button onClick={() => setShowCatalog(false)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            {/* Search */}
-            <div className="px-4 py-3 border-b border-border shrink-0">
-              <input
-                value={catalogSearch}
-                onChange={e => setCatalogSearch(e.target.value)}
-                placeholder="ابحث في المنتجات..."
-                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors"
-                autoFocus
-              />
-            </div>
-            {/* Grid */}
-            <div className="overflow-y-auto flex-1 p-4">
-              {filteredCatalog.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Package className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">لا توجد منتجات{catalogSearch ? " مطابقة" : " في الكتالوج"}</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                  {filteredCatalog.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => addFromCatalog(p)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        textAlign: 'right',
-                        borderRadius: '14px',
-                        border: '1.5px solid var(--border)',
-                        overflow: 'hidden',
-                        background: 'var(--background)',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.15s, box-shadow 0.15s',
-                      }}
-                      onMouseEnter={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary)';
-                        (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
-                      }}
-                      onMouseLeave={e => {
-                        (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
-                        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
-                      }}
-                    >
-                      {/* Image — fixed 140px height, guaranteed to show */}
-                      <div style={{ width: '100%', height: '140px', overflow: 'hidden', background: 'var(--secondary)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {p.imageUrl ? (
-                          <img
-                            src={p.imageUrl}
-                            alt={p.name}
-                            style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }}
-                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        ) : (
-                          <Package className="w-10 h-10 text-muted-foreground opacity-25" />
-                        )}
-                      </div>
-                      {/* Info */}
-                      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: '14px', lineHeight: 1.3, color: 'var(--foreground)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-                          {p.name}
-                        </div>
-                        {p.description && (
-                          <div style={{ fontSize: '11px', color: 'var(--muted-foreground)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', flex: 1 }}>
-                            {p.description}
-                          </div>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px' }}>
-                          <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '999px', background: 'var(--secondary)', color: 'var(--muted-foreground)' }}>
-                            {p.unit}
-                          </span>
-                          <span style={{ fontWeight: 900, fontSize: '15px', color: 'var(--primary)' }}>
-                            {Number(p.price).toLocaleString()} ر.س
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

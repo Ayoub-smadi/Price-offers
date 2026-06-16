@@ -15,8 +15,6 @@ const CreateQuotation = lazy(() => import("./pages/create-quotation"));
 const History = lazy(() => import("./pages/history"));
 const EditQuotation = lazy(() => import("./pages/edit-quotation"));
 const Login = lazy(() => import("./pages/login"));
-const Products = lazy(() => import("./pages/products"));
-const Stats = lazy(() => import("./pages/stats"));
 const TrashPage = lazy(() => import("./pages/trash"));
 
 function PageLoader() {
@@ -34,8 +32,6 @@ function Router() {
         <Route path="/" component={CreateQuotation} />
         <Route path="/history" component={History} />
         <Route path="/quotation/:id" component={EditQuotation} />
-        <Route path="/products" component={Products} />
-        <Route path="/stats" component={Stats} />
         <Route path="/trash" component={TrashPage} />
         <Route component={NotFound} />
       </Switch>

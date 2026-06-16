@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { History, PlusCircle, Quote, Package, BarChart3, Trash2 } from "lucide-react";
+import { History, PlusCircle, Quote, Trash2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,8 +18,6 @@ export function AppSidebar() {
 
   const mainItems = [
     { title: "إنشاء عرض سعر", url: "/", icon: PlusCircle },
-    { title: "كتالوج المنتجات", url: "/products", icon: Package },
-    { title: "الإحصائيات", url: "/stats", icon: BarChart3 },
     { title: "السجل", url: "/history", icon: History },
   ];
 
