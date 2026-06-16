@@ -1,6 +1,184 @@
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { Product } from '@shared/schema';
+
+// ── Lightweight pure-browser PDF builder (replaces jspdf) ──────────────────
+// Builds a minimal valid PDF from one or more JPEG images (A4 portrait).
+const A4_MM_W = 210;
+const A4_MM_H = 297;
+const PT_PER_MM = 72 / 25.4;
+const A4_PT_W = Math.round(A4_MM_W * PT_PER_MM); // 595
+const A4_PT_H = Math.round(A4_MM_H * PT_PER_MM); // 841
+
+function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: number; xMM: number; yMM: number }[][]): Uint8Array {
+  // Each entry in `pages` is an array of images to place on that page.
+  const enc = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const offsets: number[] = [];
+  let pos = 0;
+
+  const push = (s: string) => {
+    const b = enc.encode(s);
+    chunks.push(b);
+    pos += b.length;
+  };
+  const pushBytes = (b: Uint8Array) => {
+    chunks.push(b);
+    pos += b.length;
+  };
+
+  push('%PDF-1.4\n');
+
+  const pageCount = pages.length;
+  // Object IDs: 1=catalog, 2=pages, 3..=(3+pageCount-1)=page objs, then image+xobj pairs
+  // We'll collect image xobjects per page.
+
+  type ImgObj = { objId: number; width: number; height: number; dataBytes: Uint8Array };
+  const pageImgObjs: ImgObj[][] = pages.map(() => []);
+
+  // First pass: decode base64 images
+  let nextObjId = 3 + pageCount; // page objects start at 3
+  for (let pi = 0; pi < pages.length; pi++) {
+    for (const img of pages[pi]) {
+      const b64 = img.jpeg.replace(/^data:image\/jpeg;base64,/, '');
+      const binary = atob(b64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      // Parse JPEG dimensions
+      let w = 0, h = 0;
+      for (let i = 0; i < bytes.length - 8; i++) {
+        if (bytes[i] === 0xFF && (bytes[i+1] === 0xC0 || bytes[i+1] === 0xC2)) {
+          h = (bytes[i+5] << 8) | bytes[i+6];
+          w = (bytes[i+7] << 8) | bytes[i+8];
+          break;
+        }
+      }
+      pageImgObjs[pi].push({ objId: nextObjId, width: w || 100, height: h || 100, dataBytes: bytes });
+      nextObjId++;
+    }
+  }
+
+  const totalObjects = nextObjId - 1;
+
+  // Write object helper
+  const startObj = (id: number) => {
+    offsets[id] = pos;
+    push(`${id} 0 obj\n`);
+  };
+  const endObj = () => push('endobj\n');
+
+  // 1: Catalog
+  startObj(1);
+  push('<< /Type /Catalog /Pages 2 0 R >>\n');
+  endObj();
+
+  // 2: Pages
+  startObj(2);
+  const kidsStr = Array.from({ length: pageCount }, (_, i) => `${3 + i} 0 R`).join(' ');
+  push(`<< /Type /Pages /Kids [${kidsStr}] /Count ${pageCount} >>\n`);
+  endObj();
+
+  // 3..3+pageCount-1: Page objects + content streams
+  for (let pi = 0; pi < pageCount; pi++) {
+    const pageObjId = 3 + pi;
+    const imgs = pageImgObjs[pi];
+    const pageInputImgs = pages[pi];
+
+    // Build content stream
+    let streamLines = '';
+    for (let ii = 0; ii < imgs.length; ii++) {
+      const imgObj = imgs[ii];
+      const inp = pageInputImgs[ii];
+      const xPt = inp.xMM * PT_PER_MM;
+      const yPt = A4_PT_H - (inp.yMM * PT_PER_MM) - (inp.heightMM * PT_PER_MM);
+      const wPt = inp.widthMM * PT_PER_MM;
+      const hPt = inp.heightMM * PT_PER_MM;
+      const xName = `Im${imgObj.objId}`;
+      streamLines += `q ${wPt.toFixed(3)} 0 0 ${hPt.toFixed(3)} ${xPt.toFixed(3)} ${yPt.toFixed(3)} cm /${xName} Do Q\n`;
+    }
+    const streamBytes = enc.encode(streamLines);
+
+    // XObject references
+    const xObjEntries = imgs.map(im => `/Im${im.objId} ${im.objId} 0 R`).join(' ');
+
+    // Content stream object (pageObjId + pageCount)
+    const contentObjId = pageObjId + pageCount;
+    offsets[contentObjId] = pos; // will overwrite below correctly
+    // We write image xobjects first, then content
+    // Actually write in order: page obj, then content stream obj
+    startObj(pageObjId);
+    push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4_PT_W} ${A4_PT_H}] /Contents ${contentObjId} 0 R /Resources << /XObject << ${xObjEntries} >> >> >>\n`);
+    endObj();
+
+    offsets[contentObjId] = pos;
+    push(`${contentObjId} 0 obj\n`);
+    push(`<< /Length ${streamBytes.length} >>\n`);
+    push('stream\n');
+    pushBytes(streamBytes);
+    push('\nendstream\n');
+    endObj();
+  }
+
+  // Image XObjects
+  for (let pi = 0; pi < pages.length; pi++) {
+    for (const img of pageImgObjs[pi]) {
+      offsets[img.objId] = pos;
+      push(`${img.objId} 0 obj\n`);
+      push(`<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.dataBytes.length} >>\n`);
+      push('stream\n');
+      pushBytes(img.dataBytes);
+      push('\nendstream\n');
+      endObj();
+    }
+  }
+
+  // xref table
+  const xrefOffset = pos;
+  push(`xref\n0 ${totalObjects + 1}\n`);
+  push('0000000000 65535 f \n');
+  for (let i = 1; i <= totalObjects; i++) {
+    const o = offsets[i] ?? 0;
+    push(`${String(o).padStart(10, '0')} 00000 n \n`);
+  }
+  push(`trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\n`);
+  push(`startxref\n${xrefOffset}\n%%EOF\n`);
+
+  // Concatenate
+  const total = chunks.reduce((s, c) => s + c.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  return out;
+}
+
+class SimplePDF {
+  private pageImages: { jpeg: string; widthMM: number; heightMM: number; xMM: number; yMM: number }[][] = [[]];
+  private _pageW = A4_MM_W;
+  private _pageH = A4_MM_H;
+
+  getPageWidth() { return this._pageW; }
+  getPageHeight() { return this._pageH; }
+
+  addPage() {
+    this.pageImages.push([]);
+  }
+
+  addImage(jpeg: string, _fmt: string, xMM: number, yMM: number, widthMM: number, heightMM: number) {
+    this.pageImages[this.pageImages.length - 1].push({ jpeg, widthMM, heightMM, xMM, yMM });
+  }
+
+  save(filename: string) {
+    const bytes = buildPdfFromJpegs(this.pageImages);
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.pdf') ? filename : filename + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+}
 
 let _fontCssCache: string | null = null;
 
@@ -534,9 +712,9 @@ export const exportToPDF = async (
     // Pre-warm Cairo font cache before any html2canvas rendering
     await getCairoFontCSS();
 
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const pdf = new SimplePDF();
+    const pdfWidth = pdf.getPageWidth();
+    const pdfHeight = pdf.getPageHeight();
 
     const marginX = 2;
     const marginY = 2;
@@ -1339,9 +1517,9 @@ export const exportCatalogToPDF = async (products: Product[]) => {
     const total   = pages.length;
     const logoSrc = '/logo.png';
 
-    const pdf    = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW   = pdf.internal.pageSize.getWidth();
-    const pdfH   = pdf.internal.pageSize.getHeight();
+    const pdf    = new SimplePDF();
+    const pdfW   = pdf.getPageWidth();
+    const pdfH   = pdf.getPageHeight();
 
     for (let i = 0; i < pages.length; i++) {
       if (i > 0) pdf.addPage('a4');
