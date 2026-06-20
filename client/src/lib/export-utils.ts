@@ -698,6 +698,183 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
   });
 };
 
+export const exportNoHeaderToPDF = async (elementId: string, filename: string) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  try {
+    const fontCss = await getCairoFontCSS();
+
+    // Build an off-screen clean copy
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+      width: 210mm;
+      padding: 8mm 6mm;
+      background: #ffffff;
+      color: #000000;
+      font-family: Cairo, sans-serif;
+      direction: rtl;
+      text-align: right;
+      box-sizing: border-box;
+      position: absolute;
+      top: -99999px;
+      left: 0;
+    `;
+
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    // Remove no-print elements
+    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+
+    // Remove dark mode background/text classes from the clone root
+    clone.style.background = '#ffffff';
+    clone.style.color = '#000000';
+    clone.style.boxShadow = 'none';
+    clone.style.border = 'none';
+    clone.style.borderRadius = '0';
+    clone.style.padding = '0';
+    clone.style.flex = 'none';
+    clone.style.display = 'block';
+
+    // Remove dark backgrounds from all child elements
+    clone.querySelectorAll('*').forEach(el => {
+      const htmlEl = el as HTMLElement;
+      htmlEl.style.boxShadow = 'none';
+      // Force light text on any dark bg cells (handled by inline styles already set)
+    });
+
+    // Replace inputs and textareas with styled divs
+    clone.querySelectorAll('input, textarea').forEach(input => {
+      const htmlInput = input as HTMLInputElement | HTMLTextAreaElement;
+      const value = htmlInput.value;
+      const computed = window.getComputedStyle(htmlInput);
+      const isLtr = htmlInput.getAttribute('dir') === 'ltr' || (htmlInput as HTMLInputElement).type === 'number' || (htmlInput as HTMLInputElement).type === 'date';
+
+      const div = document.createElement('div');
+      div.style.cssText = `
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-size: ${computed.fontSize};
+        font-weight: ${computed.fontWeight};
+        color: #000000;
+        direction: ${isLtr ? 'ltr' : 'rtl'};
+        text-align: ${isLtr ? 'center' : (computed.textAlign || 'right')};
+        padding: ${computed.padding};
+        min-height: 1em;
+        font-family: Cairo, sans-serif;
+      `;
+      div.textContent = value || '\u00A0';
+      htmlInput.parentNode?.replaceChild(div, htmlInput);
+    });
+
+    // Fix table styles
+    clone.querySelectorAll('table').forEach(table => {
+      (table as HTMLElement).style.cssText += 'border-collapse:collapse;width:100%;direction:rtl;';
+      table.querySelectorAll('th').forEach(th => {
+        const el = th as HTMLElement;
+        el.style.border = '1px solid #000';
+        el.style.padding = '8px 6px';
+        el.style.verticalAlign = 'middle';
+        el.style.minHeight = '36px';
+      });
+      table.querySelectorAll('tbody td, tfoot td').forEach(td => {
+        const el = td as HTMLElement;
+        el.style.border = '1px solid #000';
+        el.style.padding = '8px 6px';
+        el.style.verticalAlign = 'middle';
+        el.style.minHeight = '36px';
+        el.style.wordWrap = 'break-word';
+      });
+    });
+
+    // Fix flex containers
+    clone.querySelectorAll('*').forEach(el => {
+      const htmlEl = el as HTMLElement;
+      if (!htmlEl.classList) return;
+      if (htmlEl.classList.contains('flex') || htmlEl.classList.contains('inline-flex')) {
+        htmlEl.style.display = 'flex';
+        if (htmlEl.classList.contains('items-center')) htmlEl.style.alignItems = 'center';
+        if (htmlEl.classList.contains('justify-center')) htmlEl.style.justifyContent = 'center';
+        if (htmlEl.classList.contains('flex-col')) htmlEl.style.flexDirection = 'column';
+        if (htmlEl.classList.contains('gap-2')) htmlEl.style.gap = '8px';
+        if (htmlEl.classList.contains('gap-3')) htmlEl.style.gap = '12px';
+        if (htmlEl.classList.contains('gap-4')) htmlEl.style.gap = '16px';
+      }
+      if (htmlEl.classList.contains('text-center')) htmlEl.style.textAlign = 'center';
+      if (htmlEl.classList.contains('text-right')) htmlEl.style.textAlign = 'right';
+    });
+
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const canvas = await html2canvas(wrapper, {
+      scale: 3,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      allowTaint: true,
+      imageTimeout: 15000,
+      windowWidth: Math.round(210 * 96 / 25.4),
+      onclone: async (doc: Document) => {
+        doc.documentElement.setAttribute('dir', 'rtl');
+        doc.documentElement.style.direction = 'rtl';
+        // Remove dark class so dark mode styles don't apply
+        doc.documentElement.classList.remove('dark');
+        const style = doc.createElement('style');
+        style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
+        doc.head.appendChild(style);
+        try { await doc.fonts.ready; } catch {}
+      },
+    });
+
+    document.body.removeChild(wrapper);
+
+    const pdf = new SimplePDF();
+    const pdfWidth = pdf.getPageWidth();
+    const pdfHeight = pdf.getPageHeight();
+    const marginX = 0;
+    const marginY = 0;
+    const imgWidth = pdfWidth;
+    const canvasPixelsPerMM = canvas.width / imgWidth;
+    const fullPageHeightPx = pdfHeight * canvasPixelsPerMM;
+
+    let sourceY = 0;
+    let pageIndex = 0;
+
+    while (sourceY < canvas.height) {
+      if (pageIndex > 0) pdf.addPage();
+
+      const remainingPx = canvas.height - sourceY;
+      if (remainingPx <= 0) break;
+
+      const sliceHeightPx = Math.min(remainingPx, fullPageHeightPx);
+      if (sliceHeightPx <= 0) break;
+
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = Math.round(sliceHeightPx);
+      const ctx = pageCanvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        ctx.drawImage(canvas, 0, Math.round(sourceY), canvas.width, Math.round(sliceHeightPx), 0, 0, canvas.width, Math.round(sliceHeightPx));
+      }
+
+      const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+      const pageHeightMM = sliceHeightPx / canvasPixelsPerMM;
+      pdf.addImage(imgData, 'JPEG', marginX, marginY, imgWidth, pageHeightMM);
+
+      sourceY += sliceHeightPx;
+      pageIndex++;
+    }
+
+    pdf.save(`${filename}.pdf`);
+  } catch (error) {
+    console.error('Failed to generate no-header PDF:', error);
+  }
+};
+
 export const exportToPDF = async (
   elementId: string,
   filename: string,

@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPDF } from "@/lib/export-utils";
+import { exportNoHeaderToPDF } from "@/lib/export-utils";
 import { format } from "date-fns";
 
 type Item = {
@@ -272,7 +272,7 @@ export function QuotationFormNoHeader() {
             <MessageCircle className="w-4 h-4" />
           </button>
           <button
-            onClick={() => exportToPDF("nh-quotation-document", `Quote-${details.quotationNumber}`, items, { ...details, companyNameAr: '', companyLocationAr: '', companyNameEn: '', companyLocationEn: '', phone: '', email: '', website: '', footerCompany: '', signerTitle: details.signerTitle, closingText: details.closingText }, null)}
+            onClick={() => exportNoHeaderToPDF("nh-quotation-document", `Quote-${details.quotationNumber}`)}
             className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all dark:bg-red-900/20 dark:text-red-400"
             title="تصدير PDF"
           >
