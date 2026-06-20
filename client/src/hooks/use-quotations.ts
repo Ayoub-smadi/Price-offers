@@ -11,6 +11,7 @@ export function useQuotations() {
       }
       return api.quotations.list.responses[200].parse(await res.json());
     },
+    staleTime: 30_000,
   });
 }
 

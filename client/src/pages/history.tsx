@@ -50,7 +50,11 @@ export default function History() {
     );
   }
 
-  const allByTab = quotations?.filter(q => (q as any).quotationType === (activeTab === 'no-header' ? 'no-header' : 'standard')) || [];
+  const allByTab = quotations?.filter(q => {
+    const type = (q as any).quotationType;
+    if (activeTab === 'no-header') return type === 'no-header';
+    return !type || type === 'standard' || type === null;
+  }) || [];
 
   const filtered = allByTab.filter(q =>
     q.customerName.toLowerCase().includes(search.toLowerCase()) ||

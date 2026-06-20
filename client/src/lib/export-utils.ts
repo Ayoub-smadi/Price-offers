@@ -732,17 +732,13 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     // 2. Remove dark mode so CSS variables resolve to light values
     if (hadDark) document.documentElement.classList.remove('dark');
 
-    // 3. Force white bg and remove decorative chrome
+    // 3. Force white bg and remove decorative chrome (do NOT touch height/flex - keeps flex-1 layout)
     element.style.background = '#ffffff';
     element.style.backgroundColor = '#ffffff';
     element.style.color = '#1e293b';
     element.style.boxShadow = 'none';
     element.style.border = 'none';
     element.style.borderRadius = '0';
-    element.style.height = 'auto';
-    element.style.minHeight = '0';
-    element.style.overflow = 'visible';
-    element.style.flex = 'none';
 
     // 4. Give browser time to reflow/repaint
     await new Promise(resolve => setTimeout(resolve, 200));
@@ -776,10 +772,6 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     element.style.boxShadow = savedStyle.shadow;
     element.style.border = savedStyle.border;
     element.style.borderRadius = savedStyle.borderRadius;
-    element.style.height = savedStyle.height;
-    element.style.minHeight = savedStyle.minHeight;
-    element.style.overflow = savedStyle.overflow;
-    element.style.flex = savedStyle.flex;
 
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       console.error('No-header PDF: canvas is empty');
@@ -834,10 +826,6 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     element.style.boxShadow = savedStyle.shadow;
     element.style.border = savedStyle.border;
     element.style.borderRadius = savedStyle.borderRadius;
-    element.style.height = savedStyle.height;
-    element.style.minHeight = savedStyle.minHeight;
-    element.style.overflow = savedStyle.overflow;
-    element.style.flex = savedStyle.flex;
     console.error('Failed to generate no-header PDF:', error);
   }
 };
