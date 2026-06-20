@@ -315,7 +315,8 @@ export async function registerRoutes(
       res.json({ username: user.username });
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
-      res.status(500).json({ message: "Internal Error" });
+      console.error('[auth/login] error:', err);
+      res.status(500).json({ message: "حدث خطأ في الخادم، يرجى المحاولة مرة أخرى" });
     }
   });
 

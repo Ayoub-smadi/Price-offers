@@ -1,1 +1,1 @@
-- [PDF blank fix - html2canvas offscreen](pdf-html2canvas-offscreen.md) — visibility:hidden wrapper at top:0/left:0 + onclone reveal; never use left:-9999px or opacity:0
+- [PDF blank fix - html2canvas overlay approach](pdf-html2canvas-offscreen.md) — Use white overlay at z-index:99999 + element visible at z-index:1; hide overlay in onclone so it doesn't appear in canvas.

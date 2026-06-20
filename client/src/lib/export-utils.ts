@@ -677,21 +677,44 @@ const createPageMiniHeader = (details: any, logoSrc: string): HTMLElement => {
   return wrapper;
 };
 
-const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
+const PDF_OVERLAY_ATTR = 'data-pdf-loading-overlay';
+
+/**
+ * Shows a white loading overlay over the entire page while PDF is being generated.
+ * The print element is placed at z-index:1 (below the overlay) so the user
+ * doesn't see it flash, but it IS fully visible to html2canvas.
+ * In onclone the overlay is hidden so it doesn't appear in the captured canvas.
+ */
+const showPdfLoadingOverlay = (): HTMLElement => {
+  const overlay = document.createElement('div');
+  overlay.setAttribute(PDF_OVERLAY_ATTR, 'true');
+  overlay.style.cssText =
+    'position:fixed;inset:0;background:rgba(255,255,255,0.97);z-index:99999;' +
+    'display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;direction:rtl;';
+  overlay.innerHTML =
+    '<style>@keyframes __pdfSpin{to{transform:rotate(360deg)}}</style>' +
+    '<div style="width:38px;height:38px;border:3px solid #e2e8f0;border-top-color:#16a34a;' +
+    'border-radius:50%;animation:__pdfSpin 0.8s linear infinite;"></div>' +
+    '<div style="font-family:Cairo,Arial,sans-serif;font-size:15px;color:#1e293b;font-weight:600;">' +
+    'جاري إنشاء PDF...</div>';
+  document.body.appendChild(overlay);
+  return overlay;
+};
+
+const renderToCanvas = async (
+  el: HTMLElement,
+  opts: { hideSelectors?: string[] } = {}
+): Promise<HTMLCanvasElement> => {
   const fontCss = await getCairoFontCSS();
-  // Pre-inject font into the live document so the html2canvas clone inherits it
   if (!document.getElementById('__pdf_cairo_font__')) {
     const s = document.createElement('style');
     s.id = '__pdf_cairo_font__';
     s.textContent = fontCss;
     document.head.appendChild(s);
   }
-  // Wait for fonts to be fully loaded before capturing
   try { await document.fonts.ready; } catch {}
 
-  // IMPORTANT: scrollX/scrollY must be 0 because the offscreen wrapper is positioned
-  // at top:0;left:0 in the viewport (not scrolled away). If we let html2canvas read
-  // window.scrollX/scrollY it offsets the capture incorrectly, producing blank output.
+  // The element is placed at position:fixed top:0 left:0 so scrollX/scrollY must be 0.
   return html2canvas(el, {
     scale: 3,
     useCORS: true,
@@ -703,18 +726,22 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     scrollY: 0,
     windowWidth: Math.round(210 * 96 / 25.4),
     onclone: (doc: Document) => {
+      doc.documentElement.classList.remove('dark');
       doc.documentElement.setAttribute('dir', 'rtl');
       doc.documentElement.style.direction = 'rtl';
       const style = doc.createElement('style');
       style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
       doc.head.appendChild(style);
-      // The offscreen wrapper is hidden (visibility:hidden) to the user.
-      // We must make it visible in the clone so html2canvas captures it.
-      const wrapper = doc.querySelector('[data-pdf-offscreen]') as HTMLElement | null;
-      if (wrapper) {
-        wrapper.style.visibility = 'visible';
-        wrapper.style.opacity = '1';
-      }
+      // Hide the loading overlay in the clone - it must NOT appear in the PDF
+      (doc.querySelectorAll(`[${PDF_OVERLAY_ATTR}]`) as NodeListOf<HTMLElement>).forEach(el => {
+        el.style.display = 'none';
+      });
+      // Hide any additional selectors requested by the caller
+      opts.hideSelectors?.forEach(sel => {
+        (doc.querySelectorAll(sel) as NodeListOf<HTMLElement>).forEach(el => {
+          el.style.display = 'none';
+        });
+      });
     },
   });
 };
@@ -723,110 +750,65 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
   const element = document.getElementById(elementId);
   if (!element) return;
 
-  // Collect elements to hide and save their display values
-  const noPrintEls = Array.from(element.querySelectorAll('.no-print')) as HTMLElement[];
-  const prevDisplays = noPrintEls.map(el => el.style.display);
-
-  // Save element styles
-  const savedStyle = {
-    bg: element.style.background,
-    bgColor: element.style.backgroundColor,
-    color: element.style.color,
-    shadow: element.style.boxShadow,
-    border: element.style.border,
-    height: element.style.height,
-    minHeight: element.style.minHeight,
-    overflow: element.style.overflow,
-    borderRadius: element.style.borderRadius,
-    flex: element.style.flex,
-  };
-
-  // Save dark mode state
-  const hadDark = document.documentElement.classList.contains('dark');
+  const overlay = showPdfLoadingOverlay();
+  let captureWrapper: HTMLElement | null = null;
 
   try {
-    const fontCss = await getCairoFontCSS();
-    // Pre-inject font into the live document and wait for it to load
-    if (!document.getElementById('__pdf_cairo_font__')) {
-      const s = document.createElement('style');
-      s.id = '__pdf_cairo_font__';
-      s.textContent = fontCss;
-      document.head.appendChild(s);
-    }
-    try { await document.fonts.ready; } catch {}
+    // Clone the live element so we don't modify the actual DOM
+    const cloneEl = element.cloneNode(true) as HTMLElement;
 
-    // 1. Hide no-print elements
-    noPrintEls.forEach(el => { el.style.display = 'none'; });
-
-    // 2. Remove dark mode so CSS variables resolve to light values
-    if (hadDark) document.documentElement.classList.remove('dark');
-
-    // 3. Force white bg and remove decorative chrome (do NOT touch height/flex - keeps flex-1 layout)
-    element.style.background = '#ffffff';
-    element.style.backgroundColor = '#ffffff';
-    element.style.color = '#1e293b';
-    element.style.boxShadow = 'none';
-    element.style.border = 'none';
-    element.style.borderRadius = '0';
-
-    // 4. Force layout flush then wait for repaint
-    void element.offsetHeight;
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    // 5. Capture the element in-place.
-    // Must pass scrollX/scrollY so html2canvas correctly positions the element
-    // relative to the viewport even when the user has scrolled the page.
-    // Also measure the element's actual rendered dimensions before capturing,
-    // since flex-1 layouts can collapse to 0 height in the html2canvas clone iframe.
-    const captureWidth = element.scrollWidth || element.offsetWidth || Math.round(210 * 96 / 25.4);
-    const captureHeight = element.scrollHeight || element.offsetHeight;
-    element.style.width = captureWidth + 'px';
-    if (captureHeight > 0) element.style.height = captureHeight + 'px';
-    element.style.flex = 'none';
-    void element.offsetHeight;
-
-    const canvas = await html2canvas(element, {
-      scale: 3,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      allowTaint: true,
-      imageTimeout: 15000,
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
-      windowWidth: captureWidth,
-      windowHeight: captureHeight,
-      onclone: (doc: Document) => {
-        doc.documentElement.classList.remove('dark');
-        doc.documentElement.setAttribute('dir', 'rtl');
-        doc.documentElement.style.direction = 'rtl';
-        const style = doc.createElement('style');
-        style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
-        doc.head.appendChild(style);
-      },
+    // Copy current input/textarea values into the clone.
+    // cloneNode(true) copies the DOM structure but NOT the JS .value property,
+    // so user-entered text would be lost without this step.
+    const liveInputs = Array.from(element.querySelectorAll('input, textarea'));
+    const cloneInputs = Array.from(cloneEl.querySelectorAll('input, textarea'));
+    liveInputs.forEach((input, i) => {
+      const cloneInput = cloneInputs[i] as HTMLInputElement | HTMLTextAreaElement | undefined;
+      if (!cloneInput) return;
+      if (input instanceof HTMLInputElement) {
+        cloneInput.setAttribute('value', input.value);
+        (cloneInput as HTMLInputElement).defaultValue = input.value;
+      } else if (input instanceof HTMLTextAreaElement) {
+        cloneInput.textContent = (input as HTMLTextAreaElement).value;
+      }
     });
 
-    // 6. Restore everything
-    noPrintEls.forEach((el, i) => { el.style.display = prevDisplays[i]; });
-    if (hadDark) document.documentElement.classList.add('dark');
-    element.style.background = savedStyle.bg;
-    element.style.backgroundColor = savedStyle.bgColor;
-    element.style.color = savedStyle.color;
-    element.style.boxShadow = savedStyle.shadow;
-    element.style.border = savedStyle.border;
-    element.style.borderRadius = savedStyle.borderRadius;
-    // Restore flex layout (we set explicit width/height/flex before capture)
-    element.style.width = '';
-    element.style.height = savedStyle.height;
-    element.style.flex = savedStyle.flex;
+    // Hide no-print elements in the clone
+    cloneEl.querySelectorAll('.no-print').forEach(el => {
+      (el as HTMLElement).style.display = 'none';
+    });
+
+    // Set clean PDF-ready styles - explicit width so html2canvas has a fixed layout width
+    const PDF_WIDTH_PX = Math.round(210 * 96 / 25.4); // 210mm at 96dpi ≈ 794px
+    cloneEl.style.cssText = cloneEl.style.cssText +
+      `;width:${PDF_WIDTH_PX}px;min-height:auto;height:auto;flex:none;` +
+      'background:#ffffff;background-color:#ffffff;color:#1e293b;' +
+      'box-shadow:none;border:none;border-radius:0;overflow:visible;padding:20px;';
+
+    // Place clone fully visible in the document at z-index:1
+    // The loading overlay sits at z-index:99999 so the user never sees this clone,
+    // but html2canvas (which captures the cloned document) WILL see it correctly.
+    captureWrapper = document.createElement('div');
+    captureWrapper.style.cssText =
+      'position:fixed;top:0;left:0;z-index:1;pointer-events:none;overflow:visible;';
+    captureWrapper.appendChild(cloneEl);
+    document.body.appendChild(captureWrapper);
+
+    // Wait for a layout pass and any images to settle
+    await new Promise(resolve => setTimeout(resolve, 400));
+
+    const canvas = await renderToCanvas(cloneEl);
+
+    document.body.removeChild(captureWrapper);
+    captureWrapper = null;
+    document.body.removeChild(overlay);
 
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       console.error('No-header PDF: canvas is empty');
       return;
     }
 
-    // 7. Build PDF pages
+    // Build PDF pages
     const pdf = new SimplePDF();
     const pdfWidth = pdf.getPageWidth();
     const pdfHeight = pdf.getPageHeight();
@@ -852,7 +834,11 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
       if (ctx) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-        ctx.drawImage(canvas, 0, Math.round(sourceY), canvas.width, Math.round(sliceHeightPx), 0, 0, canvas.width, Math.round(sliceHeightPx));
+        ctx.drawImage(
+          canvas,
+          0, Math.round(sourceY), canvas.width, Math.round(sliceHeightPx),
+          0, 0, canvas.width, Math.round(sliceHeightPx)
+        );
       }
 
       const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
@@ -865,15 +851,8 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
 
     pdf.save(`${filename}.pdf`);
   } catch (error) {
-    // Always restore on error
-    noPrintEls.forEach((el, i) => { el.style.display = prevDisplays[i]; });
-    if (hadDark) document.documentElement.classList.add('dark');
-    element.style.background = savedStyle.bg;
-    element.style.backgroundColor = savedStyle.bgColor;
-    element.style.color = savedStyle.color;
-    element.style.boxShadow = savedStyle.shadow;
-    element.style.border = savedStyle.border;
-    element.style.borderRadius = savedStyle.borderRadius;
+    if (captureWrapper?.parentNode) document.body.removeChild(captureWrapper);
+    if (overlay?.parentNode) document.body.removeChild(overlay);
     console.error('Failed to generate no-header PDF:', error);
   }
 };
@@ -888,52 +867,50 @@ export const exportToPDF = async (
   const element = document.getElementById(elementId);
   if (!element) return;
 
+  const overlay = showPdfLoadingOverlay();
+  let captureWrapper: HTMLElement | null = null;
+  let miniWrapper: HTMLElement | null = null;
+
   try {
-    // Pre-warm Cairo font cache before any html2canvas rendering
     await getCairoFontCSS();
 
     const pdf = new SimplePDF();
     const pdfWidth = pdf.getPageWidth();
     const pdfHeight = pdf.getPageHeight();
-
     const marginX = 2;
     const marginY = 2;
     const imgWidth = pdfWidth - marginX * 2;
 
-    // --- Render main document ---
+    // Build the print-ready document clone (inputs → plain text, SVGs removed, etc.)
     const printDoc = createPrintDocument(element, items || [], details || {});
     printDoc.style.direction = 'rtl';
     printDoc.setAttribute('dir', 'rtl');
 
-    // CRITICAL: The wrapper must be at top:0;left:0 (inside the viewport) so html2canvas
-    // can compute correct bounds. We use visibility:hidden to hide it from the user,
-    // and in renderToCanvas's onclone callback we restore visibility:visible so the
-    // cloned document renders the content correctly (visibility doesn't affect layout,
-    // unlike display:none or opacity:0 which would produce a blank canvas).
-    const offscreenWrapper = document.createElement('div');
-    offscreenWrapper.setAttribute('aria-hidden', 'true');
-    offscreenWrapper.setAttribute('data-pdf-offscreen', 'true');
-    offscreenWrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;pointer-events:none;z-index:99999;overflow:visible;visibility:hidden;';
-    offscreenWrapper.appendChild(printDoc);
-    document.body.appendChild(offscreenWrapper);
-    await new Promise(resolve => setTimeout(resolve, 400));
+    // Place printDoc FULLY VISIBLE at z-index:1 (below the loading overlay at z-index:99999).
+    // The user sees only the spinner. html2canvas clones the entire document and sees
+    // printDoc as fully rendered — no visibility:hidden tricks needed.
+    captureWrapper = document.createElement('div');
+    captureWrapper.style.cssText =
+      'position:fixed;top:0;left:0;width:210mm;z-index:1;pointer-events:none;overflow:visible;';
+    captureWrapper.appendChild(printDoc);
+    document.body.appendChild(captureWrapper);
 
-    // --- Measure table row boundaries BEFORE rendering ---
-    // html2canvas uses scale:3, so multiply DOM pixels by 3 to get canvas pixels
+    // Give the browser time to lay out printDoc and load any images inside it
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Measure table row boundaries for smart page-break snapping
+    // (html2canvas scale:3 → multiply CSS pixels by 3 to get canvas pixels)
     const HTML2CANVAS_SCALE = 3;
     const printDocRect = printDoc.getBoundingClientRect();
     const rowBreaksCx = new Set<number>();
     rowBreaksCx.add(0);
     printDoc.querySelectorAll('tr').forEach(row => {
       const r = row.getBoundingClientRect();
-      const topCx  = Math.round((r.top  - printDocRect.top)  * HTML2CANVAS_SCALE);
-      const botCx  = Math.round((r.bottom - printDocRect.top) * HTML2CANVAS_SCALE);
-      rowBreaksCx.add(topCx);
-      rowBreaksCx.add(botCx);
+      rowBreaksCx.add(Math.round((r.top    - printDocRect.top) * HTML2CANVAS_SCALE));
+      rowBreaksCx.add(Math.round((r.bottom - printDocRect.top) * HTML2CANVAS_SCALE));
     });
     const sortedRowBreaks = Array.from(rowBreaksCx).sort((a, b) => a - b);
 
-    // Returns the largest safe cut point (row boundary) that fits within [startY, maxY]
     const findRowCutPoint = (startY: number, maxY: number): number => {
       let best = -1;
       for (const bp of sortedRowBreaks) {
@@ -942,56 +919,59 @@ export const exportToPDF = async (
       return best > 0 ? best : maxY;
     };
 
+    // Capture — the overlay is automatically hidden inside the clone by renderToCanvas's onclone
     const mainCanvas = await renderToCanvas(printDoc);
-    document.body.removeChild(offscreenWrapper);
+    document.body.removeChild(captureWrapper);
+    captureWrapper = null;
 
     if (!mainCanvas || mainCanvas.width === 0 || mainCanvas.height === 0) {
-      console.error('PDF generation failed: canvas is empty. The quotation document may not be rendered.');
+      console.error('PDF generation failed: canvas is empty');
+      document.body.removeChild(overlay);
       return;
     }
 
-    // --- Render mini header for subsequent pages ---
+    // Render mini-header for page 2+ (also placed at z-index:1, overlay hides it)
     let miniHeaderCanvas: HTMLCanvasElement | null = null;
     let miniHeaderHeightMM = 0;
 
     if (logoSrc || details) {
       const miniHeader = createPageMiniHeader(details || {}, logoSrc || '');
-      const miniWrapper = document.createElement('div');
-      miniWrapper.setAttribute('data-pdf-offscreen', 'true');
-      miniWrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;pointer-events:none;z-index:99999;overflow:visible;visibility:hidden;';
+      miniWrapper = document.createElement('div');
+      miniWrapper.style.cssText =
+        'position:fixed;top:0;left:0;width:210mm;z-index:1;pointer-events:none;overflow:visible;';
       miniWrapper.appendChild(miniHeader);
       document.body.appendChild(miniWrapper);
       await new Promise(resolve => setTimeout(resolve, 150));
 
       miniHeaderCanvas = await renderToCanvas(miniHeader);
       document.body.removeChild(miniWrapper);
+      miniWrapper = null;
 
-      miniHeaderHeightMM = (miniHeaderCanvas.height * imgWidth) / miniHeaderCanvas.width;
+      if (miniHeaderCanvas && miniHeaderCanvas.width > 0) {
+        miniHeaderHeightMM = (miniHeaderCanvas.height * imgWidth) / miniHeaderCanvas.width;
+      }
     }
 
-    // --- Calculate page dimensions in canvas pixels ---
+    document.body.removeChild(overlay);
+
+    // Slice canvas into A4 pages
     const canvasPixelsPerMM = mainCanvas.width / imgWidth;
     const fullPageHeightPx = (pdfHeight - marginY * 2) * canvasPixelsPerMM;
     const miniHeaderHeightPx = miniHeaderCanvas
       ? (miniHeaderCanvas.height * mainCanvas.width) / miniHeaderCanvas.width
       : 0;
 
-    // Available content height per page (page 2+ has mini header)
     const contentHeightPage1Px = fullPageHeightPx;
-    const contentHeightSubsequentPx = fullPageHeightPx - miniHeaderHeightPx;
+    const contentHeightSubsequentPx = Math.max(fullPageHeightPx - miniHeaderHeightPx, 100);
 
-    // --- Slice and add pages, snapping cuts to row boundaries ---
     let sourceY = 0;
     let pageIndex = 0;
 
     while (sourceY < mainCanvas.height) {
-      if (pageIndex > 0) {
-        pdf.addPage('a4');
-      }
+      if (pageIndex > 0) pdf.addPage('a4');
 
       let contentStartY = marginY;
 
-      // Draw mini header on pages 2+
       if (pageIndex > 0 && miniHeaderCanvas) {
         const miniImgData = miniHeaderCanvas.toDataURL('image/jpeg', 0.98);
         pdf.addImage(miniImgData, 'JPEG', marginX, marginY, imgWidth, miniHeaderHeightMM);
@@ -1000,11 +980,8 @@ export const exportToPDF = async (
 
       const availableContentPx = pageIndex === 0 ? contentHeightPage1Px : contentHeightSubsequentPx;
       const remainingPx = mainCanvas.height - sourceY;
-
       if (remainingPx <= 0) break;
 
-      // If remaining content fits on this page, take it all
-      // Otherwise snap the cut to the nearest row boundary that fits
       const sliceHeightPx = remainingPx <= availableContentPx
         ? remainingPx
         : findRowCutPoint(sourceY, sourceY + availableContentPx) - sourceY;
@@ -1014,21 +991,19 @@ export const exportToPDF = async (
       const pageCanvas = document.createElement('canvas');
       pageCanvas.width = mainCanvas.width;
       pageCanvas.height = Math.round(sliceHeightPx);
-
       const ctx = pageCanvas.getContext('2d');
       if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
         ctx.drawImage(
           mainCanvas,
-          0, Math.round(sourceY),
-          mainCanvas.width, Math.round(sliceHeightPx),
-          0, 0,
-          mainCanvas.width, Math.round(sliceHeightPx)
+          0, Math.round(sourceY), mainCanvas.width, Math.round(sliceHeightPx),
+          0, 0, mainCanvas.width, Math.round(sliceHeightPx)
         );
       }
 
       const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.98);
       const pageHeightMM = sliceHeightPx / canvasPixelsPerMM;
-
       pdf.addImage(pageImgData, 'JPEG', marginX, contentStartY, imgWidth, pageHeightMM);
 
       sourceY += sliceHeightPx;
@@ -1037,6 +1012,9 @@ export const exportToPDF = async (
 
     pdf.save(`${filename}.pdf`);
   } catch (error) {
+    if (captureWrapper?.parentNode) document.body.removeChild(captureWrapper);
+    if (miniWrapper?.parentNode) document.body.removeChild(miniWrapper);
+    if (overlay?.parentNode) document.body.removeChild(overlay);
     console.error('Failed to generate PDF:', error);
   }
 };

@@ -1,22 +1,34 @@
 ---
-name: PDF blank fix - html2canvas offscreen rendering
-description: How to correctly render off-screen elements with html2canvas without getting blank output
+name: PDF blank fix - html2canvas overlay approach
+description: The reliable way to render off-screen elements with html2canvas without blank output
 ---
 
 ## The Rule
-Never use `left: -9999px` or `opacity: 0` when placing an off-screen element for html2canvas capture — both produce blank canvases.
+Never use `visibility:hidden`, `opacity:0`, or `left:-9999px` when placing an element for html2canvas capture — all produce blank canvases.
 
-**Why:** html2canvas uses `getBoundingClientRect()` to compute bounds. With `left: -9999px`, the element is outside the virtual viewport so the capture area is empty. With `opacity: 0`, the rendered pixels are transparent → JPEG becomes white → blank PDF.
+**Why:**
+- `left:-9999px` → element is outside the html2canvas virtual viewport → blank capture area
+- `opacity:0` → pixels are transparent → JPEG encodes as white → blank PDF
+- `visibility:hidden` → even with onclone restore, html2canvas may process styles before callback fully takes effect
 
-## Working Pattern (exportToPDF)
-1. Place wrapper at `position: fixed; top: 0; left: 0; visibility: hidden` with `data-pdf-offscreen` attribute
-2. In `onclone`, find `[data-pdf-offscreen]` and set `visibility: visible` — visibility:hidden hides from user but onclone can override it, making the clone render correctly
-3. Pass `scrollX: 0, scrollY: 0` to html2canvas (element is at viewport origin)
+## Working Pattern (both exportToPDF and exportNoHeaderToPDF)
 
-## Working Pattern (exportNoHeaderToPDF — in-place capture)
-1. Measure `scrollWidth/scrollHeight` before capture
-2. Set explicit `width`, `height`, `flex: none` so flex-1 layouts don't collapse to 0 in the clone iframe
-3. Pass `scrollX: -window.scrollX, scrollY: -window.scrollY` to compensate for page scroll
-4. Restore width/height/flex after capture
+**Strategy**: Show a white loading overlay to the user, place the print element FULLY VISIBLE at z-index:1 (below overlay). In `onclone`, hide the overlay so it doesn't appear in the captured canvas.
 
-**How to apply:** Any time html2canvas is used on an element not currently visible in the normal flow.
+1. `showPdfLoadingOverlay()` → creates `div[data-pdf-loading-overlay]` at `position:fixed;inset:0;z-index:99999`
+2. Place print element in wrapper: `position:fixed;top:0;left:0;z-index:1;pointer-events:none`
+3. In `renderToCanvas` → `onclone` callback: `doc.querySelectorAll('[data-pdf-loading-overlay]').forEach(el => el.style.display='none')`
+4. After capture: remove both the wrapper and overlay
+
+## exportNoHeaderToPDF specific
+- Clone the live element with `cloneNode(true)`
+- Manually copy `.value` property of all `input`/`textarea` via `setAttribute('value', input.value)` — cloneNode does NOT copy JS `.value`
+- Set explicit `width: 794px` (210mm at 96dpi), `flex:none`, `height:auto` on clone to prevent flex collapse
+- Place clone at z-index:1 behind overlay
+
+## exportToPDF specific
+- `createPrintDocument` clones the live element and replaces inputs with plain-text divs — no need to copy .value manually
+- Place printDoc wrapper at z-index:1 behind overlay
+- Mini-header for page 2+ also placed at z-index:1 (overlay still covers it during capture)
+
+**How to apply:** Any future html2canvas element capture in this project should use the overlay pattern.
