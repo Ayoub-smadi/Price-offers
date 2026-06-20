@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { quotations, quotationItems, products, users, productCategories, DEFAULT_PRODUCT_CATEGORIES, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User, type ProductCategory, type InsertProductCategory } from "@shared/schema";
+import { quotations, quotationItems, products, users, productCategories, DEFAULT_PRODUCT_CATEGORIES, type Quotation, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User, type ProductCategory, type InsertProductCategory } from "@shared/schema";
 import { eq, desc, isNull, isNotNull, asc, sql, inArray } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
@@ -26,6 +26,7 @@ export function createPasswordHash(password: string): string {
 
 export interface IStorage {
   getQuotations(): Promise<QuotationWithItems[]>;
+  getQuotationsSummary(): Promise<(Quotation & { itemCount: number })[]>;
   getQuotation(id: number): Promise<QuotationWithItems | undefined>;
   createQuotation(quotation: InsertQuotation, items: any[]): Promise<QuotationWithItems>;
   updateQuotation(id: number, quotation: Partial<InsertQuotation>, items: any[]): Promise<QuotationWithItems>;
@@ -64,6 +65,31 @@ export class DatabaseStorage implements IStorage {
       itemsMap[item.quotationId].push(item);
     }
     return qList.map(q => ({ ...q, items: itemsMap[q.id] || [] }));
+  }
+
+  async getQuotationsSummary(): Promise<(Quotation & { itemCount: number })[]> {
+    const rows = await db.execute(sql`
+      SELECT q.id, q.quotation_number, q.customer_name, q.date, q.notes,
+             q.grand_total, q.quotation_type, q.created_at, q.deleted_at,
+             COUNT(qi.id)::int AS item_count
+      FROM quotations q
+      LEFT JOIN quotation_items qi ON qi.quotation_id = q.id
+      WHERE q.deleted_at IS NULL
+      GROUP BY q.id
+      ORDER BY q.created_at DESC
+    `);
+    return (rows.rows as any[]).map(row => ({
+      id: row.id,
+      quotationNumber: row.quotation_number,
+      customerName: row.customer_name,
+      date: row.date,
+      notes: row.notes,
+      grandTotal: row.grand_total,
+      quotationType: row.quotation_type,
+      createdAt: row.created_at,
+      deletedAt: row.deleted_at,
+      itemCount: Number(row.item_count ?? 0),
+    }));
   }
 
   async getQuotation(id: number): Promise<QuotationWithItems | undefined> {

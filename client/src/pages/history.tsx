@@ -1,4 +1,4 @@
-import { useQuotations, useDeleteQuotation } from "@/hooks/use-quotations";
+import { useQuotationsSummary, useDeleteQuotation } from "@/hooks/use-quotations";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { FileText, Calendar, User, Search, Hash, Trash2, FileX } from "lucide-react";
@@ -7,7 +7,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function History() {
-  const { data: quotations, isLoading, error } = useQuotations();
+  const { data: quotations, isLoading, error } = useQuotationsSummary();
   const deleteMutation = useDeleteQuotation();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -158,7 +158,7 @@ export default function History() {
 
               <div className="pt-4 border-t border-border flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">
-                  يحتوي على {quote.items?.length || 0} أصناف
+                  يحتوي على {(quote as any).itemCount ?? 0} أصناف
                 </span>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all">
                   {confirmId === quote.id ? (

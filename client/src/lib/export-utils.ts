@@ -679,6 +679,15 @@ const createPageMiniHeader = (details: any, logoSrc: string): HTMLElement => {
 
 const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
   const fontCss = await getCairoFontCSS();
+  // Pre-inject font into the live document so the html2canvas clone inherits it
+  if (!document.getElementById('__pdf_cairo_font__')) {
+    const s = document.createElement('style');
+    s.id = '__pdf_cairo_font__';
+    s.textContent = fontCss;
+    document.head.appendChild(s);
+  }
+  // Wait for fonts to be fully loaded before capturing
+  try { await document.fonts.ready; } catch {}
   return html2canvas(el, {
     scale: 3,
     useCORS: true,
@@ -687,13 +696,12 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     allowTaint: true,
     imageTimeout: 15000,
     windowWidth: Math.round(210 * 96 / 25.4),
-    onclone: async (doc: Document) => {
+    onclone: (doc: Document) => {
       doc.documentElement.setAttribute('dir', 'rtl');
       doc.documentElement.style.direction = 'rtl';
       const style = doc.createElement('style');
       style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
       doc.head.appendChild(style);
-      try { await doc.fonts.ready; } catch {}
     },
   });
 };
@@ -725,6 +733,14 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
 
   try {
     const fontCss = await getCairoFontCSS();
+    // Pre-inject font into the live document and wait for it to load
+    if (!document.getElementById('__pdf_cairo_font__')) {
+      const s = document.createElement('style');
+      s.id = '__pdf_cairo_font__';
+      s.textContent = fontCss;
+      document.head.appendChild(s);
+    }
+    try { await document.fonts.ready; } catch {}
 
     // 1. Hide no-print elements
     noPrintEls.forEach(el => { el.style.display = 'none'; });
@@ -740,8 +756,10 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     element.style.border = 'none';
     element.style.borderRadius = '0';
 
-    // 4. Give browser time to reflow/repaint
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // 4. Force layout flush then wait for repaint
+    void element.offsetHeight;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     // 5. Capture the element in-place
     const canvas = await html2canvas(element, {
@@ -752,14 +770,13 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
       allowTaint: true,
       imageTimeout: 15000,
       windowWidth: element.offsetWidth || Math.round(210 * 96 / 25.4),
-      onclone: async (doc: Document) => {
+      onclone: (doc: Document) => {
         doc.documentElement.classList.remove('dark');
         doc.documentElement.setAttribute('dir', 'rtl');
         doc.documentElement.style.direction = 'rtl';
         const style = doc.createElement('style');
         style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
         doc.head.appendChild(style);
-        try { await doc.fonts.ready; } catch {}
       },
     });
 
@@ -854,13 +871,16 @@ export const exportToPDF = async (
 
     // --- Render main document ---
     const printDoc = createPrintDocument(element, items || [], details || {});
-    printDoc.style.position = 'absolute';
-    printDoc.style.top = '-99999px';
-    printDoc.style.left = '0';
     printDoc.style.direction = 'rtl';
     printDoc.setAttribute('dir', 'rtl');
-    document.body.appendChild(printDoc);
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // Use a fixed off-screen wrapper so the element has proper viewport context for html2canvas.
+    // Positioning at top:-99999px can cause the canvas to be empty in some environments.
+    const offscreenWrapper = document.createElement('div');
+    offscreenWrapper.setAttribute('aria-hidden', 'true');
+    offscreenWrapper.style.cssText = 'position:fixed;top:0;left:-9999px;width:210mm;pointer-events:none;z-index:-9999;overflow:visible;';
+    offscreenWrapper.appendChild(printDoc);
+    document.body.appendChild(offscreenWrapper);
+    await new Promise(resolve => setTimeout(resolve, 400));
 
     // --- Measure table row boundaries BEFORE rendering ---
     // html2canvas uses scale:3, so multiply DOM pixels by 3 to get canvas pixels
@@ -887,7 +907,12 @@ export const exportToPDF = async (
     };
 
     const mainCanvas = await renderToCanvas(printDoc);
-    document.body.removeChild(printDoc);
+    document.body.removeChild(offscreenWrapper);
+
+    if (!mainCanvas || mainCanvas.width === 0 || mainCanvas.height === 0) {
+      console.error('PDF generation failed: canvas is empty. The quotation document may not be rendered.');
+      return;
+    }
 
     // --- Render mini header for subsequent pages ---
     let miniHeaderCanvas: HTMLCanvasElement | null = null;

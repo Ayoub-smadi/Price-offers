@@ -15,6 +15,22 @@ export function useQuotations() {
   });
 }
 
+export function useQuotationsSummary() {
+  return useQuery({
+    queryKey: ['/api/quotations/summary'],
+    queryFn: async () => {
+      const res = await fetch('/api/quotations/summary', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch quotations summary');
+      return res.json() as Promise<Array<{
+        id: number; quotationNumber: string; customerName: string;
+        date: string; grandTotal: string; quotationType: string;
+        itemCount: number;
+      }>>;
+    },
+    staleTime: 60_000,
+  });
+}
+
 export function useQuotation(id: number) {
   return useQuery({
     queryKey: [api.quotations.get.path, id],
@@ -88,6 +104,7 @@ export function useDeleteQuotation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations/summary'] });
       queryClient.invalidateQueries({ queryKey: ['/api/trash'] });
     },
   });

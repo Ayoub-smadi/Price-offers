@@ -72,6 +72,18 @@ export async function registerRoutes(
     }
   });
 
+  // Summary endpoint: returns quotations with item COUNT only (no full items array).
+  // Must be registered before the :id route to avoid param collision.
+  app.get('/api/quotations/summary', async (_req, res) => {
+    try {
+      const data = await storage.getQuotationsSummary();
+      res.json(data);
+    } catch (e) {
+      console.error('[summary] error:', e);
+      res.status(500).json({ message: "Internal Error" });
+    }
+  });
+
   app.get(api.quotations.get.path, async (req, res) => {
     try {
       const id = Number(req.params.id);
