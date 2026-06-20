@@ -64,6 +64,7 @@ export function useCreateQuotation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations/summary'] });
     },
   });
 }
@@ -88,6 +89,7 @@ export function useUpdateQuotation(id: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [api.quotations.list.path] });
       queryClient.invalidateQueries({ queryKey: [api.quotations.get.path, id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/quotations/summary'] });
     },
   });
 }

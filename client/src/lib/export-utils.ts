@@ -688,6 +688,10 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
   }
   // Wait for fonts to be fully loaded before capturing
   try { await document.fonts.ready; } catch {}
+
+  // IMPORTANT: scrollX/scrollY must be 0 because the offscreen wrapper is positioned
+  // at top:0;left:0 in the viewport (not scrolled away). If we let html2canvas read
+  // window.scrollX/scrollY it offsets the capture incorrectly, producing blank output.
   return html2canvas(el, {
     scale: 3,
     useCORS: true,
@@ -695,6 +699,8 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
     backgroundColor: '#ffffff',
     allowTaint: true,
     imageTimeout: 15000,
+    scrollX: 0,
+    scrollY: 0,
     windowWidth: Math.round(210 * 96 / 25.4),
     onclone: (doc: Document) => {
       doc.documentElement.setAttribute('dir', 'rtl');
@@ -702,6 +708,13 @@ const renderToCanvas = async (el: HTMLElement): Promise<HTMLCanvasElement> => {
       const style = doc.createElement('style');
       style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
       doc.head.appendChild(style);
+      // The offscreen wrapper is hidden (visibility:hidden) to the user.
+      // We must make it visible in the clone so html2canvas captures it.
+      const wrapper = doc.querySelector('[data-pdf-offscreen]') as HTMLElement | null;
+      if (wrapper) {
+        wrapper.style.visibility = 'visible';
+        wrapper.style.opacity = '1';
+      }
     },
   });
 };
@@ -761,7 +774,18 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     await new Promise(resolve => requestAnimationFrame(resolve));
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    // 5. Capture the element in-place
+    // 5. Capture the element in-place.
+    // Must pass scrollX/scrollY so html2canvas correctly positions the element
+    // relative to the viewport even when the user has scrolled the page.
+    // Also measure the element's actual rendered dimensions before capturing,
+    // since flex-1 layouts can collapse to 0 height in the html2canvas clone iframe.
+    const captureWidth = element.scrollWidth || element.offsetWidth || Math.round(210 * 96 / 25.4);
+    const captureHeight = element.scrollHeight || element.offsetHeight;
+    element.style.width = captureWidth + 'px';
+    if (captureHeight > 0) element.style.height = captureHeight + 'px';
+    element.style.flex = 'none';
+    void element.offsetHeight;
+
     const canvas = await html2canvas(element, {
       scale: 3,
       useCORS: true,
@@ -769,7 +793,10 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
       backgroundColor: '#ffffff',
       allowTaint: true,
       imageTimeout: 15000,
-      windowWidth: element.offsetWidth || Math.round(210 * 96 / 25.4),
+      scrollX: -window.scrollX,
+      scrollY: -window.scrollY,
+      windowWidth: captureWidth,
+      windowHeight: captureHeight,
       onclone: (doc: Document) => {
         doc.documentElement.classList.remove('dark');
         doc.documentElement.setAttribute('dir', 'rtl');
@@ -789,6 +816,10 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     element.style.boxShadow = savedStyle.shadow;
     element.style.border = savedStyle.border;
     element.style.borderRadius = savedStyle.borderRadius;
+    // Restore flex layout (we set explicit width/height/flex before capture)
+    element.style.width = '';
+    element.style.height = savedStyle.height;
+    element.style.flex = savedStyle.flex;
 
     if (!canvas || canvas.width === 0 || canvas.height === 0) {
       console.error('No-header PDF: canvas is empty');
@@ -873,11 +904,16 @@ export const exportToPDF = async (
     const printDoc = createPrintDocument(element, items || [], details || {});
     printDoc.style.direction = 'rtl';
     printDoc.setAttribute('dir', 'rtl');
-    // Use a fixed off-screen wrapper so the element has proper viewport context for html2canvas.
-    // Positioning at top:-99999px can cause the canvas to be empty in some environments.
+
+    // CRITICAL: The wrapper must be at top:0;left:0 (inside the viewport) so html2canvas
+    // can compute correct bounds. We use visibility:hidden to hide it from the user,
+    // and in renderToCanvas's onclone callback we restore visibility:visible so the
+    // cloned document renders the content correctly (visibility doesn't affect layout,
+    // unlike display:none or opacity:0 which would produce a blank canvas).
     const offscreenWrapper = document.createElement('div');
     offscreenWrapper.setAttribute('aria-hidden', 'true');
-    offscreenWrapper.style.cssText = 'position:fixed;top:0;left:-9999px;width:210mm;pointer-events:none;z-index:-9999;overflow:visible;';
+    offscreenWrapper.setAttribute('data-pdf-offscreen', 'true');
+    offscreenWrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;pointer-events:none;z-index:99999;overflow:visible;visibility:hidden;';
     offscreenWrapper.appendChild(printDoc);
     document.body.appendChild(offscreenWrapper);
     await new Promise(resolve => setTimeout(resolve, 400));
@@ -920,14 +956,15 @@ export const exportToPDF = async (
 
     if (logoSrc || details) {
       const miniHeader = createPageMiniHeader(details || {}, logoSrc || '');
-      miniHeader.style.position = 'absolute';
-      miniHeader.style.top = '-99999px';
-      miniHeader.style.left = '0';
-      document.body.appendChild(miniHeader);
+      const miniWrapper = document.createElement('div');
+      miniWrapper.setAttribute('data-pdf-offscreen', 'true');
+      miniWrapper.style.cssText = 'position:fixed;top:0;left:0;width:210mm;pointer-events:none;z-index:99999;overflow:visible;visibility:hidden;';
+      miniWrapper.appendChild(miniHeader);
+      document.body.appendChild(miniWrapper);
       await new Promise(resolve => setTimeout(resolve, 150));
 
       miniHeaderCanvas = await renderToCanvas(miniHeader);
-      document.body.removeChild(miniHeader);
+      document.body.removeChild(miniWrapper);
 
       miniHeaderHeightMM = (miniHeaderCanvas.height * imgWidth) / miniHeaderCanvas.width;
     }
