@@ -10,6 +10,7 @@ export const quotations = pgTable("quotations", {
   date: timestamp("date").defaultNow().notNull(),
   notes: text("notes"),
   grandTotal: numeric("grand_total").notNull(),
+  quotationType: text("quotation_type").default('standard').notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 });

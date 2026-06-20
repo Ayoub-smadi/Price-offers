@@ -22,6 +22,7 @@ type Headers = {
 type Details = {
   quotationNumber: string; customerName: string; date: string;
   notes: string; closingText: string; signerTitle: string;
+  titleText: string;
 };
 
 type CustomColors = {
@@ -42,6 +43,7 @@ const defaultDetails = (): Details => ({
   notes: "",
   closingText: "واقبلوا فائق الاحترام....",
   signerTitle: "المدير العام/ ثامر احمد القادري",
+  titleText: "",
 });
 
 const defaultItems = (): Item[] => [
@@ -84,19 +86,20 @@ export function QuotationFormNoHeader() {
   const draft = loadDraft();
 
   const [items, setItems] = useState<Item[]>(draft?.items ?? defaultItems());
-  const [details, setDetails] = useState<Details>(draft?.details ?? defaultDetails());
+  const [details, setDetails] = useState<Details>(draft?.details ? { ...defaultDetails(), ...draft.details } : defaultDetails());
   const [headers, setHeaders] = useState<Headers>(draft?.headers ?? defaultHeaders());
   const [colors, setColors] = useState<CustomColors>(draft?.colors ?? defaultColors());
   const [pasteText, setPasteText] = useState("");
   const [discountValue, setDiscountValue] = useState<number>(draft?.discountValue ?? 0);
   const [taxRate, setTaxRate] = useState<number>(draft?.taxRate ?? 0);
   const [stampSrc, setStampSrc] = useState<string | null>(draft?.stampSrc ?? null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(draft?.logoBase64 ?? null);
 
   const saveDraft = useCallback(() => {
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ items, details, headers, colors, discountValue, taxRate, stampSrc }));
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ items, details, headers, colors, discountValue, taxRate, stampSrc, logoBase64 }));
     } catch {}
-  }, [items, details, headers, colors, discountValue, taxRate, stampSrc]);
+  }, [items, details, headers, colors, discountValue, taxRate, stampSrc, logoBase64]);
 
   useEffect(() => { saveDraft(); }, [saveDraft]);
 
@@ -110,6 +113,16 @@ export function QuotationFormNoHeader() {
     setTaxRate(0);
     setStampSrc(null);
     setStampBase64(null);
+    setLogoBase64(null);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setLogoBase64(reader.result as string);
+      reader.readAsDataURL(file);
+    }
   };
 
   const subtotal = items.reduce((acc, item) => acc + (item.total || 0), 0);
@@ -212,6 +225,7 @@ export function QuotationFormNoHeader() {
       date: new Date(details.date),
       notes: details.notes,
       grandTotal: grandTotal.toString(),
+      quotationType: 'no-header',
       items: validItems.map(i => ({
         name: i.name.trim(), description: i.description.trim(),
         category: i.category?.trim() || null,
@@ -385,6 +399,31 @@ export function QuotationFormNoHeader() {
 
       {/* DOCUMENT AREA — No Header */}
       <div id="nh-quotation-document" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl p-5 sm:p-6 space-y-3 flex-1 flex flex-col print:shadow-none print:border-slate-300 print:p-4 print:rounded-none">
+
+        {/* Logo + Title Section */}
+        <div className="flex flex-col items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+          {logoBase64 ? (
+            <div className="relative">
+              <img src={logoBase64} alt="شعار" className="h-20 w-auto object-contain" />
+              <button
+                onClick={() => setLogoBase64(null)}
+                className="no-print absolute -top-2 -left-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+              >×</button>
+            </div>
+          ) : (
+            <label className="no-print cursor-pointer flex flex-col items-center gap-1 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl px-6 py-3 hover:border-primary hover:bg-primary/5 transition-all">
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+              <Upload className="w-5 h-5 text-slate-300" />
+              <span className="text-xs text-slate-400">رفع الشعار</span>
+            </label>
+          )}
+          <input
+            value={details.titleText}
+            onChange={e => setDetails({...details, titleText: e.target.value})}
+            className="text-center text-xl font-black text-slate-900 dark:text-slate-50 bg-transparent border-none focus:ring-2 focus:ring-primary/20 outline-none w-full"
+            placeholder="عنوان الوثيقة (اختياري)"
+          />
+        </div>
 
         {/* Minimal Meta Row */}
         <div className="flex gap-3 pb-4 border-b-2 border-slate-200 dark:border-slate-700">

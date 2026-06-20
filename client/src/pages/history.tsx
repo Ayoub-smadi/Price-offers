@@ -1,7 +1,7 @@
 import { useQuotations, useDeleteQuotation } from "@/hooks/use-quotations";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { FileText, Calendar, User, Search, Hash, Trash2 } from "lucide-react";
+import { FileText, Calendar, User, Search, Hash, Trash2, FileX } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ export default function History() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'standard' | 'no-header'>('standard');
   const [, navigate] = useLocation();
 
   const handleDelete = (id: number) => {
@@ -49,22 +50,26 @@ export default function History() {
     );
   }
 
-  const filtered = quotations?.filter(q => 
-    q.customerName.toLowerCase().includes(search.toLowerCase()) || 
+  const allByTab = quotations?.filter(q => (q as any).quotationType === (activeTab === 'no-header' ? 'no-header' : 'standard')) || [];
+
+  const filtered = allByTab.filter(q =>
+    q.customerName.toLowerCase().includes(search.toLowerCase()) ||
     q.quotationNumber.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  );
+
+  const standardCount = quotations?.filter(q => (q as any).quotationType !== 'no-header').length || 0;
+  const noHeaderCount = quotations?.filter(q => (q as any).quotationType === 'no-header').length || 0;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">سجل العروض</h1>
           <p className="text-muted-foreground mt-1">تصفح جميع عروض الأسعار السابقة</p>
         </div>
-
         <div className="relative w-full sm:w-72">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <input 
+          <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-card border-2 border-border pl-4 pr-10 py-2.5 rounded-xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none"
@@ -74,17 +79,53 @@ export default function History() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-border">
+        <button
+          onClick={() => setActiveTab('standard')}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-t-xl border-b-2 transition-all ${
+            activeTab === 'standard'
+              ? 'border-primary text-primary bg-primary/5'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+          data-testid="tab-standard"
+        >
+          <FileText className="w-4 h-4" />
+          عروض عادية
+          <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activeTab === 'standard' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            {standardCount}
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('no-header')}
+          className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-t-xl border-b-2 transition-all ${
+            activeTab === 'no-header'
+              ? 'border-primary text-primary bg-primary/5'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+          data-testid="tab-no-header"
+        >
+          <FileX className="w-4 h-4" />
+          دون ترويسة
+          <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activeTab === 'no-header' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            {noHeaderCount}
+          </span>
+        </button>
+      </div>
+
       {filtered.length === 0 ? (
         <div className="text-center py-20 bg-card rounded-3xl border border-dashed border-border">
           <FileText className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-foreground">لا توجد عروض أسعار</h3>
-          <p className="text-muted-foreground mt-2">لم تقم بإنشاء أي عروض أسعار حتى الآن، أو لا توجد نتائج مطابقة للبحث.</p>
+          <p className="text-muted-foreground mt-2">
+            {search ? 'لا توجد نتائج مطابقة للبحث.' : 'لم تقم بإنشاء أي عروض في هذا القسم حتى الآن.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filtered.map(quote => (
-            <div 
-              key={quote.id} 
+            <div
+              key={quote.id}
               className="bg-card rounded-2xl p-6 border border-border/50 shadow-sm hover:shadow-xl hover:border-primary/30 transition-all duration-300 group"
               data-testid={`card-quotation-${quote.id}`}
             >

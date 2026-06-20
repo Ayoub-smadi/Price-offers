@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { quotations, quotationItems, products, users, productCategories, DEFAULT_PRODUCT_CATEGORIES, type InsertQuotation, type QuotationWithItems, type InsertProduct, type Product, type User, type ProductCategory, type InsertProductCategory } from "@shared/schema";
-import { eq, desc, isNull, isNotNull, asc, sql } from "drizzle-orm";
+import { eq, desc, isNull, isNotNull, asc, sql, inArray } from "drizzle-orm";
 import { createHash, randomBytes, timingSafeEqual } from "crypto";
 
 function hashPassword(password: string, salt: string): string {
@@ -55,12 +55,15 @@ export class DatabaseStorage implements IStorage {
     const qList = await db.select().from(quotations)
       .where(isNull(quotations.deletedAt))
       .orderBy(desc(quotations.createdAt));
-    const result: QuotationWithItems[] = [];
-    for (const q of qList) {
-      const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
-      result.push({ ...q, items });
+    if (qList.length === 0) return [];
+    const allItems = await db.select().from(quotationItems)
+      .where(inArray(quotationItems.quotationId, qList.map(q => q.id)));
+    const itemsMap: Record<number, typeof allItems> = {};
+    for (const item of allItems) {
+      if (!itemsMap[item.quotationId]) itemsMap[item.quotationId] = [];
+      itemsMap[item.quotationId].push(item);
     }
-    return result;
+    return qList.map(q => ({ ...q, items: itemsMap[q.id] || [] }));
   }
 
   async getQuotation(id: number): Promise<QuotationWithItems | undefined> {
@@ -115,12 +118,15 @@ export class DatabaseStorage implements IStorage {
     const qList = await db.select().from(quotations)
       .where(isNotNull(quotations.deletedAt))
       .orderBy(desc(quotations.deletedAt));
-    const result: QuotationWithItems[] = [];
-    for (const q of qList) {
-      const items = await db.select().from(quotationItems).where(eq(quotationItems.quotationId, q.id));
-      result.push({ ...q, items });
+    if (qList.length === 0) return [];
+    const allItems = await db.select().from(quotationItems)
+      .where(inArray(quotationItems.quotationId, qList.map(q => q.id)));
+    const itemsMap: Record<number, typeof allItems> = {};
+    for (const item of allItems) {
+      if (!itemsMap[item.quotationId]) itemsMap[item.quotationId] = [];
+      itemsMap[item.quotationId].push(item);
     }
-    return result;
+    return qList.map(q => ({ ...q, items: itemsMap[q.id] || [] }));
   }
 
   async restoreQuotation(id: number): Promise<void> {

@@ -702,125 +702,64 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
   const element = document.getElementById(elementId);
   if (!element) return;
 
+  // Collect elements to hide and save their display values
+  const noPrintEls = Array.from(element.querySelectorAll('.no-print')) as HTMLElement[];
+  const prevDisplays = noPrintEls.map(el => el.style.display);
+
+  // Save element styles
+  const savedStyle = {
+    bg: element.style.background,
+    bgColor: element.style.backgroundColor,
+    color: element.style.color,
+    shadow: element.style.boxShadow,
+    border: element.style.border,
+    height: element.style.height,
+    minHeight: element.style.minHeight,
+    overflow: element.style.overflow,
+    borderRadius: element.style.borderRadius,
+    flex: element.style.flex,
+  };
+
+  // Save dark mode state
+  const hadDark = document.documentElement.classList.contains('dark');
+
   try {
     const fontCss = await getCairoFontCSS();
 
-    // Build an off-screen clean copy
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = `
-      width: 210mm;
-      padding: 8mm 6mm;
-      background: #ffffff;
-      color: #000000;
-      font-family: Cairo, sans-serif;
-      direction: rtl;
-      text-align: right;
-      box-sizing: border-box;
-      position: absolute;
-      top: -99999px;
-      left: 0;
-    `;
+    // 1. Hide no-print elements
+    noPrintEls.forEach(el => { el.style.display = 'none'; });
 
-    const clone = element.cloneNode(true) as HTMLElement;
+    // 2. Remove dark mode so CSS variables resolve to light values
+    if (hadDark) document.documentElement.classList.remove('dark');
 
-    // Remove no-print elements
-    clone.querySelectorAll('.no-print').forEach(el => el.remove());
+    // 3. Force white bg and remove decorative chrome
+    element.style.background = '#ffffff';
+    element.style.backgroundColor = '#ffffff';
+    element.style.color = '#1e293b';
+    element.style.boxShadow = 'none';
+    element.style.border = 'none';
+    element.style.borderRadius = '0';
+    element.style.height = 'auto';
+    element.style.minHeight = '0';
+    element.style.overflow = 'visible';
+    element.style.flex = 'none';
 
-    // Remove dark mode background/text classes from the clone root
-    clone.style.background = '#ffffff';
-    clone.style.color = '#000000';
-    clone.style.boxShadow = 'none';
-    clone.style.border = 'none';
-    clone.style.borderRadius = '0';
-    clone.style.padding = '0';
-    clone.style.flex = 'none';
-    clone.style.display = 'block';
+    // 4. Give browser time to reflow/repaint
+    await new Promise(resolve => setTimeout(resolve, 200));
 
-    // Remove dark backgrounds from all child elements
-    clone.querySelectorAll('*').forEach(el => {
-      const htmlEl = el as HTMLElement;
-      htmlEl.style.boxShadow = 'none';
-      // Force light text on any dark bg cells (handled by inline styles already set)
-    });
-
-    // Replace inputs and textareas with styled divs
-    clone.querySelectorAll('input, textarea').forEach(input => {
-      const htmlInput = input as HTMLInputElement | HTMLTextAreaElement;
-      const value = htmlInput.value;
-      const computed = window.getComputedStyle(htmlInput);
-      const isLtr = htmlInput.getAttribute('dir') === 'ltr' || (htmlInput as HTMLInputElement).type === 'number' || (htmlInput as HTMLInputElement).type === 'date';
-
-      const div = document.createElement('div');
-      div.style.cssText = `
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        font-size: ${computed.fontSize};
-        font-weight: ${computed.fontWeight};
-        color: #000000;
-        direction: ${isLtr ? 'ltr' : 'rtl'};
-        text-align: ${isLtr ? 'center' : (computed.textAlign || 'right')};
-        padding: ${computed.padding};
-        min-height: 1em;
-        font-family: Cairo, sans-serif;
-      `;
-      div.textContent = value || '\u00A0';
-      htmlInput.parentNode?.replaceChild(div, htmlInput);
-    });
-
-    // Fix table styles
-    clone.querySelectorAll('table').forEach(table => {
-      (table as HTMLElement).style.cssText += 'border-collapse:collapse;width:100%;direction:rtl;';
-      table.querySelectorAll('th').forEach(th => {
-        const el = th as HTMLElement;
-        el.style.border = '1px solid #000';
-        el.style.padding = '8px 6px';
-        el.style.verticalAlign = 'middle';
-        el.style.minHeight = '36px';
-      });
-      table.querySelectorAll('tbody td, tfoot td').forEach(td => {
-        const el = td as HTMLElement;
-        el.style.border = '1px solid #000';
-        el.style.padding = '8px 6px';
-        el.style.verticalAlign = 'middle';
-        el.style.minHeight = '36px';
-        el.style.wordWrap = 'break-word';
-      });
-    });
-
-    // Fix flex containers
-    clone.querySelectorAll('*').forEach(el => {
-      const htmlEl = el as HTMLElement;
-      if (!htmlEl.classList) return;
-      if (htmlEl.classList.contains('flex') || htmlEl.classList.contains('inline-flex')) {
-        htmlEl.style.display = 'flex';
-        if (htmlEl.classList.contains('items-center')) htmlEl.style.alignItems = 'center';
-        if (htmlEl.classList.contains('justify-center')) htmlEl.style.justifyContent = 'center';
-        if (htmlEl.classList.contains('flex-col')) htmlEl.style.flexDirection = 'column';
-        if (htmlEl.classList.contains('gap-2')) htmlEl.style.gap = '8px';
-        if (htmlEl.classList.contains('gap-3')) htmlEl.style.gap = '12px';
-        if (htmlEl.classList.contains('gap-4')) htmlEl.style.gap = '16px';
-      }
-      if (htmlEl.classList.contains('text-center')) htmlEl.style.textAlign = 'center';
-      if (htmlEl.classList.contains('text-right')) htmlEl.style.textAlign = 'right';
-    });
-
-    wrapper.appendChild(clone);
-    document.body.appendChild(wrapper);
-    await new Promise(resolve => setTimeout(resolve, 300));
-
-    const canvas = await html2canvas(wrapper, {
+    // 5. Capture the element in-place
+    const canvas = await html2canvas(element, {
       scale: 3,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
       allowTaint: true,
       imageTimeout: 15000,
-      windowWidth: Math.round(210 * 96 / 25.4),
+      windowWidth: element.offsetWidth || Math.round(210 * 96 / 25.4),
       onclone: async (doc: Document) => {
+        doc.documentElement.classList.remove('dark');
         doc.documentElement.setAttribute('dir', 'rtl');
         doc.documentElement.style.direction = 'rtl';
-        // Remove dark class so dark mode styles don't apply
-        doc.documentElement.classList.remove('dark');
         const style = doc.createElement('style');
         style.textContent = fontCss + '\n* { font-family: "Cairo", Arial, sans-serif !important; }';
         doc.head.appendChild(style);
@@ -828,15 +767,30 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
       },
     });
 
-    document.body.removeChild(wrapper);
+    // 6. Restore everything
+    noPrintEls.forEach((el, i) => { el.style.display = prevDisplays[i]; });
+    if (hadDark) document.documentElement.classList.add('dark');
+    element.style.background = savedStyle.bg;
+    element.style.backgroundColor = savedStyle.bgColor;
+    element.style.color = savedStyle.color;
+    element.style.boxShadow = savedStyle.shadow;
+    element.style.border = savedStyle.border;
+    element.style.borderRadius = savedStyle.borderRadius;
+    element.style.height = savedStyle.height;
+    element.style.minHeight = savedStyle.minHeight;
+    element.style.overflow = savedStyle.overflow;
+    element.style.flex = savedStyle.flex;
 
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      console.error('No-header PDF: canvas is empty');
+      return;
+    }
+
+    // 7. Build PDF pages
     const pdf = new SimplePDF();
     const pdfWidth = pdf.getPageWidth();
     const pdfHeight = pdf.getPageHeight();
-    const marginX = 0;
-    const marginY = 0;
-    const imgWidth = pdfWidth;
-    const canvasPixelsPerMM = canvas.width / imgWidth;
+    const canvasPixelsPerMM = canvas.width / pdfWidth;
     const fullPageHeightPx = pdfHeight * canvasPixelsPerMM;
 
     let sourceY = 0;
@@ -863,7 +817,7 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
 
       const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
       const pageHeightMM = sliceHeightPx / canvasPixelsPerMM;
-      pdf.addImage(imgData, 'JPEG', marginX, marginY, imgWidth, pageHeightMM);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pageHeightMM);
 
       sourceY += sliceHeightPx;
       pageIndex++;
@@ -871,6 +825,19 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
 
     pdf.save(`${filename}.pdf`);
   } catch (error) {
+    // Always restore on error
+    noPrintEls.forEach((el, i) => { el.style.display = prevDisplays[i]; });
+    if (hadDark) document.documentElement.classList.add('dark');
+    element.style.background = savedStyle.bg;
+    element.style.backgroundColor = savedStyle.bgColor;
+    element.style.color = savedStyle.color;
+    element.style.boxShadow = savedStyle.shadow;
+    element.style.border = savedStyle.border;
+    element.style.borderRadius = savedStyle.borderRadius;
+    element.style.height = savedStyle.height;
+    element.style.minHeight = savedStyle.minHeight;
+    element.style.overflow = savedStyle.overflow;
+    element.style.flex = savedStyle.flex;
     console.error('Failed to generate no-header PDF:', error);
   }
 };
