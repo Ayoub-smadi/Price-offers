@@ -808,6 +808,59 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
       }
     });
 
+    // ── Convert CSS Grid → Flexbox so html2canvas renders columns correctly ──
+    cloneEl.querySelectorAll<HTMLElement>('*').forEach(el => {
+      if (!el.classList) return;
+      // Convert grid layouts to flex (html2canvas doesn't support CSS Grid)
+      if (el.classList.contains('grid')) {
+        el.style.display = 'flex';
+        el.style.flexDirection = 'row';
+        let cols = 1;
+        if (el.classList.contains('grid-cols-2')) cols = 2;
+        if (el.classList.contains('grid-cols-3')) cols = 3;
+        if (el.classList.contains('grid-cols-4')) cols = 4;
+        const gapPx = el.classList.contains('gap-2') ? 8
+          : el.classList.contains('gap-3') ? 12
+          : el.classList.contains('gap-4') ? 16
+          : el.classList.contains('gap-6') ? 24
+          : el.classList.contains('gap-8') ? 32 : 0;
+        if (gapPx) el.style.gap = `${gapPx}px`;
+        Array.from(el.children).forEach(child => {
+          const w = `calc((100% - ${gapPx * (cols - 1)}px) / ${cols})`;
+          (child as HTMLElement).style.flex = `0 0 ${w}`;
+          (child as HTMLElement).style.width = w;
+          (child as HTMLElement).style.boxSizing = 'border-box';
+        });
+      }
+      // Fix flex utilities
+      if (el.classList.contains('flex') || el.classList.contains('inline-flex')) {
+        el.style.display = 'flex';
+        if (el.classList.contains('items-center')) el.style.alignItems = 'center';
+        if (el.classList.contains('items-start'))  el.style.alignItems = 'flex-start';
+        if (el.classList.contains('justify-center'))  el.style.justifyContent = 'center';
+        if (el.classList.contains('justify-between')) el.style.justifyContent = 'space-between';
+        if (el.classList.contains('justify-end'))     el.style.justifyContent = 'flex-end';
+        if (el.classList.contains('flex-col'))        el.style.flexDirection = 'column';
+        if (el.classList.contains('flex-1'))          el.style.flex = '1';
+        if (el.classList.contains('flex-shrink-0'))   el.style.flexShrink = '0';
+        if (el.classList.contains('flex-wrap'))       el.style.flexWrap = 'wrap';
+        const fg = el.classList.contains('gap-1') ? 4 : el.classList.contains('gap-2') ? 8
+          : el.classList.contains('gap-3') ? 12 : el.classList.contains('gap-4') ? 16
+          : el.classList.contains('gap-6') ? 24 : el.classList.contains('gap-8') ? 32 : -1;
+        if (fg >= 0) el.style.gap = `${fg}px`;
+      }
+      // Text alignment
+      if (el.classList.contains('text-center')) el.style.textAlign = 'center';
+      if (el.classList.contains('text-right'))  el.style.textAlign = 'right';
+      if (el.classList.contains('text-left'))   el.style.textAlign = 'left';
+    });
+
+    // ── Force RTL direction on the meta row labels and values ──
+    cloneEl.querySelectorAll<HTMLElement>('[style*="accentColor"], [class*="tracking-wide"]').forEach(el => {
+      el.style.direction = 'rtl';
+      el.style.textAlign = 'right';
+    });
+
     // Set clean PDF-ready styles - explicit width so html2canvas has a fixed layout width
     const PDF_WIDTH_PX = Math.round(210 * 96 / 25.4); // 210mm at 96dpi ≈ 794px
     cloneEl.style.cssText = cloneEl.style.cssText +
