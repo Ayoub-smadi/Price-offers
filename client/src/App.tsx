@@ -18,6 +18,7 @@ const Login = lazy(() => import("./pages/login"));
 const TrashPage = lazy(() => import("./pages/trash"));
 const EmbedQuotation = lazy(() => import("./pages/embed-quotation"));
 const CreateQuotationNoHeader = lazy(() => import("./pages/create-quotation-no-header"));
+const ViewQuotationNoHeader = lazy(() => import("./pages/view-quotation-no-header"));
 
 function PageLoader() {
   return (
@@ -33,6 +34,7 @@ function MainRouter() {
       <Switch>
         <Route path="/" component={CreateQuotation} />
         <Route path="/no-header" component={CreateQuotationNoHeader} />
+        <Route path="/no-header/:id" component={ViewQuotationNoHeader} />
         <Route path="/history" component={History} />
         <Route path="/quotation/:id" component={EditQuotation} />
         <Route path="/trash" component={TrashPage} />

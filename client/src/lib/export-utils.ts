@@ -801,6 +801,19 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     // Wait for a layout pass and any images to settle
     await new Promise(resolve => setTimeout(resolve, 400));
 
+    // Bake computed text/background colors into inline styles so html2canvas
+    // receives explicit colors regardless of how CSS custom-properties or
+    // Tailwind dark-mode variants resolve inside its internal clone.
+    Array.from(cloneEl.querySelectorAll<HTMLElement>('*')).forEach(el => {
+      const cs = window.getComputedStyle(el);
+      const color = cs.color;
+      const bg = cs.backgroundColor;
+      if (color && color !== 'rgba(0, 0, 0, 0)') el.style.color = color;
+      if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+        el.style.backgroundColor = bg;
+      }
+    });
+
     const canvas = await renderToCanvas(cloneEl);
 
     document.body.removeChild(captureWrapper);

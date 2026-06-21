@@ -191,7 +191,14 @@ export default function History() {
                         <Trash2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => navigate(`/quotation/${quote.id}`)}
+                        onClick={() => {
+                          const type = (quote as any).quotationType;
+                          if (type === 'no-header') {
+                            navigate(`/no-header/${quote.id}`);
+                          } else {
+                            navigate(`/quotation/${quote.id}`);
+                          }
+                        }}
                         className="text-primary font-bold text-sm px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors"
                         data-testid={`button-view-${quote.id}`}
                       >

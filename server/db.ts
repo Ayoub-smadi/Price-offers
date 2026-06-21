@@ -5,6 +5,11 @@ import * as schema from "@shared/schema";
 const { Pool } = pg;
 
 const connectionString = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+// Log which DB is being used (host only, no credentials)
+try {
+  const host = new URL(connectionString!.replace('postgresql://', 'https://')).hostname;
+  console.log('[db] connecting to:', host);
+} catch {}
 
 if (!connectionString) {
   throw new Error(
