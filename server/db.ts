@@ -12,8 +12,13 @@ if (!connectionString) {
   );
 }
 
+const needsSsl =
+  connectionString.includes("neon.tech") ||
+  connectionString.includes("sslmode=require") ||
+  !!process.env.NEON_DATABASE_URL;
+
 export const pool = new Pool({
   connectionString,
-  ssl: process.env.NEON_DATABASE_URL ? { rejectUnauthorized: false } : undefined,
+  ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
 });
 export const db = drizzle(pool, { schema });
