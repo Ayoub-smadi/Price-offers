@@ -761,25 +761,51 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     // Clone the live element so we don't modify the actual DOM
     const cloneEl = element.cloneNode(true) as HTMLElement;
 
-    // Copy current input/textarea values into the clone.
-    // cloneNode(true) copies the DOM structure but NOT the JS .value property,
-    // so user-entered text would be lost without this step.
-    const liveInputs = Array.from(element.querySelectorAll('input, textarea'));
-    const cloneInputs = Array.from(cloneEl.querySelectorAll('input, textarea'));
-    liveInputs.forEach((input, i) => {
-      const cloneInput = cloneInputs[i] as HTMLInputElement | HTMLTextAreaElement | undefined;
-      if (!cloneInput) return;
-      if (input instanceof HTMLInputElement) {
-        cloneInput.setAttribute('value', input.value);
-        (cloneInput as HTMLInputElement).defaultValue = input.value;
-      } else if (input instanceof HTMLTextAreaElement) {
-        cloneInput.textContent = (input as HTMLTextAreaElement).value;
-      }
-    });
-
     // Hide no-print elements in the clone
     cloneEl.querySelectorAll('.no-print').forEach(el => {
       (el as HTMLElement).style.display = 'none';
+    });
+
+    // Replace every <input> with a <div> showing its value as static text.
+    // html2canvas does not reliably render <input> values, so we must convert
+    // them to plain elements before capturing.
+    // Collect live values BEFORE operating on the clone so indices match.
+    const liveInputs = Array.from(element.querySelectorAll<HTMLInputElement>('input'));
+    const liveTextareas = Array.from(element.querySelectorAll<HTMLTextAreaElement>('textarea'));
+
+    Array.from(cloneEl.querySelectorAll<HTMLInputElement>('input')).forEach((input, idx) => {
+      const val = liveInputs[idx]?.value ?? input.getAttribute('value') ?? '';
+      const cs = window.getComputedStyle(input);
+      const div = document.createElement('div');
+      div.textContent = val || input.placeholder || '';
+      div.style.cssText =
+        `font-size:${cs.fontSize};font-weight:${cs.fontWeight};color:${val ? cs.color : '#9ca3af'};` +
+        `direction:${cs.direction};text-align:${cs.textAlign};` +
+        `width:100%;word-break:break-word;white-space:pre-wrap;padding:${cs.paddingTop} 0;` +
+        `background:transparent;line-height:${cs.lineHeight};font-family:${cs.fontFamily};`;
+      input.replaceWith(div);
+    });
+
+    // Replace every <textarea> with a <div> showing its value.
+    Array.from(cloneEl.querySelectorAll<HTMLTextAreaElement>('textarea')).forEach((textarea, idx) => {
+      const val = liveTextareas[idx]?.value ?? textarea.textContent ?? '';
+      const cs = window.getComputedStyle(textarea);
+      const div = document.createElement('div');
+      div.textContent = val || textarea.placeholder || '';
+      div.style.cssText =
+        `font-size:${cs.fontSize};font-weight:${cs.fontWeight};color:${val ? cs.color : '#9ca3af'};` +
+        `direction:${cs.direction};text-align:${cs.textAlign};` +
+        `width:100%;word-break:break-word;white-space:pre-wrap;` +
+        `background:transparent;line-height:${cs.lineHeight};font-family:${cs.fontFamily};`;
+      textarea.replaceWith(div);
+    });
+
+    // Fix overflow:hidden on all inner elements — prevents text clipping in PDF.
+    cloneEl.querySelectorAll<HTMLElement>('*').forEach(el => {
+      const cs = window.getComputedStyle(el);
+      if (cs.overflow === 'hidden' || cs.overflowX === 'hidden' || cs.overflowY === 'hidden') {
+        el.style.overflow = 'visible';
+      }
     });
 
     // Set clean PDF-ready styles - explicit width so html2canvas has a fixed layout width
@@ -794,12 +820,13 @@ export const exportNoHeaderToPDF = async (elementId: string, filename: string) =
     // but html2canvas (which captures the cloned document) WILL see it correctly.
     captureWrapper = document.createElement('div');
     captureWrapper.style.cssText =
-      'position:fixed;top:0;left:0;z-index:1;pointer-events:none;overflow:visible;';
+      'position:fixed;top:0;left:0;z-index:1;pointer-events:none;overflow:visible;' +
+      `width:${PDF_WIDTH_PX}px;direction:rtl;`;
     captureWrapper.appendChild(cloneEl);
     document.body.appendChild(captureWrapper);
 
     // Wait for a layout pass and any images to settle
-    await new Promise(resolve => setTimeout(resolve, 400));
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Bake computed text/background colors into inline styles so html2canvas
     // receives explicit colors regardless of how CSS custom-properties or
