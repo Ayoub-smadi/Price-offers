@@ -507,13 +507,33 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
         </div>
 
 
-        {/* ── Footer: Notes ── */}
-        <div className="px-8 pb-6 pt-2 border-t border-slate-100">
-          <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>ملاحظات</div>
-          <textarea value={details.notes}
-            onChange={e => setDetails({ ...details, notes: e.target.value })}
-            className="w-full text-xs text-slate-600 bg-transparent border-none outline-none resize-none leading-relaxed"
-            rows={3} placeholder="أي ملاحظات إضافية..." style={{ direction: 'rtl' }} />
+        {/* ── Footer: Notes + Stamp ── */}
+        <div className="px-8 pb-6 pt-2 border-t border-slate-100 grid grid-cols-2 gap-8">
+          {/* Notes */}
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>ملاحظات</div>
+            <textarea value={details.notes}
+              onChange={e => setDetails({ ...details, notes: e.target.value })}
+              className="w-full text-xs text-slate-600 bg-transparent border-none outline-none resize-none leading-relaxed"
+              rows={3} placeholder="أي ملاحظات إضافية..." style={{ direction: 'rtl' }} />
+          </div>
+
+          {/* Stamp only — no title/text */}
+          <div className="flex flex-col items-center justify-center">
+            {stampSrc ? (
+              <div className="relative">
+                <img src={stampSrc} alt="الختم" className="w-24 h-24 object-contain opacity-90" />
+                <button onClick={() => setStampSrc(null)}
+                  className="no-print absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] hover:bg-red-600">×</button>
+              </div>
+            ) : (
+              <label className="no-print cursor-pointer flex flex-col items-center gap-1 border-2 border-dashed border-slate-200 rounded-xl w-24 h-24 justify-center hover:border-slate-400 transition-all">
+                <input type="file" accept="image/*" className="hidden" onChange={handleStampUpload} />
+                <Upload className="w-4 h-4 text-slate-300" />
+                <span className="text-[9px] text-slate-400">ختم / توقيع</span>
+              </label>
+            )}
+          </div>
         </div>
 
         {/* ── Bottom accent bar ── */}
