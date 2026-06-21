@@ -380,6 +380,25 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
         </div>
 
 
+        {/* ── Meta Row ── */}
+        <div className="px-8 py-4 grid grid-cols-3 gap-4 border-b border-slate-100"
+          style={{ backgroundColor: tint(accentColor, 0.04) }}>
+          {[
+            { label: "العميل", value: details.customerName, key: "customerName", type: "text", placeholder: "اسم العميل" },
+            { label: "رقم عرض السعر", value: details.quotationNumber, key: "quotationNumber", type: "text", placeholder: "" },
+            { label: "التاريخ", value: details.date, key: "date", type: "date", placeholder: "" },
+          ].map(f => (
+            <div key={f.key} className="text-right">
+              <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>{f.label}</div>
+              <input type={f.type} value={f.value}
+                onChange={e => setDetails({ ...details, [f.key]: e.target.value })}
+                placeholder={f.placeholder}
+                className="w-full text-sm font-semibold text-slate-800 bg-transparent border-b border-slate-200 focus:border-slate-500 outline-none py-0.5 text-right"
+                style={{ direction: 'rtl' }} />
+            </div>
+          ))}
+        </div>
+
         {/* ── Items Table ── */}
         <div className="px-8 py-4">
           <table className="w-full text-right text-sm border-collapse">
@@ -487,6 +506,15 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
           </div>
         </div>
 
+
+        {/* ── Footer: Notes ── */}
+        <div className="px-8 pb-6 pt-2 border-t border-slate-100">
+          <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>ملاحظات</div>
+          <textarea value={details.notes}
+            onChange={e => setDetails({ ...details, notes: e.target.value })}
+            className="w-full text-xs text-slate-600 bg-transparent border-none outline-none resize-none leading-relaxed"
+            rows={3} placeholder="أي ملاحظات إضافية..." style={{ direction: 'rtl' }} />
+        </div>
 
         {/* ── Bottom accent bar ── */}
         <div className="h-1.5" style={{ backgroundColor: accentColor }} />
