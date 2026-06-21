@@ -340,14 +340,14 @@ export function QuotationForm({ draftKey = "aq_draft_quotation", embedMode = fal
           <table className="w-full text-right text-xs border-collapse">
             <thead>
               <tr className="bg-slate-900 dark:bg-slate-950 text-white border-b border-slate-700">
-                <th className="p-2 text-center w-6"><input value={headers.index} onChange={e => setHeaders({...headers, index: e.target.value})} className={hdrCls} style={{ width: '2rem' }} /></th>
-                <th className="p-2 text-right"><input value={headers.name} onChange={e => setHeaders({...headers, name: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-right"><input value={headers.description} onChange={e => setHeaders({...headers, description: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-right"><input value={headers.category} onChange={e => setHeaders({...headers, category: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-center w-24"><input value={headers.quantity} onChange={e => setHeaders({...headers, quantity: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-center w-24"><input value={headers.price} onChange={e => setHeaders({...headers, price: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-center w-24"><input value={headers.total} onChange={e => setHeaders({...headers, total: e.target.value})} className={hdrCls} /></th>
-                <th className="p-2 text-center w-28"><input value={headers.image} onChange={e => setHeaders({...headers, image: e.target.value})} className={hdrCls} /></th>
+                <th className="p-2 text-center w-6"><input value={headers.index} onChange={e => setHeaders({...headers, index: e.target.value})} className={hdrCls} style={{ width: '2rem', color: '#ffffff' }} /></th>
+                <th className="p-2 text-right"><input value={headers.name} onChange={e => setHeaders({...headers, name: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-right"><input value={headers.description} onChange={e => setHeaders({...headers, description: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-right"><input value={headers.category} onChange={e => setHeaders({...headers, category: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-center w-24"><input value={headers.quantity} onChange={e => setHeaders({...headers, quantity: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-center w-24"><input value={headers.price} onChange={e => setHeaders({...headers, price: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-center w-24"><input value={headers.total} onChange={e => setHeaders({...headers, total: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
+                <th className="p-2 text-center w-28"><input value={headers.image} onChange={e => setHeaders({...headers, image: e.target.value})} className={hdrCls} style={{ color: '#ffffff' }} /></th>
                 <th className="p-2 w-10 no-print"></th>
               </tr>
             </thead>

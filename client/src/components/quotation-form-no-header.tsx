@@ -379,24 +379,6 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
           </div>
         </div>
 
-        {/* ── Meta Row ── */}
-        <div className="px-8 py-4 grid grid-cols-3 gap-4 border-b border-slate-100"
-          style={{ backgroundColor: tint(accentColor, 0.04) }}>
-          {[
-            { label: "إلى السادة", value: details.customerName, key: "customerName", type: "text", placeholder: "اسم العميل" },
-            { label: "رقم العرض", value: details.quotationNumber, key: "quotationNumber", type: "text", placeholder: "" },
-            { label: "التاريخ", value: details.date, key: "date", type: "date", placeholder: "" },
-          ].map(f => (
-            <div key={f.key} className="text-right">
-              <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>{f.label}</div>
-              <input type={f.type} value={f.value}
-                onChange={e => setDetails({ ...details, [f.key]: e.target.value })}
-                placeholder={f.placeholder}
-                className="w-full text-sm font-semibold text-slate-800 bg-transparent border-b border-slate-200 focus:border-slate-500 outline-none py-0.5 text-right"
-                style={{ direction: 'rtl' }} />
-            </div>
-          ))}
-        </div>
 
         {/* ── Items Table ── */}
         <div className="px-8 py-4">
@@ -505,47 +487,6 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
           </div>
         </div>
 
-        {/* ── Footer: Notes + Signature ── */}
-        <div className="px-8 pb-6 pt-2 border-t border-slate-100 grid grid-cols-2 gap-8">
-          {/* Notes */}
-          <div>
-            {(details.notes || true) && (
-              <>
-                <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>ملاحظات</div>
-                <textarea value={details.notes}
-                  onChange={e => setDetails({ ...details, notes: e.target.value })}
-                  className="w-full text-xs text-slate-600 bg-transparent border-none outline-none resize-none leading-relaxed"
-                  rows={3} placeholder="أي ملاحظات إضافية..." style={{ direction: 'rtl' }} />
-              </>
-            )}
-          </div>
-
-          {/* Signature + Stamp */}
-          <div className="text-center flex flex-col items-center gap-2">
-            <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>التوقيع والختم</div>
-            {stampSrc ? (
-              <div className="relative">
-                <img src={stampSrc} alt="الختم" className="w-24 h-24 object-contain opacity-90" />
-                <button onClick={() => setStampSrc(null)}
-                  className="no-print absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] hover:bg-red-600">×</button>
-              </div>
-            ) : (
-              <label className="no-print cursor-pointer flex flex-col items-center gap-1 border-2 border-dashed border-slate-200 rounded-xl w-24 h-24 justify-center hover:border-slate-400 transition-all">
-                <input type="file" accept="image/*" className="hidden" onChange={handleStampUpload} />
-                <Upload className="w-4 h-4 text-slate-300" />
-                <span className="text-[9px] text-slate-400">ختم / توقيع</span>
-              </label>
-            )}
-            <input value={details.closingText}
-              onChange={e => setDetails({ ...details, closingText: e.target.value })}
-              className="text-center text-xs text-slate-500 bg-transparent border-none outline-none w-full"
-              style={{ direction: 'rtl' }} />
-            <input value={details.signerTitle}
-              onChange={e => setDetails({ ...details, signerTitle: e.target.value })}
-              className="text-center text-xs font-bold text-slate-700 bg-transparent border-none outline-none w-full"
-              style={{ direction: 'rtl' }} />
-          </div>
-        </div>
 
         {/* ── Bottom accent bar ── */}
         <div className="h-1.5" style={{ backgroundColor: accentColor }} />
