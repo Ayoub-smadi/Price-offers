@@ -11,6 +11,12 @@ const A4_PT_H = Math.round(A4_MM_H * PT_PER_MM); // 841
 
 function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: number; xMM: number; yMM: number }[][]): Uint8Array {
   // Each entry in `pages` is an array of images to place on that page.
+  // Object ID layout (no collisions):
+  //   1          = Catalog
+  //   2          = Pages
+  //   3..N       = Page objects          (N = 3 + pageCount - 1)
+  //   N+1..M     = Content stream objs   (M = 3 + 2*pageCount - 1)
+  //   M+1..      = Image XObjects
   const enc = new TextEncoder();
   const chunks: Uint8Array[] = [];
   const offsets: number[] = [];
@@ -29,21 +35,22 @@ function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: num
   push('%PDF-1.4\n');
 
   const pageCount = pages.length;
-  // Object IDs: 1=catalog, 2=pages, 3..=(3+pageCount-1)=page objs, then image+xobj pairs
-  // We'll collect image xobjects per page.
 
   type ImgObj = { objId: number; width: number; height: number; dataBytes: Uint8Array };
   const pageImgObjs: ImgObj[][] = pages.map(() => []);
 
-  // First pass: decode base64 images
-  let nextObjId = 3 + pageCount; // page objects start at 3
+  // First pass: decode base64 images and assign object IDs.
+  // Image XObjects start at (3 + 2*pageCount) to avoid colliding with:
+  //   page objects   [3 .. 3+pageCount-1]
+  //   content streams [3+pageCount .. 3+2*pageCount-1]
+  let nextObjId = 3 + 2 * pageCount;
   for (let pi = 0; pi < pages.length; pi++) {
     for (const img of pages[pi]) {
       const b64 = img.jpeg.replace(/^data:image\/jpeg;base64,/, '');
       const binary = atob(b64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      // Parse JPEG dimensions
+      // Parse JPEG dimensions from SOF0/SOF2 marker
       let w = 0, h = 0;
       for (let i = 0; i < bytes.length - 8; i++) {
         if (bytes[i] === 0xFF && (bytes[i+1] === 0xC0 || bytes[i+1] === 0xC2)) {
@@ -66,51 +73,49 @@ function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: num
   };
   const endObj = () => push('endobj\n');
 
-  // 1: Catalog
+  // Object 1: Catalog
   startObj(1);
   push('<< /Type /Catalog /Pages 2 0 R >>\n');
   endObj();
 
-  // 2: Pages
+  // Object 2: Pages
   startObj(2);
   const kidsStr = Array.from({ length: pageCount }, (_, i) => `${3 + i} 0 R`).join(' ');
   push(`<< /Type /Pages /Kids [${kidsStr}] /Count ${pageCount} >>\n`);
   endObj();
 
-  // 3..3+pageCount-1: Page objects + content streams
+  // Objects 3..(3+pageCount-1): Page dictionary objects
+  // Objects (3+pageCount)..(3+2*pageCount-1): Content stream objects
   for (let pi = 0; pi < pageCount; pi++) {
-    const pageObjId = 3 + pi;
-    const imgs = pageImgObjs[pi];
+    const pageObjId    = 3 + pi;
+    const contentObjId = 3 + pageCount + pi; // safe: no overlap with image IDs
+    const imgs         = pageImgObjs[pi];
     const pageInputImgs = pages[pi];
 
-    // Build content stream
+    // Build content stream: draw each image XObject onto the page
     let streamLines = '';
     for (let ii = 0; ii < imgs.length; ii++) {
       const imgObj = imgs[ii];
-      const inp = pageInputImgs[ii];
-      const xPt = inp.xMM * PT_PER_MM;
-      const yPt = A4_PT_H - (inp.yMM * PT_PER_MM) - (inp.heightMM * PT_PER_MM);
-      const wPt = inp.widthMM * PT_PER_MM;
-      const hPt = inp.heightMM * PT_PER_MM;
-      const xName = `Im${imgObj.objId}`;
+      const inp    = pageInputImgs[ii];
+      const xPt    = inp.xMM * PT_PER_MM;
+      const yPt    = A4_PT_H - (inp.yMM * PT_PER_MM) - (inp.heightMM * PT_PER_MM);
+      const wPt    = inp.widthMM * PT_PER_MM;
+      const hPt    = inp.heightMM * PT_PER_MM;
+      const xName  = `Im${imgObj.objId}`;
       streamLines += `q ${wPt.toFixed(3)} 0 0 ${hPt.toFixed(3)} ${xPt.toFixed(3)} ${yPt.toFixed(3)} cm /${xName} Do Q\n`;
     }
     const streamBytes = enc.encode(streamLines);
 
-    // XObject references
+    // XObject resource dictionary entries
     const xObjEntries = imgs.map(im => `/Im${im.objId} ${im.objId} 0 R`).join(' ');
 
-    // Content stream object (pageObjId + pageCount)
-    const contentObjId = pageObjId + pageCount;
-    offsets[contentObjId] = pos; // will overwrite below correctly
-    // We write image xobjects first, then content
-    // Actually write in order: page obj, then content stream obj
+    // Write page dictionary
     startObj(pageObjId);
     push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${A4_PT_W} ${A4_PT_H}] /Contents ${contentObjId} 0 R /Resources << /XObject << ${xObjEntries} >> >> >>\n`);
     endObj();
 
-    offsets[contentObjId] = pos;
-    push(`${contentObjId} 0 obj\n`);
+    // Write content stream
+    startObj(contentObjId);
     push(`<< /Length ${streamBytes.length} >>\n`);
     push('stream\n');
     pushBytes(streamBytes);
@@ -118,11 +123,10 @@ function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: num
     endObj();
   }
 
-  // Image XObjects
+  // Image XObjects (IDs start at 3+2*pageCount — guaranteed no overlap)
   for (let pi = 0; pi < pages.length; pi++) {
     for (const img of pageImgObjs[pi]) {
-      offsets[img.objId] = pos;
-      push(`${img.objId} 0 obj\n`);
+      startObj(img.objId);
       push(`<< /Type /XObject /Subtype /Image /Width ${img.width} /Height ${img.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.dataBytes.length} >>\n`);
       push('stream\n');
       pushBytes(img.dataBytes);
@@ -131,7 +135,7 @@ function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: num
     }
   }
 
-  // xref table
+  // Cross-reference table
   const xrefOffset = pos;
   push(`xref\n0 ${totalObjects + 1}\n`);
   push('0000000000 65535 f \n');
@@ -142,7 +146,7 @@ function buildPdfFromJpegs(pages: { jpeg: string; widthMM: number; heightMM: num
   push(`trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\n`);
   push(`startxref\n${xrefOffset}\n%%EOF\n`);
 
-  // Concatenate
+  // Concatenate all chunks into a single Uint8Array
   const total = chunks.reduce((s, c) => s + c.length, 0);
   const out = new Uint8Array(total);
   let off = 0;
