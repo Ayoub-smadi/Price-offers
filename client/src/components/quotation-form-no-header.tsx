@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   Plus, FileText, Save, Wand2, Trash2, CheckCircle2,
-  MessageCircle, RotateCcw, Upload, Eye, EyeOff, X
+  MessageCircle, RotateCcw, Upload, Eye, EyeOff, X, ArrowRight
 } from "lucide-react";
-import { useCreateQuotation as useCreateQuote, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
+import { useCreateQuotation as useCreateQuote, useUpdateQuotation, useParseText as useParseTextAPI } from "@/hooks/use-quotations";
 import { useToast } from "@/hooks/use-toast";
 import { exportNoHeaderToPDF } from "@/lib/export-utils";
 import { format } from "date-fns";
@@ -20,6 +20,23 @@ type Details = {
 };
 
 const DRAFT_KEY = "aq_draft_no_header";
+
+type InitialFormData = {
+  items: Item[];
+  details: Partial<Details>;
+  accentColor?: string;
+  showDesc?: boolean;
+  showCategory?: boolean;
+  discountValue?: number;
+  taxRate?: number;
+  stampSrc?: string | null;
+  logoBase64?: string | null;
+};
+
+type Props = {
+  initialData?: InitialFormData;
+  editId?: number;
+};
 
 const defaultDetails = (): Details => ({
   quotationNumber: `${format(new Date(), "yyyyMMdd")}`,
@@ -59,27 +76,30 @@ function tint(hex: string, opacity = 0.08) {
   return `rgba(${r},${g},${b},${opacity})`;
 }
 
-export function QuotationFormNoHeader() {
+export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const createMutation = useCreateQuote();
+  const updateMutation = useUpdateQuotation(editId ?? 0);
   const parseMutation = useParseTextAPI();
 
   const loadDraft = () => {
+    if (editId) return null; // don't use draft when editing a saved quotation
     try { const raw = sessionStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
   };
   const draft = loadDraft();
+  const source = initialData ?? draft;
 
-  const [items, setItems] = useState<Item[]>(draft?.items ?? defaultItems());
-  const [details, setDetails] = useState<Details>(draft?.details ? { ...defaultDetails(), ...draft.details } : defaultDetails());
-  const [accentColor, setAccentColor] = useState<string>(draft?.accentColor ?? "#16a34a");
-  const [showDesc, setShowDesc] = useState<boolean>(draft?.showDesc ?? true);
-  const [showCategory, setShowCategory] = useState<boolean>(draft?.showCategory ?? false);
-  const [discountValue, setDiscountValue] = useState<number>(draft?.discountValue ?? 0);
-  const [taxRate, setTaxRate] = useState<number>(draft?.taxRate ?? 0);
-  const [stampSrc, setStampSrc] = useState<string | null>(draft?.stampSrc ?? null);
-  const [logoBase64, setLogoBase64] = useState<string | null>(draft?.logoBase64 ?? null);
+  const [items, setItems] = useState<Item[]>(source?.items ?? defaultItems());
+  const [details, setDetails] = useState<Details>(source?.details ? { ...defaultDetails(), ...source.details } : defaultDetails());
+  const [accentColor, setAccentColor] = useState<string>(source?.accentColor ?? "#16a34a");
+  const [showDesc, setShowDesc] = useState<boolean>(source?.showDesc ?? true);
+  const [showCategory, setShowCategory] = useState<boolean>(source?.showCategory ?? false);
+  const [discountValue, setDiscountValue] = useState<number>(source?.discountValue ?? 0);
+  const [taxRate, setTaxRate] = useState<number>(source?.taxRate ?? 0);
+  const [stampSrc, setStampSrc] = useState<string | null>(source?.stampSrc ?? null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(source?.logoBase64 ?? null);
   const [pasteText, setPasteText] = useState("");
   const [showPaste, setShowPaste] = useState(false);
 
@@ -164,7 +184,7 @@ export function QuotationFormNoHeader() {
     if (!details.customerName.trim()) { toast({ title: "مطلوب اسم العميل", variant: "destructive" }); return; }
     const validItems = items.filter(i => i.name.trim());
     if (validItems.length === 0) { toast({ title: "مطلوب إضافة عناصر", variant: "destructive" }); return; }
-    createMutation.mutate({
+    const payload = {
       quotationNumber: details.quotationNumber, customerName: details.customerName,
       date: new Date(details.date), notes: details.notes,
       grandTotal: grandTotal.toString(), quotationType: 'no-header',
@@ -173,10 +193,18 @@ export function QuotationFormNoHeader() {
         category: i.category?.trim() || null, quantity: Math.max(1, i.quantity),
         price: String(Math.max(0, i.price)), total: String(Math.max(0, i.total)), imageUrl: i.imageUrl || null,
       }))
-    }, {
-      onSuccess: () => { toast({ title: "✅ تم حفظ عرض السعر" }); clearDraft(); navigate("/history"); },
-      onError: (e) => toast({ title: "خطأ في الحفظ", description: e.message, variant: "destructive" })
-    });
+    };
+    if (editId) {
+      updateMutation.mutate(payload, {
+        onSuccess: () => { toast({ title: "✅ تم تحديث عرض السعر" }); navigate("/history"); },
+        onError: (e) => toast({ title: "خطأ في التحديث", description: e.message, variant: "destructive" })
+      });
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: () => { toast({ title: "✅ تم حفظ عرض السعر" }); clearDraft(); navigate("/history"); },
+        onError: (e) => toast({ title: "خطأ في الحفظ", description: e.message, variant: "destructive" })
+      });
+    }
   };
 
   const handleStampUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,19 +222,29 @@ export function QuotationFormNoHeader() {
 
       {/* ── Top Toolbar ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 shadow-sm sticky top-2 z-50 no-print">
-        <div>
-          <h1 className="text-base font-bold text-slate-800 dark:text-slate-100">عرض سعر مخصص</h1>
-          <p className="text-slate-400 text-xs">بدون ترويسة شركة</p>
+        <div className="flex items-center gap-2">
+          {editId && (
+            <button onClick={() => navigate("/history")}
+              className="p-1.5 rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 transition-all dark:bg-slate-800" title="رجوع">
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-base font-bold text-slate-800 dark:text-slate-100">عرض سعر مخصص</h1>
+            <p className="text-slate-400 text-xs">{editId ? `تعديل عرض رقم ${details.quotationNumber}` : "بدون ترويسة شركة"}</p>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <button onClick={() => setShowPaste(v => !v)}
             className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-400 text-xs font-semibold transition-all no-print">
             <Wand2 className="w-3.5 h-3.5" /> تحليل نص
           </button>
-          <button onClick={clearDraft}
-            className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition-all dark:bg-slate-800 no-print" title="مسح">
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          {!editId && (
+            <button onClick={clearDraft}
+              className="p-1.5 rounded-lg bg-slate-50 text-slate-400 hover:bg-slate-100 hover:text-red-500 transition-all dark:bg-slate-800 no-print" title="مسح">
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
           <button onClick={handleWhatsApp}
             className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-all dark:bg-green-900/20 dark:text-green-400 no-print" title="واتساب">
             <MessageCircle className="w-4 h-4" />
@@ -215,10 +253,10 @@ export function QuotationFormNoHeader() {
             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-all dark:bg-red-900/20 dark:text-red-400 no-print" title="PDF">
             <FileText className="w-4 h-4" />
           </button>
-          <button onClick={handleSave} disabled={createMutation.isPending}
+          <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white font-semibold text-sm transition-all disabled:opacity-50 shadow-sm no-print"
             style={{ backgroundColor: accentColor }}>
-            {createMutation.isPending ? "جاري..." : "حفظ"} <Save className="w-3.5 h-3.5" />
+            {(createMutation.isPending || updateMutation.isPending) ? "جاري..." : editId ? "تحديث" : "حفظ"} <Save className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
