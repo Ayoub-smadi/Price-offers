@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund --ignore-scripts",
+  "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund --include=dev --ignore-scripts",
   "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "rewrites": [
