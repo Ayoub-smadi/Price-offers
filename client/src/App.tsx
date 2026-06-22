@@ -4,8 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { useState, lazy, Suspense } from "react";
-import { LogOut, Loader2 } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -14,7 +14,6 @@ const NotFound = lazy(() => import("@/pages/not-found"));
 const CreateQuotation = lazy(() => import("./pages/create-quotation"));
 const History = lazy(() => import("./pages/history"));
 const EditQuotation = lazy(() => import("./pages/edit-quotation"));
-const Login = lazy(() => import("./pages/login"));
 const TrashPage = lazy(() => import("./pages/trash"));
 const EmbedQuotation = lazy(() => import("./pages/embed-quotation"));
 const CreateQuotationNoHeader = lazy(() => import("./pages/create-quotation-no-header"));
@@ -28,80 +27,50 @@ function PageLoader() {
   );
 }
 
-function MainRouter() {
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Switch>
-        <Route path="/" component={CreateQuotation} />
-        <Route path="/no-header" component={CreateQuotationNoHeader} />
-        <Route path="/no-header/:id" component={ViewQuotationNoHeader} />
-        <Route path="/history" component={History} />
-        <Route path="/quotation/:id" component={EditQuotation} />
-        <Route path="/trash" component={TrashPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
-  );
-}
+const sidebarStyle = {
+  "--sidebar-width": "18rem",
+  "--sidebar-width-icon": "4rem",
+} as React.CSSProperties;
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem("aq_auth") === "true"
-  );
-
-  const handleLogin = () => setIsAuthenticated(true);
-  const handleLogout = () => {
-    localStorage.removeItem("aq_auth");
-    setIsAuthenticated(false);
-  };
-
-  const sidebarStyle = {
-    "--sidebar-width": "18rem",
-    "--sidebar-width-icon": "4rem",
-  } as React.CSSProperties;
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Suspense fallback={<PageLoader />}>
           <Switch>
-            {/* Public embed route — no auth, no sidebar, no dark mode toggle */}
             <Route path="/embed" component={EmbedQuotation} />
+            <Route path="/no-header" component={CreateQuotationNoHeader} />
+            <Route path="/no-header/:id" component={ViewQuotationNoHeader} />
 
-            {/* All other routes require authentication */}
             <Route>
-              {!isAuthenticated ? (
-                <Login onLogin={handleLogin} />
-              ) : (
-                <div dir="rtl" className="text-right">
-                  <SidebarProvider style={sidebarStyle}>
-                    <div className="flex min-h-screen w-full bg-background overflow-hidden rtl-reverse">
-                      <AppSidebar />
-                      <div className="flex flex-col flex-1 w-full relative">
-                        <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-40 no-print">
-                          <div className="flex items-center gap-4">
-                            <SidebarTrigger className="hover:bg-secondary p-2 rounded-xl transition-colors" />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <ThemeToggle />
-                            <button
-                              onClick={handleLogout}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
-                              title="تسجيل الخروج"
-                            >
-                              <LogOut className="w-4 h-4" />
-                              <span className="hidden sm:block">خروج</span>
-                            </button>
-                          </div>
-                        </header>
-                        <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
-                          <MainRouter />
-                        </main>
-                      </div>
+              <div dir="rtl" className="text-right">
+                <SidebarProvider style={sidebarStyle}>
+                  <div className="flex min-h-screen w-full bg-background overflow-hidden rtl-reverse">
+                    <AppSidebar />
+                    <div className="flex flex-col flex-1 w-full relative">
+                      <header className="flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-md sticky top-0 z-40 no-print">
+                        <div className="flex items-center gap-4">
+                          <SidebarTrigger className="hover:bg-secondary p-2 rounded-xl transition-colors" />
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <ThemeToggle />
+                        </div>
+                      </header>
+                      <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
+                        <Suspense fallback={<PageLoader />}>
+                          <Switch>
+                            <Route path="/" component={CreateQuotation} />
+                            <Route path="/history" component={History} />
+                            <Route path="/quotation/:id" component={EditQuotation} />
+                            <Route path="/trash" component={TrashPage} />
+                            <Route component={NotFound} />
+                          </Switch>
+                        </Suspense>
+                      </main>
                     </div>
-                  </SidebarProvider>
-                </div>
-              )}
+                  </div>
+                </SidebarProvider>
+              </div>
             </Route>
           </Switch>
         </Suspense>
