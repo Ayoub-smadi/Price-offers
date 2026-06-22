@@ -6,9 +6,7 @@ import { z } from "zod";
 import { insertProductSchema, insertProductCategorySchema } from "@shared/schema";
 import multer from "multer";
 import { randomUUID } from "crypto";
-import { objectStorageClient } from "./replit_integrations/object_storage/objectStorage";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
-
+const IS_VERCEL = !!process.env.VERCEL;
 const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
 const PRIVATE_DIR_SUFFIX = ".private";
 const USE_VERCEL_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
@@ -33,6 +31,7 @@ async function uploadToStorage(buffer: Buffer, mimetype: string): Promise<string
     });
     return blob.url;
   } else {
+    const { objectStorageClient } = await import("./replit_integrations/object_storage/objectStorage");
     const uuid = randomUUID();
     const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${uuid}`;
     const bucket = objectStorageClient.bucket(BUCKET_ID);
@@ -47,10 +46,11 @@ async function deleteObjectIfExists(imageUrl: string) {
       const { del } = await import("@vercel/blob");
       await del(imageUrl);
     } catch {}
-  } else if (imageUrl.startsWith("/objects/")) {
+  } else if (imageUrl.startsWith("/objects/") && !IS_VERCEL) {
     const parts = imageUrl.replace("/objects/", "");
     const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${parts.split("/uploads/")[1]}`;
     try {
+      const { objectStorageClient } = await import("./replit_integrations/object_storage/objectStorage");
       const bucket = objectStorageClient.bucket(BUCKET_ID);
       await bucket.file(objectName).delete({ ignoreNotFound: true });
     } catch {}
@@ -182,8 +182,11 @@ export async function registerRoutes(
     }
   });
 
-  // ── Object storage serving ───────────────────────────────────
-  registerObjectStorageRoutes(app);
+  // ── Object storage serving (Replit only) ─────────────────────
+  if (!IS_VERCEL) {
+    const { registerObjectStorageRoutes } = await import("./replit_integrations/object_storage");
+    registerObjectStorageRoutes(app);
+  }
 
   // ── Products ─────────────────────────────────────────────────
   app.get('/api/products', async (_req, res) => {
