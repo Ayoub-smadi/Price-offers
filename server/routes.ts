@@ -6,10 +6,10 @@ import { z } from "zod";
 import { insertProductSchema, insertProductCategorySchema } from "@shared/schema";
 import multer from "multer";
 import { randomUUID } from "crypto";
-const IS_VERCEL = !!process.env.VERCEL;
 const BUCKET_ID = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID || "";
 const PRIVATE_DIR_SUFFIX = ".private";
 const USE_VERCEL_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+const IS_REPLIT = !!BUCKET_ID;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -30,13 +30,15 @@ async function uploadToStorage(buffer: Buffer, mimetype: string): Promise<string
       contentType: mimetype,
     });
     return blob.url;
-  } else {
+  } else if (IS_REPLIT) {
     const { objectStorageClient } = await import("./replit_integrations/object_storage/objectStorage");
     const uuid = randomUUID();
     const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${uuid}`;
     const bucket = objectStorageClient.bucket(BUCKET_ID);
     await bucket.file(objectName).save(buffer, { contentType: mimetype });
     return `/objects/uploads/${uuid}`;
+  } else {
+    throw new Error("No storage backend configured");
   }
 }
 
@@ -46,7 +48,7 @@ async function deleteObjectIfExists(imageUrl: string) {
       const { del } = await import("@vercel/blob");
       await del(imageUrl);
     } catch {}
-  } else if (imageUrl.startsWith("/objects/") && !IS_VERCEL) {
+  } else if (imageUrl.startsWith("/objects/") && IS_REPLIT) {
     const parts = imageUrl.replace("/objects/", "");
     const objectName = `${PRIVATE_DIR_SUFFIX}/uploads/${parts.split("/uploads/")[1]}`;
     try {
@@ -182,8 +184,8 @@ export async function registerRoutes(
     }
   });
 
-  // ── Object storage serving (Replit only) ─────────────────────
-  if (!IS_VERCEL) {
+  // ── Object storage serving ───────────────────────────────────
+  if (IS_REPLIT) {
     const { registerObjectStorageRoutes } = await import("./replit_integrations/object_storage");
     registerObjectStorageRoutes(app);
   }
