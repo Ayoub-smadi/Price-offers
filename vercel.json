@@ -1,6 +1,6 @@
 {
     "version": 2,
-    "installCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm install --legacy-peer-deps --no-audit --no-fund --omit=optional",
+    "installCommand": "npm ci --no-audit --no-fund --omit=optional",
     "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm run build",
     "outputDirectory": "dist/public",
     "rewrites": [
