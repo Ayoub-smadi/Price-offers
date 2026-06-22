@@ -1,11 +1,10 @@
 {
-    "version": 2,
-    "installCommand": "npm ci --no-audit --no-fund --omit=optional",
-    "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm run build",
-    "outputDirectory": "dist/public",
-    "rewrites": [
-      { "source": "/api/:path*", "destination": "/api/index" },
-      { "source": "/((?!api).*)", "destination": "/index.html" }
-    ]
-  }
-  
+  "version": 2,
+  "installCommand": "echo 'using pre-built files'",
+  "buildCommand": "echo 'using pre-built files'",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/((?!api).*)", "destination": "/index.html" }
+  ]
+}

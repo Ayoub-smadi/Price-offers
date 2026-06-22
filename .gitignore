@@ -1,7 +1,6 @@
 node_modules
-dist
+dist/index.cjs
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
-api/index.js

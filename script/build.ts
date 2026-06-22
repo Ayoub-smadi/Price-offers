@@ -5,6 +5,7 @@ import { rm, readFile } from "fs/promises";
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
 const allowlist = [
+  "@google-cloud/storage",
   "@google/generative-ai",
   "@vercel/blob",
   "axios",
@@ -64,7 +65,7 @@ async function buildAll() {
 
   console.log("building vercel api handler...");
   await esbuild({
-    entryPoints: ["api/_source.ts"],
+    entryPoints: ["api/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
