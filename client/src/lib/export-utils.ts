@@ -341,14 +341,15 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
     table.setAttribute('dir', 'rtl');
 
     const headerCells = table.querySelectorAll('th');
-    headerCells.forEach(cell => {
+    headerCells.forEach((cell, colIdx) => {
       const element = cell as HTMLElement;
       element.style.border = '1px solid #000000';
       element.style.padding = '10px 8px';
       element.style.minHeight = '40px';
       element.style.height = '40px';
       element.style.verticalAlign = 'middle';
-      element.style.textAlign = 'center';
+      // Columns 1,2,3 (الاسم، الوصف، القسم) → right-aligned; others → center
+      element.style.textAlign = [1, 2, 3].includes(colIdx) ? 'right' : 'center';
       element.style.backgroundColor = '#1e293b';
       element.style.color = '#ffffff';
       element.style.fontWeight = 'bold';
@@ -400,10 +401,10 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
             inner.setAttribute('dir', 'ltr');
           }
         } else if ([1, 2, 3].includes(colIdx)) {
-          // Name, description, category — center but keep RTL
-          cellEl.style.textAlign = 'center';
+          // Name, description, category — right-aligned RTL
+          cellEl.style.textAlign = 'right';
           if (inner) {
-            inner.style.textAlign = 'center';
+            inner.style.textAlign = 'right';
             if (!innerDir || innerDir === 'ltr') {
               inner.style.direction = 'rtl';
               inner.setAttribute('dir', 'rtl');
