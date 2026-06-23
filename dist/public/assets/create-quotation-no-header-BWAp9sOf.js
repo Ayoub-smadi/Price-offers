@@ -1,0 +1,1 @@
+import{j as o}from"./index-BUls_O4F.js";import{Q as t}from"./quotation-form-no-header-BEoDGUrF.js";import"./use-quotations-DKE-KdE1.js";import"./format-keCnShIS.js";import"./export-utils-BbOYq_fN.js";import"./arrow-right-Bic5uJtD.js";import"./rotate-ccw-IIJIoDO9.js";import"./message-circle-DWz-6XHi.js";function u(){return o.jsx(t,{})}export{u as default};

@@ -1,1 +1,0 @@
-const D="/assets/%D9%84%D9%82%D8%B7%D8%A9_%D8%B4%D8%A7%D8%B4%D8%A9_2026-03-08_080127_1773036971718-SffkTe9O.png";export{D as l};
