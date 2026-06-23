@@ -349,12 +349,23 @@ const createPrintDocument = (element: HTMLElement, items: any[], details: any): 
       element.style.height = '40px';
       element.style.verticalAlign = 'middle';
       // Columns 1,2,3 (الاسم، الوصف، القسم) → right-aligned; others → center
-      element.style.textAlign = [1, 2, 3].includes(colIdx) ? 'right' : 'center';
+      const thAlign = [1, 2, 3].includes(colIdx) ? 'right' : 'center';
+      element.style.textAlign = thAlign;
       element.style.backgroundColor = '#1e293b';
       element.style.color = '#ffffff';
       element.style.fontWeight = 'bold';
       element.style.fontSize = '12px';
       element.style.direction = 'rtl';
+
+      // Fix child divs/spans that replaced inputs — override their black color and alignment
+      element.querySelectorAll('div, span').forEach(child => {
+        const el = child as HTMLElement;
+        el.style.color = '#ffffff';
+        el.style.fontWeight = 'bold';
+        el.style.textAlign = thAlign;
+        el.style.width = '100%';
+        el.style.display = 'block';
+      });
     });
 
     const dataCells = table.querySelectorAll('tbody td');
