@@ -215,7 +215,7 @@ export function QuotationForm({ draftKey = "aq_draft_quotation", embedMode = fal
     });
   };
 
-  const hdrCls = "bg-transparent border-none focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-white/30 rounded px-1 text-center text-xs font-bold text-white w-full";
+  const hdrCls = "bg-transparent border-none focus:outline-none focus:bg-white/10 focus:ring-1 focus:ring-white/30 rounded px-1 text-xs font-bold text-white w-full";
 
   if (savedSuccess) {
     return (
