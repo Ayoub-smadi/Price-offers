@@ -38,7 +38,15 @@ async function uploadToStorage(buffer: Buffer, mimetype: string): Promise<string
     await bucket.file(objectName).save(buffer, { contentType: mimetype });
     return `/objects/uploads/${uuid}`;
   } else {
-    throw new Error("No storage backend configured");
+    const fs = await import("fs");
+    const path = await import("path");
+    const uuid = randomUUID();
+    const ext = mimetype.split("/")[1] || "jpg";
+    const uploadsDir = path.resolve(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    const filename = `${uuid}.${ext}`;
+    fs.writeFileSync(path.join(uploadsDir, filename), buffer);
+    return `/uploads/${filename}`;
   }
 }
 
@@ -55,6 +63,13 @@ async function deleteObjectIfExists(imageUrl: string) {
       const { objectStorageClient } = await import("./replit_integrations/object_storage/objectStorage");
       const bucket = objectStorageClient.bucket(BUCKET_ID);
       await bucket.file(objectName).delete({ ignoreNotFound: true });
+    } catch {}
+  } else if (imageUrl.startsWith("/uploads/")) {
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+      const filePath = path.resolve(process.cwd(), imageUrl.slice(1));
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch {}
   }
 }
