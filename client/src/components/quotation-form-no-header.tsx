@@ -389,7 +389,7 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
             { label: "التاريخ", value: details.date, key: "date", type: "date", placeholder: "" },
           ].map(f => (
             <div key={f.key} className="text-right">
-              <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>{f.label}</div>
+              <div className="text-xs font-bold mb-1 leading-tight" style={{ color: accentColor }}>{f.label}</div>
               <input type={f.type} value={f.value}
                 onChange={e => setDetails({ ...details, [f.key]: e.target.value })}
                 placeholder={f.placeholder}
@@ -511,7 +511,7 @@ export function QuotationFormNoHeader({ initialData, editId }: Props = {}) {
         <div className="px-8 pb-6 pt-2 border-t border-slate-100 grid grid-cols-2 gap-8">
           {/* Notes */}
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: accentColor }}>ملاحظات</div>
+            <div className="text-xs font-bold mb-1 leading-tight" style={{ color: accentColor }}>ملاحظات</div>
             <textarea value={details.notes}
               onChange={e => setDetails({ ...details, notes: e.target.value })}
               className="w-full text-xs text-slate-600 bg-transparent border-none outline-none resize-none leading-relaxed"
