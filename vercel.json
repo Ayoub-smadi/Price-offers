@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "npx vite build",
-  "installCommand": "npm install --legacy-peer-deps",
+  "installCommand": "echo 'pre-built'",
+  "buildCommand": "echo 'pre-built'",
   "outputDirectory": "dist/public",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30
     }
   },
