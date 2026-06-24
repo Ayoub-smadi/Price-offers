@@ -1,10 +1,16 @@
 {
-  "version": 2,
-  "installCommand": "echo 'using pre-built files'",
-  "buildCommand": "echo 'using pre-built files'",
-  "outputDirectory": "dist/public",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/((?!api).*)", "destination": "/index.html" }
-  ]
-}
+    "version": 2,
+    "buildCommand": "npm run build",
+    "installCommand": "npm install",
+    "outputDirectory": "dist/public",
+    "functions": {
+      "api/index.js": {
+        "maxDuration": 30
+      }
+    },
+    "rewrites": [
+      { "source": "/api/:path*", "destination": "/api/index" },
+      { "source": "/((?!api).*)", "destination": "/index.html" }
+    ]
+  }
+  
