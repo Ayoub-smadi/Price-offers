@@ -4,12 +4,13 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-const FALLBACK_URL = "postgresql://neondb_owner:npg_n3tzjUGHuMJ0@ep-aged-moon-adhbxmp5-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require";
-
 const rawConnection =
-  process.env.NEON_DATABASE_URL ||
   process.env.DATABASE_URL ||
-  FALLBACK_URL;
+  process.env.NEON_DATABASE_URL;
+
+if (!rawConnection) {
+  throw new Error("DATABASE_URL environment variable must be set");
+}
 
 // Strip parameters unsupported by the pg driver (e.g. channel_binding)
 function sanitizeConnectionString(url: string): string {
@@ -31,8 +32,7 @@ try {
 
 const needsSsl =
   connectionString.includes("neon.tech") ||
-  connectionString.includes("sslmode=require") ||
-  !!process.env.NEON_DATABASE_URL;
+  connectionString.includes("sslmode=require");
 
 export const pool = new Pool({
   connectionString,
